@@ -39,7 +39,7 @@ const Header = () => {
       <div>
         <NavLink to="/top-goal-scorer">득점왕 TOP 10</NavLink>
         <NavLink to="/top-assists">도움왕 TOP 10</NavLink>
-        <NavLink to="/top-defender">수비왕 TOP 10ss</NavLink>
+        <NavLink to="/top-defender">수비왕 TOP 10</NavLink>
         <NavLink to="/overall-rankings">근속왕 TOP 10</NavLink>
         <NavLink to="/total">내 스탯</NavLink> 
         <NavLink to="/admin">관리자 페이지</NavLink>
