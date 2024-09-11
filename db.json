@@ -1,0 +1,38 @@
+{
+    "attendanceTop5": [
+      { "name": "알베스", "games": 18 },
+      { "name": "유연", "games": 17 },
+      { "name": "빅루트", "games": 17 },
+      { "name": "뺑슨", "games": 17 },
+      { "name": "탱통", "games": 16 }
+    ],
+    "goalsTop5": [
+      { "name": "알베스", "goals": 9 },
+      { "name": "뺑슨", "goals": 7 },
+      { "name": "태스키", "goals": 6 },
+      { "name": "루벤", "goals": 6 },
+      { "name": "탱통", "goals": 5 }
+    ],
+    "assistsTop5": [
+      { "name": "키득신", "assists": 9},
+      { "name": "알베스", "assists": 6 },
+      { "name": "써누", "assists": 6 },
+      { "name": "빅루트", "assists": 5 },
+      { "name": "뺑슨", "assists": 5 }
+    ],
+    "attackPointsTop5": [
+      { "name": "알베스", "attackPoints": 18 },
+      { "name": "키득신", "attackPoints": 12 },
+      { "name": "뺑슨", "attackPoints": 12 },
+      { "name": "탱통", "attackPoints": 9 },
+      { "name": "써누", "attackPoints": 8 }
+    ],
+    "powerRankTop5": [
+      { "name": "알베스", "points": 2700 },
+      { "name": "탱통", "points": 2300 },
+      { "name": "빅루트", "points": 2300 },
+      { "name": "드류", "points": 1750 },
+      { "name": "써누", "points": 1600 }
+    ]
+  }
+  
