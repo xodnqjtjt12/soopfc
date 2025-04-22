@@ -82,6 +82,11 @@ button {
 button:hover {
   background-color: #005ecb;
 }
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #f9fafb;
+}
 
 /* 반응형 디자인 */
 @media (max-width: 768px) {

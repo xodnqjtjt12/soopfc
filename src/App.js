@@ -1,24 +1,35 @@
+// App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
+// Pages & Layout
+import Home from './pages/Home';
 import TopGoalScorer from './pages/TopGoalScorer';
 import TopAssistProvider from './pages/TopAssistProvider';
 import TopDefender from './pages/TopDefender';
 import OverallRankings from './pages/OverallRankings';
-import AdminPage from './pages/AdminPage'; // 관리자 페이지 추가
-import Total from './pages/Total'; // 새 페이지 추가
-import Home from './pages/Home'; // 홈 페이지 추가
+import Total from './pages/Total';
 
+import AdminLayout from './pages/AdminLayout';
+import AdminPage from './pages/AdminPage';
+import PowerRankingAdmin from './pages/PowerRankingAdmin';
+import SchedulePage from './pages/SchedulePage';
+import VodPage from './pages/VodPage';               // ← 새로 추가
+import VodAdminPage from './pages/VodAdminPage';   // ← 새로 추가
+
+// Components
+import Header from './components/Header';
+
+// Icons
 import goalIcon from './icons/goal_icon.png';
 import assistIcon from './icons/assist_icon.png';
 import defenderIcon from './icons/defender_icon.png';
 import trophyIcon from './icons/trophy_icon.png';
 
-import Header from './components/Header'; // 헤더 컴포넌트 추가
-
+// Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyBscJpOCQgufKSiEahKFvv5lPpXN5Lpvc8",
   authDomain: "soccer-records.firebaseapp.com",
@@ -28,14 +39,19 @@ const firebaseConfig = {
   appId: "1:769257022634:web:650d5d9c41b73933059cd3",
   measurementId: "G-NZLQDKS02C"
 };
-
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
+// 스타일 컴포넌트
 const AppContainer = styled.div`
-  padding-bottom: 60px; // Footer의 높이만큼 여백 추가
-`;
+  min-height: 100vh;
+  padding: 24px 0 60px 0;
+  background-color: #f9fafb;
 
+  @media (max-width: 768px) {
+    background-color: #f9fafb;
+  }
+`;
 const Footer = styled.footer`
   display: flex;
   justify-content: space-around;
@@ -43,45 +59,62 @@ const Footer = styled.footer`
   position: fixed;
   bottom: 0;
   width: 100%;
-  background-color: #fff;
+  background-color: #ffffff;
   box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.1);
 `;
-
 const IconLink = styled(Link)`
   display: flex;
   align-items: center;
   justify-content: center;
 `;
-
 const Icon = styled.img`
   width: 30px;
   height: 30px;
 `;
 
-const App = () => {
+function App() {
   return (
     <Router>
-      <Header /> {/* 헤더 추가 */}
+      <Header />
       <AppContainer>
         <Routes>
-          {/* 경로를 명확하게 지정 */}
-          <Route path="/" element={<Home />} exact /> {/* 홈 페이지 */}
-          <Route path="/top-goal-scorer" element={<TopGoalScorer />} exact /> {/* 득점자 */}
-          <Route path="/top-assists" element={<TopAssistProvider />} exact /> {/* 도움 */}
-          <Route path="/top-defender" element={<TopDefender />} exact /> {/* 수비 */}
-          <Route path="/overall-rankings" element={<OverallRankings />} exact /> {/* 전체 순위 */}
-          <Route path="/admin" element={<AdminPage />} exact /> {/* 관리자 페이지 */}
-          <Route path="/total" element={<Total />} exact /> {/* 통합 점수 */}
+          {/* 메인 사이트 라우트 */}
+          <Route path="/" element={<Home />} />
+          <Route path="/top-goal-scorer" element={<TopGoalScorer />} />
+          <Route path="/top-assists" element={<TopAssistProvider />} />
+          <Route path="/top-defender" element={<TopDefender />} />
+          <Route path="/overall-rankings" element={<OverallRankings />} />
+          <Route path="/total" element={<Total />} />
+          <Route path="/vod" element={<VodPage />} />           {/* ← 새로 추가 */}
+
+          {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminPage />} />
+            <Route path="players" element={<AdminPage />} />
+            <Route path="power-ranking" element={<PowerRankingAdmin />} />
+            <Route path="schedule" element={<SchedulePage />} />
+            <Route path="vod" element={<VodAdminPage />} />     {/* ← 새로 추가 */}
+          </Route>
         </Routes>
-        <Footer>
-          <IconLink to="/top-goal-scorer"><Icon src={goalIcon} alt="Goal" /></IconLink>
-          <IconLink to="/top-assists"><Icon src={assistIcon} alt="Assist" /></IconLink>
-          <IconLink to="/top-defender"><Icon src={defenderIcon} alt="Defender" /></IconLink>
-          <IconLink to="/overall-rankings"><Icon src={trophyIcon} alt="Trophy" /></IconLink>
-        </Footer>
       </AppContainer>
+
+      {/* 공통 Footer (하단 네비게이션) */}
+      {/* <Footer>
+        <IconLink to="/top-goal-scorer">
+          <Icon src={goalIcon} alt="Goal Scorer" />
+        </IconLink>
+        <IconLink to="/top-assists">
+          <Icon src={assistIcon} alt="Assist Provider" />
+        </IconLink>
+        <IconLink to="/top-defender">
+          <Icon src={defenderIcon} alt="Top Defender" />
+        </IconLink>
+        <IconLink to="/overall-rankings">
+          <Icon src={trophyIcon} alt="Overall Rankings" />
+        </IconLink>
+      </Footer> */}
     </Router>
   );
-};
+}
 
 export default App;
