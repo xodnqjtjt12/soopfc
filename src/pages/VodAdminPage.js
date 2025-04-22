@@ -36,6 +36,8 @@ function VodAdminPage() {
   const [filterType, setFilterType] = useState('all');
   const [dates, setDates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filteredVods, setFilteredVods] = useState([]);
+  const [uniqueQuarters, setUniqueQuarters] = useState([]); // 동적 쿼터 옵션
 
   useEffect(() => {
     fetchVods();
@@ -43,7 +45,7 @@ function VodAdminPage() {
 
   useEffect(() => {
     applyFilters();
-  }, [filterQuarter, filterDate, filterType]);
+  }, [filterQuarter, filterDate, filterType, vods]);
 
   // 모든 VOD 데이터 가져오기
   const fetchVods = async () => {
@@ -67,6 +69,8 @@ function VodAdminPage() {
       setVods(vodData);
       setFilteredVods(vodData);
       setDates(uniqueDates);
+      // 초기 쿼터 설정
+      setUniqueQuarters([...new Set(vodData.map(vod => vod.quarter))].sort());
     } catch (error) {
       console.error("VOD 데이터를 가져오는 중 오류 발생:", error);
     } finally {
@@ -74,26 +78,34 @@ function VodAdminPage() {
     }
   };
 
-  // 필터링된 VOD 목록
-  const [filteredVods, setFilteredVods] = useState([]);
-
-  // 필터 적용
+  // 필터 적용 및 동적 쿼터 업데이트
   const applyFilters = () => {
     let filtered = [...vods];
     
-    if (filterQuarter !== 'all') {
-      filtered = filtered.filter(vod => vod.quarter === filterQuarter);
-    }
-    
+    // 날짜 필터 적용
     if (filterDate !== 'all') {
       filtered = filtered.filter(vod => vod.date === filterDate);
     }
     
+    // 쿼터 필터 적용
+    if (filterQuarter !== 'all') {
+      filtered = filtered.filter(vod => vod.quarter === filterQuarter);
+    }
+    
+    // 비디오 타입 필터 적용
     if (filterType !== 'all') {
       filtered = filtered.filter(vod => vod.videoType === filterType);
     }
     
     setFilteredVods(filtered);
+    
+    // 선택된 날짜에 따른 쿼터 목록 업데이트
+    if (filterDate === 'all') {
+      setUniqueQuarters([...new Set(vods.map(vod => vod.quarter))].sort());
+    } else {
+      const dateFilteredVods = vods.filter(vod => vod.date === filterDate);
+      setUniqueQuarters([...new Set(dateFilteredVods.map(vod => vod.quarter))].sort());
+    }
   };
 
   // VOD 추가 함수
@@ -180,9 +192,6 @@ function VodAdminPage() {
     { value: 'catch', label: '캐치 비디오' },
     { value: 'shorts', label: '숏츠 비디오' }
   ];
-
-  // 쿼터 필터 옵션 (동적 생성)
-  const uniqueQuarters = [...new Set(vods.map(vod => vod.quarter))].sort();
 
   return (
     <AdminContainer>

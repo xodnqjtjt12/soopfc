@@ -54,20 +54,8 @@ function VodPage() {
             .sort()
             .reverse();
 
-          // Extract unique quarters
-          const quarters = [...new Set(vodData.map((vod) => vod.quarter))].sort((a, b) => {
-            // 숫자 쿼터(1~4)를 먼저 정렬, 그 외는 문자열로 정렬
-            const isANumber = /^\d+$/.test(a);
-            const isBNumber = /^\d+$/.test(b);
-            if (isANumber && isBNumber) return parseInt(a) - parseInt(b);
-            if (isANumber) return -1;
-            if (isBNumber) return 1;
-            return a.localeCompare(b);
-          });
-
           setVods(vodData);
           setDates(uniqueDates);
-          setUniqueQuarters(quarters);
 
           // Select the first date if available
           if (uniqueDates.length > 0 && !selectedDate) {
@@ -89,13 +77,34 @@ function VodPage() {
     return () => unsubscribe();
   }, []);
 
-  // Filter VODs by selected date
+  // Filter VODs and update quarters by selected date
   useEffect(() => {
     if (selectedDate) {
       const filtered = vods.filter((vod) => vod.date === selectedDate);
       setFilteredVods(filtered);
+      // Update unique quarters based on selected date
+      const quarters = [...new Set(filtered.map((vod) => vod.quarter))].sort((a, b) => {
+        // 숫자 쿼터(1~4)를 먼저 정렬, 그 외는 문자열로 정렬
+        const isANumber = /^\d+$/.test(a);
+        const isBNumber = /^\d+$/.test(b);
+        if (isANumber && isBNumber) return parseInt(a) - parseInt(b);
+        if (isANumber) return -1;
+        if (isBNumber) return 1;
+        return a.localeCompare(b);
+      });
+      setUniqueQuarters(quarters);
     } else {
       setFilteredVods(vods);
+      // Use all quarters if no date is selected
+      const quarters = [...new Set(vods.map((vod) => vod.quarter))].sort((a, b) => {
+        const isANumber = /^\d+$/.test(a);
+        const isBNumber = /^\d+$/.test(b);
+        if (isANumber && isBNumber) return parseInt(a) - parseInt(b);
+        if (isANumber) return -1;
+        if (isBNumber) return 1;
+        return a.localeCompare(b);
+      });
+      setUniqueQuarters(quarters);
     }
   }, [selectedDate, vods]);
 
