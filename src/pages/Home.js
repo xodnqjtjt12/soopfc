@@ -4,6 +4,7 @@ import { collection, getDocs, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../App';
 import { format } from 'date-fns';
 import * as S from './Homecss'; // 스타일드 컴포넌트를 Homecss.js에서 가져옴
+import moment from 'moment'
 
 const Home = () => {
   const [players, setPlayers] = useState([]);
@@ -264,7 +265,9 @@ const Home = () => {
           </S.MomSectionTitle>
 
           {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요! →</S.SwipeHint>}
-          <S.MomPlayersContainer ref={momRef} isScrollable={momPlayers.length > 3}>
+          <S.MomPlayersContainer ref={momRef} isScrollable={momPlayers.length > 3} style={{
+  justifyContent: momPlayers.length > 3 ? 'flex-start' : 'center'
+}}>
             {momPlayers.length > 0 ? (
               momPlayers.map((player, index) => (
                 <S.PlayerCard key={index}>
@@ -331,18 +334,23 @@ const Home = () => {
           {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
         </div>
 
-        <S.ScheduleSection>
+        <S.ScheduleSection 
+          >
           <S.ScheduleHeader>📅 축구 일정 보기</S.ScheduleHeader>
-          <S.StyledCalendar
+          <S.StyledCalendar calendarType="gregory" // 일요일 부터 시작
   value={selectedDate}
   onChange={onDateChange}
+
   tileContent={({ date, view }) => {
     if (view === 'month') {
       const formattedDate = format(date, 'yyyy-MM-dd');
+      
       const hasSchedule = schedules.some(
         (schedule) =>
           schedule.date &&
           format(schedule.date, 'yyyy-MM-dd') === formattedDate
+          
+          
       );
       return hasSchedule ?  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
       ⚽
@@ -350,10 +358,12 @@ const Home = () => {
     }
     return null;
   }}
+  formatDay={(locale, date) => moment(date).format("D")}
 />
 
           <div style={{ marginTop: '24px' }}>
-            <strong>{format(selectedDate, 'yyyy년 MM월 dd일')} 일정</strong>
+            <strong>{format(selectedDate, 'yyyy년 MM월 dd일')
+              } 일정</strong>
             <S.ScheduleList>
               {getSchedulesForSelectedDate().length > 0 ? (
                 getSchedulesForSelectedDate().map((item, index) => (

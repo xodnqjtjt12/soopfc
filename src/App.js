@@ -46,7 +46,7 @@ export const db = getFirestore(app);
 // 스타일 컴포넌트
 const AppContainer = styled.div`
   min-height: 100vh;
-  padding: 24px 0 60px 0;
+  padding: 150px 0 60px 0;
   background-color: #f9fafb;
 
   @media (max-width: 768px) {

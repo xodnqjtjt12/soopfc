@@ -9,7 +9,7 @@ const NavBar = styled.header`
   align-items: center;
   flex-wrap: wrap;
   padding: 16px 24px;
-  position: sticky; top: 0; z-index: 10;
+  position: fixed; top: 0; z-index: 10;
   background-color: #ffffff;
   backdrop-filter: blur(12px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -32,7 +32,7 @@ const Hamburger = styled.button`
   font-size: 24px;
   cursor: pointer;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     display: block;
     margin-left: auto; /* Changed from 30px to auto to properly align on the right */
     margin-right: 45px; /* Added a margin-right to move it slightly left from the edge */
@@ -47,7 +47,7 @@ const NavMenu = styled.div`
   & > :last-child {
     margin-right: 72px;
   }
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     display: ${({ open }) => (open ? 'flex' : 'none')};
     width: 100%; flex-direction: column; margin-top: 12px; gap: 12px;
   }
@@ -57,8 +57,12 @@ const NavLinkStyled = styled(Link)`
   font-size: 16px; font-weight: 500; color: #4e5968;
   text-decoration: none; transition: color 0.2s ease;
   padding: 7px 26px;
+  display: flex; align-items: center; justify-content: center;
   &:hover { color: #3182f6; }
-  @media (max-width: 768px) { font-size: 14px; line-height: 1.4; }
+  > br {display: none; }
+  @media (max-width: 1287px) { > br {display: block; } }
+  @media (max-width: 1024px) { font-size: 14px; line-height: 1.4; display:block; > br {display: none; } }
+
 `;
 
 const Header = () => {
@@ -74,14 +78,14 @@ const Header = () => {
       <Logo to="/"><LogoImage src={`${process.env.PUBLIC_URL}/Logo.png`} alt="SOOP FC Logo" /></Logo>
       <Hamburger onClick={() => setMenuOpen(!menuOpen)}>☰</Hamburger>
       <NavMenu open={menuOpen}>
-        <NavLinkStyled to="/top-goal-scorer" onClick={handleNavClick}>득점왕 TOP10</NavLinkStyled>
-        <NavLinkStyled to="/top-assists" onClick={handleNavClick}>도움왕 TOP10</NavLinkStyled>
-        <NavLinkStyled to="/top-defender" onClick={handleNavClick}>수비왕 TOP10</NavLinkStyled>
-        <NavLinkStyled to="/overall-rankings" onClick={handleNavClick}>출석왕 TOP10</NavLinkStyled>
-        <NavLinkStyled to="/mom-ranking" onClick={handleNavClick}>MOM TOP10</NavLinkStyled>
+        <NavLinkStyled to="/top-goal-scorer" onClick={handleNavClick}>득점왕<br />TOP10</NavLinkStyled>
+        <NavLinkStyled to="/top-assists" onClick={handleNavClick}>도움왕<br />TOP10</NavLinkStyled>
+        <NavLinkStyled to="/top-defender" onClick={handleNavClick}>수비왕<br />TOP10</NavLinkStyled>
+        <NavLinkStyled to="/overall-rankings" onClick={handleNavClick}>출석왕<br />TOP10</NavLinkStyled>
+        <NavLinkStyled to="/mom-ranking" onClick={handleNavClick}>MOM<br />TOP10</NavLinkStyled>
         <NavLinkStyled to="/vod" onClick={handleNavClick}>VOD</NavLinkStyled>
         <NavLinkStyled to="/total" onClick={handleNavClick}>내 스탯</NavLinkStyled>
-        <NavLinkStyled to="/admin" onClick={handleNavClick}>관리자 페이지</NavLinkStyled>
+        <NavLinkStyled to="/admin" onClick={handleNavClick}>관리자<br />페이지</NavLinkStyled>
       </NavMenu>
     </NavBar>
   );

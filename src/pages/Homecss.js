@@ -7,6 +7,7 @@ export const HomeContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-top: 126px;
   min-height: 100vh;
   background-color: #f9fafb;
   color: #191f28;
@@ -130,6 +131,9 @@ export const StatsContainer = styled.div`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 export const StatItem = styled.div`
@@ -336,6 +340,7 @@ export const StyledCalendar = styled(Calendar)`
     justify-content: center;
     border: none;
     outline: none;
+    gap:2px;
 
     &:hover {
       background-color: #eef1f4;
@@ -417,7 +422,7 @@ export const StyledCalendar = styled(Calendar)`
     min-height: 42px;
     padding: 8px 4px;
     font-size: 14px;
-    
+    flex-direction: column;
   }
 }
     .react-calendar__navigation__label {
@@ -560,10 +565,8 @@ export const MomPlayersContainer = styled.div`
   display: flex;
   gap: 16px;
   overflow-x: ${({ isScrollable }) => (isScrollable ? 'auto' : 'hidden')};
-  justify-content: center; 
-  padding: 24px; 
-  padding-left: 32px; /* Increased left padding to ensure leftmost item is visible */
-  margin: 0 -12px 12px -27px;
+  justify-content: center; /* Center the items horizontally */
+  padding:35px 30px;
   width: calc(100% + 24px); 
   scrollbar-width: thin;
   scroll-padding-left: 24px; /* Added scroll padding for better scroll snap behavior */
