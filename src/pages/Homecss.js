@@ -412,15 +412,14 @@ export const StyledCalendar = styled(Calendar)`
     }
   }
 
-  @media (max-width: 640px) {
-    padding: 12px;
+@media (max-width: 640px) {
+  .react-calendar__tile {
+    min-height: 42px;
+    padding: 8px 4px;
+    font-size: 14px;
     
-    .react-calendar__tile {
-      min-height: 42px;
-      padding: 8px 4px;
-      font-size: 14px;
-    }
-    
+  }
+}
     .react-calendar__navigation__label {
       font-size: 16px;
       padding: 6px 12px;
@@ -438,7 +437,7 @@ export const StyledCalendar = styled(Calendar)`
     }
     
     .react-calendar__month-view__days {
-      gap: 6px;
+      gap: 3px;
     }
     
     .react-calendar__tile--now::after {

@@ -18,6 +18,7 @@ import AdminPage from './pages/AdminPage';
 import PowerRankingAdmin from './pages/PowerRankingAdmin';
 import SchedulePage from './pages/SchedulePage';
 import VodPage from './pages/VodPage';               // ← 새로 추가
+import MomRanking from './pages/MomRanking';
 import VodAdminPage from './pages/VodAdminPage';   // ← 새로 추가
 
 // Components
@@ -85,6 +86,7 @@ function App() {
           <Route path="/top-defender" element={<TopDefender />} />
           <Route path="/overall-rankings" element={<OverallRankings />} />
           <Route path="/total" element={<Total />} />
+          <Route path="/mom-ranking" element={<MomRanking />} />
           <Route path="/vod" element={<VodPage />} />           {/* ← 새로 추가 */}
 
           {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}

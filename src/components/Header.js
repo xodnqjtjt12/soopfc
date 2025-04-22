@@ -78,6 +78,7 @@ const Header = () => {
         <NavLinkStyled to="/top-assists" onClick={handleNavClick}>도움왕 TOP10</NavLinkStyled>
         <NavLinkStyled to="/top-defender" onClick={handleNavClick}>수비왕 TOP10</NavLinkStyled>
         <NavLinkStyled to="/overall-rankings" onClick={handleNavClick}>출석왕 TOP10</NavLinkStyled>
+        <NavLinkStyled to="/mom-ranking" onClick={handleNavClick}>MOM TOP10</NavLinkStyled>
         <NavLinkStyled to="/vod" onClick={handleNavClick}>VOD</NavLinkStyled>
         <NavLinkStyled to="/total" onClick={handleNavClick}>내 스탯</NavLinkStyled>
         <NavLinkStyled to="/admin" onClick={handleNavClick}>관리자 페이지</NavLinkStyled>
