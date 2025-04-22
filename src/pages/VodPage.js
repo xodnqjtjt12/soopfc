@@ -222,7 +222,7 @@ function VodPage() {
                   </VodItem>
                 ))
               ) : (
-                <EmptyState>{quarter} VOD가 없습니다.</EmptyState>
+                <EmptyState>{quarter} VOD가 없습니다dd.</EmptyState>
               )}
             </VodList>
           </QuarterSection>
