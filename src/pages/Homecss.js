@@ -441,15 +441,14 @@ export const StyledCalendar = styled(Calendar)`
       margin-bottom: 12px;
     }
     
-    .react-calendar__navigation__label {
-      font-size: 14px;
-      padding: 6px 8px;
-      margin: 0 8px;
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+.react-calendar__navigation__label {
+  /* flex:1 은 가용 공간을 동등 분할 → 텍스트가 통째로 잘릴 수 있음 */
+  flex: 0 0 auto !important;         /* flex: none */ :contentReference[oaicite:3]{index=3}
+  white-space: nowrap;               /* 줄바꿈 금지 */ :contentReference[oaicite:4]{index=4}
+  overflow: visible !important;      /* 잘린 부분 보이도록 */ :contentReference[oaicite:5]{index=5}
+  text-overflow: clip !important;    /* ellipsis 대신 클립 */ :contentReference[oaicite:6]{index=6}
+  min-width: max-content;            /* 콘텐츠가 요구하는 최소 폭 보장 */ :contentReference[oaicite:7]{index=7}
+}
     
     .react-calendar__navigation__arrow {
       width: 36px;

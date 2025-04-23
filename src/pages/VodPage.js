@@ -212,7 +212,7 @@ function VodPage() {
                         />
                       )}
                     </VideoWrapper>
-                    {(vod.videoType === 'catch' || vod.videoType === 'shorts') && (
+                    {(vod.videoType === 'vod'||vod.videoType === 'catch' || vod.videoType === 'shorts') && (
                       <VideoControls>
                         <a href={vod.link} target="_blank" rel="noopener noreferrer">
                           원본 링크에서 보기
@@ -222,7 +222,7 @@ function VodPage() {
                   </VodItem>
                 ))
               ) : (
-                <EmptyState>{quarter} VOD가 없습니다dd.</EmptyState>
+                <EmptyState>{quarter} VOD가 없습니다.</EmptyState>
               )}
             </VodList>
           </QuarterSection>
