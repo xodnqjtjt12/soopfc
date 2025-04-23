@@ -1,10 +1,9 @@
-// src/pages/Home.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../App';
 import { format } from 'date-fns';
 import * as S from './Homecss'; // 스타일드 컴포넌트를 Homecss.js에서 가져옴
-import moment from 'moment'
+import moment from 'moment';
 
 const Home = () => {
   const [players, setPlayers] = useState([]);
@@ -26,7 +25,26 @@ const Home = () => {
   const [scheduleText, setScheduleText] = useState('');
   const [schedules, setSchedules] = useState([]);
 
-
+  // 2025년 한국 공휴일 목록 (하드코딩)
+  const holidays = [
+    '2025-01-01', // 신정
+    '2025-01-28', // 설날 연휴
+    '2025-01-29', // 설날
+    '2025-01-30', // 설날 연휴
+    '2025-03-01', // 삼일절
+    '2025-05-01', // 근로자의 날
+    '2025-05-05', // 어린이날
+    '2025-05-06', // 대체공휴일
+    '2025-05-06', // 부처님 오신 날
+    '2025-06-06', // 현충일
+    '2025-08-15', // 광복절
+    '2025-10-03', // 개천절
+    '2025-10-05', // 추석 연휴
+    '2025-10-06', // 추석
+    '2025-10-07', // 추석 연휴
+    '2025-10-09', // 한글날
+    '2025-12-25', // 성탄절
+  ];
 
   useEffect(() => {
     const el = momRef.current;
@@ -47,8 +65,6 @@ const Home = () => {
     el.addEventListener('scroll', onScroll);
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
-
-
 
   useEffect(() => {
     const fetchMOM = async () => {
@@ -266,8 +282,8 @@ const Home = () => {
 
           {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요! →</S.SwipeHint>}
           <S.MomPlayersContainer ref={momRef} isScrollable={momPlayers.length > 3} style={{
-  justifyContent: momPlayers.length > 3 ? 'flex-start' : 'center'
-}}>
+            justifyContent: momPlayers.length > 3 ? 'flex-start' : 'center'
+          }}>
             {momPlayers.length > 0 ? (
               momPlayers.map((player, index) => (
                 <S.PlayerCard key={index}>
@@ -296,7 +312,7 @@ const Home = () => {
                   <S.WhiteDivider />
 
                   <S.StatRow>
-                    </S.StatRow>
+                  </S.StatRow>
                   <S.StatRow>
                     <S.StatLabel>골</S.StatLabel>
                     <S.StatLabel>{player.goals}</S.StatLabel>
@@ -334,36 +350,49 @@ const Home = () => {
           {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
         </div>
 
-        <S.ScheduleSection 
-          >
+        <S.ScheduleSection>
           <S.ScheduleHeader>📅 축구 일정 보기</S.ScheduleHeader>
-          <S.StyledCalendar calendarType="gregory" // 일요일 부터 시작
-  value={selectedDate}
-  onChange={onDateChange}
-
-  tileContent={({ date, view }) => {
-    if (view === 'month') {
-      const formattedDate = format(date, 'yyyy-MM-dd');
-      
-      const hasSchedule = schedules.some(
-        (schedule) =>
-          schedule.date &&
-          format(schedule.date, 'yyyy-MM-dd') === formattedDate
-          
-          
-      );
-      return hasSchedule ?  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-      ⚽
-    </span> : null;
-    }
-    return null;
-  }}
-  formatDay={(locale, date) => moment(date).format("D")}
-/>
+          <S.StyledCalendar
+            calendarType="gregory" // 일요일부터 시작
+            locale="ko-KR" // 한국 로케일 설정
+            value={selectedDate}
+            onChange={onDateChange}
+            tileContent={({ date, view }) => {
+              if (view === 'month') {
+                const formattedDate = format(date, 'yyyy-MM-dd');
+                const hasSchedule = schedules.some(
+                  (schedule) =>
+                    schedule.date &&
+                    format(schedule.date, 'yyyy-MM-dd') === formattedDate
+                );
+                return hasSchedule ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                    ⚽
+                  </span>
+                ) : null;
+              }
+              return null;
+            }}
+            tileClassName={({ date, view }) => {
+              if (view === 'month') {
+                const day = date.getDay();
+                const formattedDate = format(date, 'yyyy-MM-dd');
+                // 토요일: 파란색
+                if (day === 6) {
+                  return 'saturday';
+                }
+                // 일요일 또는 공휴일: 빨간색
+                if (day === 0 || holidays.includes(formattedDate)) {
+                  return 'sunday-or-holiday';
+                }
+              }
+              return null;
+            }}
+            formatDay={(locale, date) => moment(date).format("D")}
+          />
 
           <div style={{ marginTop: '24px' }}>
-            <strong>{format(selectedDate, 'yyyy년 MM월 dd일')
-              } 일정</strong>
+            <strong>{format(selectedDate, 'yyyy년 MM월 dd일')} 일정</strong>
             <S.ScheduleList>
               {getSchedulesForSelectedDate().length > 0 ? (
                 getSchedulesForSelectedDate().map((item, index) => (

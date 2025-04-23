@@ -50,7 +50,7 @@ const AppContainer = styled.div`
   background-color: #f9fafb;
 
   @media (max-width: 768px) {
-    background-color: #f9fafb;
+    background-color: #ffffff;
   }
 `;
 const Footer = styled.footer`

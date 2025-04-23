@@ -15,6 +15,14 @@ export const HomeContainer = styled.div`
   overflow-x: hidden;
   width: 100%;
   box-sizing: border-box;
+
+  /* 모바일 패딩 수정 - 상단 여백 줄임 */
+  @media (max-width: 768px) {
+    margin-top: -230px !important;
+  }
+  @media (min-width: 769px) {
+    margin-top: -210px !important;
+  }
 `;
 
 export const ContentWrapper = styled.div`
@@ -181,20 +189,14 @@ export const PlayerCard = styled.div`
 `;
 
 export const PlayerRank = styled.div`
--  font-size: 16px;
--  font-weight: 600;
--  color: #4E4E4E;
--  margin-bottom: 8px;
--  letter-spacing: 0.5px;
--  text-align: center;
-+  display: flex;                        /* ❶ 플렉스 컨테이너로 변경 */
-+  justify-content: center;             /* ❷ 가로 중앙 정렬 */
-+  align-items: center;                 /* ❸ 세로 중앙 정렬 */
-+  margin: 0 auto 8px;                  /* ❹ 좌우 마진 자동(가로 중앙) + 아래 여백 */
-+  font-size: 16px;
-+  font-weight: 600;
-+  color: #4E4E4E;
-+  letter-spacing: 0.5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #4E4E4E;
+  letter-spacing: 0.5px;
 `;
 
 export const PlayerStats = styled.div`
@@ -267,7 +269,7 @@ export const StyledCalendar = styled(Calendar)`
     align-items: center;
     justify-content: space-between;
     background-color: transparent;
-    padding: 0 8px 16px;
+    padding: 8px 8px 16px;
     margin-bottom: 16px;
     border-bottom: 1px solid #f2f4f6;
   }
@@ -280,6 +282,10 @@ export const StyledCalendar = styled(Calendar)`
     padding: 8px 16px;
     border-radius: 10px;
     transition: background-color 0.2s;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &:hover {
       background-color: #f2f4f6;
@@ -297,6 +303,7 @@ export const StyledCalendar = styled(Calendar)`
     justify-content: center;
     border-radius: 50%;
     transition: background-color 0.2s;
+    flex-shrink: 0;
     
     &:hover {
       background-color: #f2f4f6;
@@ -340,7 +347,7 @@ export const StyledCalendar = styled(Calendar)`
     justify-content: center;
     border: none;
     outline: none;
-    gap:2px;
+    gap: 2px;
 
     &:hover {
       background-color: #eef1f4;
@@ -401,6 +408,14 @@ export const StyledCalendar = styled(Calendar)`
     }
   }
 
+  .react-calendar__tile.saturday {
+    color: blue; /* 토요일: 파란색 */
+  }
+
+  .react-calendar__tile.sunday-or-holiday {
+    color: red; /* 일요일 및 공휴일: 빨간색 */
+  }
+
   .react-calendar__tile--win {
     position: relative;
     
@@ -417,32 +432,53 @@ export const StyledCalendar = styled(Calendar)`
     }
   }
 
-@media (max-width: 640px) {
-  .react-calendar__tile {
-    min-height: 42px;
-    padding: 8px 4px;
-    font-size: 14px;
-    flex-direction: column;
-  }
-}
+  /* 모바일 반응형 조정 */
+  @media (max-width: 640px) {
+    padding: 12px;
+    
+    .react-calendar__navigation {
+      padding: 0 4px 12px;
+      margin-bottom: 12px;
+    }
+    
     .react-calendar__navigation__label {
-      font-size: 16px;
-      padding: 6px 12px;
+      font-size: 14px;
+      padding: 6px 8px;
+      margin: 0 8px;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .react-calendar__navigation__arrow {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       font-size: 18px;
     }
     
     .react-calendar__month-view__weekdays__weekday {
       font-size: 12px;
-      padding: 6px 0;
+      padding: 4px 0;
+      
+      abbr {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+      }
     }
     
     .react-calendar__month-view__days {
-      gap: 3px;
+      gap: 4px;
+    }
+    
+    .react-calendar__tile {
+      min-height: 40px;
+      padding: 8px 2px;
+      font-size: 14px;
+      border-radius: 8px;
+      flex-direction: column;
     }
     
     .react-calendar__tile--now::after {
@@ -455,44 +491,46 @@ export const StyledCalendar = styled(Calendar)`
     .react-calendar__tile--win::after {
       top: 4px;
       right: 4px;
-      width: 5px;
-      height: 5px;
+      width: 4px;
+      height: 4px;
     }
   }
 
+  /* 더 작은 화면에 대한 추가 최적화 */
   @media (max-width: 400px) {
     padding: 8px;
     
-    .react-calendar__tile {
-      min-height: 36px;
-      padding: 6px 2px;
-      font-size: 13px;
-      border-radius: 8px;
-    }
-    
     .react-calendar__navigation {
-      padding: 0 4px 12px;
-      margin-bottom: 12px;
+      padding: 0 2px 8px;
+      margin-bottom: 8px;
     }
     
     .react-calendar__navigation__label {
-      font-size: 15px;
-      padding: 4px 8px;
+      font-size: 14px;
+      padding: 4px;
+      margin: 0 4px;
     }
     
     .react-calendar__navigation__arrow {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       font-size: 16px;
     }
     
     .react-calendar__month-view__weekdays__weekday {
       font-size: 11px;
-      padding: 4px 0;
+      padding: 2px 0;
     }
     
     .react-calendar__month-view__days {
-      gap: 4px;
+      gap: 2px;
+    }
+    
+    .react-calendar__tile {
+      min-height: 36px;
+      padding: 4px 1px;
+      font-size: 13px;
+      border-radius: 6px;
     }
   }
 `;
@@ -566,10 +604,11 @@ export const MomPlayersContainer = styled.div`
   gap: 16px;
   overflow-x: ${({ isScrollable }) => (isScrollable ? 'auto' : 'hidden')};
   justify-content: center; /* Center the items horizontally */
-  padding:35px 30px;
+  padding: 35px 30px;
   width: calc(100% + 24px); 
   scrollbar-width: thin;
   scroll-padding-left: 24px; /* Added scroll padding for better scroll snap behavior */
+  margin-left: -35px;  
 
   &::-webkit-scrollbar {
     height: 6px;
@@ -581,16 +620,17 @@ export const MomPlayersContainer = styled.div`
   }
 
   @media (max-width: 640px) {
-    justify-content: flex-start;                  /* ← 모바일에서 왼쪽 정렬 */
-    overflow-x: auto;                             /* ← 가로 스크롤 허용 */
-    padding-left: 13px;                           /* ← 첫 카드 안 잘리게 패딩 */
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-left: 13px;
     padding-right: 12px;
-    width: 100%;                                  /* ← 딱 모바일 화면 너비 */
-    margin: 0;                                     /* ← 마진 제거 */
-    scroll-padding-left: 0;                        /* ← 필요 없어졌으므로 제거 */
-    -webkit-overflow-scrolling: touch;                  /* iOS 자연스러운 스크롤 */
+    width: 100%;
+    margin: 0;
+    scroll-padding-left: 0;
+    -webkit-overflow-scrolling: touch;
   }
 `;
+
 export const PlayerRankBadge = styled.div`
   display: flex;
   align-items: center;

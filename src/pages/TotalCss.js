@@ -56,8 +56,12 @@ export const getRatingColor = (value) => {
 
 // 스타일 컴포넌트 정의
 export const OuterWrapper = styled.div`
-  background-color: #f9fafb;
+  background-color: #f9fafb;    /* 기본(PC) 배경 */ :contentReference[oaicite:0]{index=0}
   padding-top: 24px;
+
+  @media (max-width: 640px) {
+    background-color: #ffffff;  /* 모바일에서 흰색으로 */ :contentReference[oaicite:1]{index=1}
+  }
 `;
 
 export const Container = styled.div`
@@ -69,7 +73,8 @@ export const Container = styled.div`
   border-radius: 20px;
   box-shadow: 0 10px 20px rgba(0,0,0,0.1);
   @media (max-width: 640px) {
-    padding: 15px;
+padding: 15px;
+ margin: -70px 16px 0 16px;   /* ↑ 상단 –8px, 좌우 16px 유지 */  
   }
 `;
 

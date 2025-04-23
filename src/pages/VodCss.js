@@ -52,6 +52,7 @@ export const VodContainer = styled.div`
   @media (max-width: ${breakpoints.mobile}) {
     padding: 16px 12px;
     gap: 20px;
+    margin: -60px auto 0 auto;
   }
 `;
 

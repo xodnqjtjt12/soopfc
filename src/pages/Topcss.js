@@ -8,6 +8,12 @@ export const Container = styled.div`
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+
+@media (max-width:640px){
+  margin: -100px auto 0 auto;
+}
+
+
 `;
 
 export const Header = styled.h2`
