@@ -125,7 +125,7 @@ const AdminPage = () => {
         win: Number(win),
         draw: Number(draw),
         lose: Number(lose),
-        winRate: Number(winRate),
+        winRate: Math.round(Number(winRate)),
         personalPoints: Number(personalPoints),
         momScore: Number(momScore),
         xg: adv.xg,
@@ -162,7 +162,7 @@ const AdminPage = () => {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(ws);
       setPreviewData(json);
-
+  
       try {
         for (const row of json) {
           if (!row.name || !row.team) continue;
@@ -184,7 +184,7 @@ const AdminPage = () => {
             win: Number(row.win || 0),
             draw: Number(row.draw || 0),
             lose: Number(row.lose || 0),
-            winRate: Number(row.winRate || 0),
+            winRate: Number(row.winRate || 0), // 반올림 제거, 입력값 그대로 저장
             personalPoints: Number(row.personalPoints || 0),
             momScore: Number(row.momScore || 0),
             xg: adv.xg,
@@ -204,7 +204,6 @@ const AdminPage = () => {
     };
     reader.readAsBinaryString(file);
   };
-
   const handlePreviewExcel = () => {
     if (!file) return alert('파일을 선택해주세요.');
     const reader = new FileReader();

@@ -45,6 +45,7 @@ const Home = () => {
     '2025-10-09', // 한글날
     '2025-12-25', // 성탄절
   ];
+  
 
   useEffect(() => {
     const el = momRef.current;
@@ -274,16 +275,23 @@ const Home = () => {
         )}
 
         {/* MOM 플레이어 섹션 */}
+      
+
         <div style={{ marginBottom: '60px', width: '100%' }}>
+          
           <S.MomSectionTitle>
             <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" />
             M.O.M 플레이어
           </S.MomSectionTitle>
 
           {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요! →</S.SwipeHint>}
-          <S.MomPlayersContainer ref={momRef} isScrollable={momPlayers.length > 3} style={{
-            justifyContent: momPlayers.length > 3 ? 'flex-start' : 'center'
-          }}>
+          <S.MomPlayersContainer 
+  ref={momRef} 
+  isScrollable={momPlayers.length > 3} 
+  style={{
+    justifyContent: window.innerWidth <= 850 ? 'flex-start' : 
+                   (momPlayers.length > 3 ? 'flex-start' : 'center')
+  }}>
             {momPlayers.length > 0 ? (
               momPlayers.map((player, index) => (
                 <S.PlayerCard key={index}>

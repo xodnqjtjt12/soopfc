@@ -185,6 +185,10 @@ export const PlayerCard = styled.div`
   }
   @media (max-width: 640px) {
     min-width: 85%;
+    scroll-snap-align: start; /* 스크롤 시 첫 카드가 왼쪽에 딱 맞게 정렬되도록 */
+    &:first-child {
+      margin-left: 0; /* 첫 번째 카드의 왼쪽 마진 제거 */
+    }
   }
 `;
 
@@ -192,11 +196,12 @@ export const PlayerRank = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0 auto 8px;
+  margin: 0 auto -3px;
   font-size: 16px;
   font-weight: 600;
   color: #4E4E4E;
   letter-spacing: 0.5px;
+  
 `;
 
 export const PlayerStats = styled.div`
@@ -602,11 +607,11 @@ export const MomPlayersContainer = styled.div`
   display: flex;
   gap: 16px;
   overflow-x: ${({ isScrollable }) => (isScrollable ? 'auto' : 'hidden')};
-  justify-content: center; /* Center the items horizontally */
+  justify-content: center; /* Center the items horizontally - PC 환경 */
   padding: 35px 30px;
   width: calc(100% + 24px); 
   scrollbar-width: thin;
-  scroll-padding-left: 24px; /* Added scroll padding for better scroll snap behavior */
+  scroll-padding-left: 24px;
   margin-left: -35px;  
 
   &::-webkit-scrollbar {
@@ -618,18 +623,31 @@ export const MomPlayersContainer = styled.div`
     border-radius: 6px;
   }
 
-  @media (max-width: 640px) {
-    justify-content: flex-start;
+  @media (max-width: 850px) {
+    justify-content: flex-start; /* 왼쪽 정렬 */
     overflow-x: auto;
-    padding-left: 13px;
-    padding-right: 12px;
-    width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+    width: calc(100% - 32px); /* 패딩을 고려한 너비 조정 */
     margin: 0;
-    scroll-padding-left: 0;
+    scroll-snap-type: none;
     -webkit-overflow-scrolling: touch;
   }
-`;
 
+  @media (max-width: 640px) {
+    justify-content: flex-start;
+    padding-left: 16px;
+    padding-right: 16px;
+    width: calc(100% - 32px); /* 패딩을 고려한 너비 조정 */
+    margin: 0;
+    scroll-snap-type: none;
+    scrollbar-width: none;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
 export const PlayerRankBadge = styled.div`
   display: flex;
   align-items: center;
