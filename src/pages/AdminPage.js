@@ -583,7 +583,7 @@ const AdminPage = () => {
                         <S.SmallInput
                           type="number"
                           name="winRate"
-                          value={editingData.winRate}
+                          value={editingData.winRate }
                           onChange={handleEditingDataChange}
                         />
                       ) : (

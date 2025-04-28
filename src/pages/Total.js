@@ -320,12 +320,35 @@ const Total = () => {
   const determinePosition = (playerInfo) => {
     if (!playerInfo) return 'FW';
     
-    const { goals, assists, cleanSheets } = playerInfo;
+    const { goals, assists, cleanSheets, backNumber } = playerInfo;
     
-    if (goals > assists && goals > cleanSheets) return 'FW';
-    if (assists > goals && assists > cleanSheets) return 'MF';
-    if (cleanSheets > goals && cleanSheets > assists) return 'DF';
+    // 골키퍼: 등번호 1번
+    if (backNumber === 1) return 'GK';
     
+    // 수비수 세부 구분
+    if (cleanSheets > goals && cleanSheets > assists) {
+      // 중앙 수비수 vs 측면 수비수
+      if (assists < 2) return 'CB'; // 어시스트가 적으면 중앙 수비수
+      return 'LWB,RWB';  // 어시스트가 많으면 풀백(측면 수비수)
+    }
+    
+    // 미드필더 세부 구분
+    if (assists > goals && assists > cleanSheets) {
+      if (goals > 3) return 'CAM'; // 공격형 미드필더
+      if (cleanSheets > 2) return 'CDM'; // 수비형 미드필더
+      return 'CM';  // 중앙 미드필더
+    }
+    
+    // 공격수 세부 구분
+    if (goals > assists && goals > cleanSheets) {
+      if (assists > 3) return 'SS'; // 세컨드 스트라이커
+      return 'FW';  // 주 스트라이커
+    }
+    
+    // 윙어 (득점, 어시스트 모두 있는 경우)
+    if (goals >= 3 && assists >= 3) return 'WF';
+    
+    // 그 외는 기본 위치
     return 'MF';
   };
 
@@ -453,19 +476,19 @@ const Total = () => {
 
               {/* 승률 Stat */}
               <StatRow>
-                <StatHeader>
-                  <StatLabel><FaTrophy /> 승률</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.winRateRank)}>
-                    {playerInfo.winRate}% ({playerInfo.winRateRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.winRate, 100)}
-                    color={getRankColor(playerInfo.winRateRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
+  <StatHeader>
+    <StatLabel><FaTrophy /> 승률</StatLabel>
+    <StatValue color={getRankColor(playerInfo.winRateRank)}>
+  {playerInfo.winRate.toFixed(0)}% ({playerInfo.winRateRank}위)
+</StatValue>
+  </StatHeader>
+  <StatBarContainer>
+    <StatBar
+      percentage={getStatPercentage(playerInfo.winRate, 100)}
+      color={getRankColor(playerInfo.winRateRank)}
+    />
+  </StatBarContainer>
+</StatRow>
 
               {/* 개인승점 Stat */}
               <StatRow>
