@@ -80,6 +80,7 @@ const TopGoalScorer = () => {
   const [searchName, setSearchName] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [searchRank, setSearchRank] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
   const searchResultRef = useRef(null);
 
@@ -96,6 +97,11 @@ const TopGoalScorer = () => {
         console.error(err);
       } finally {
         setLoading(false);
+ const latestPlayer = players[0];
+      if (latestPlayer && latestPlayer.updatedAt) {
+        setLastUpdated(new Date(latestPlayer.updatedAt.seconds * 1000));
+      }
+
       }
     };
     fetchPlayers();
@@ -105,7 +111,12 @@ const TopGoalScorer = () => {
     if (searchResult && searchResultRef.current) {
       searchResultRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    
+
+    
   }, [searchResult]);
+
+  
 
   const handleSearch = async () => {
     if (!searchName.trim()) {
@@ -155,10 +166,28 @@ const TopGoalScorer = () => {
       alert('검색 중 오류가 발생했습니다.');
     }
   };
+  
 
   return (
+    
     <S.Container>
       <S.Header>득점왕 TOP 10</S.Header>
+      
+      {lastUpdated && (
+          <div
+            style={{
+              textAlign: 'right',
+              width: '100%',
+              fontSize: '14px',
+              color: '#4e5968',
+              marginTop: '-24px',
+              marginBottom: '40px',
+            }}
+          >
+            마지막 업데이트: {lastUpdated.toLocaleDateString('ko-KR')}{' '}
+            {lastUpdated.toLocaleTimeString('ko-KR')}
+          </div>
+        )}
       <S.SearchContainer>
         <S.SearchInput
           placeholder="선수 이름으로 검색"
