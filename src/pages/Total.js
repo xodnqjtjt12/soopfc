@@ -32,6 +32,7 @@ const calculateRating = (playerInfo) => {
   return Math.min(99, Math.floor(calculatedRating));
 };
 
+
 // 선수 칭호 계산
 const getPlayerTitles = (playerInfo) => {
   const titles = [];

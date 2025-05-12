@@ -70,11 +70,19 @@ export const MatchHeader = styled.div`
   gap: 20px;
   border-radius: 8px 8px 0 0;
 
-  .team-info {
+  .score-info {
     display: flex;
     flex: 1;
-    justify-content: space-between;
     align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+
+    &.vertical {
+      flex-direction: column;
+      gap: 8px;
+      text-align: center;
+    }
   }
 
   @media (max-width: 768px) {
@@ -83,10 +91,16 @@ export const MatchHeader = styled.div`
     flex-direction: column;
     gap: 10px;
 
-    .team-info {
+    .score-info {
       width: 100%;
-      flex-direction: column;
+      flex-direction: row; /* 2팀일 때 가로 유지 */
       gap: 8px;
+      justify-content: center;
+
+      &.vertical {
+        flex-direction: column; /* 3팀 이상일 때 세로 */
+        gap: 6px;
+      }
     }
   }
 `;
@@ -185,7 +199,6 @@ export const FieldView = styled.div`
 
 export const GoalArea = styled.div`
   position: absolute;
-  //   width: 100%;
   height: 20%;
   background-color: rgba(255, 255, 255, 0.2);
 
@@ -212,9 +225,7 @@ export const GoalArea = styled.div`
 
 export const PenaltyArea = styled.div`
   position: absolute;
-  //   width: 60%;
   height: 30%;
-  //   border: 2px dashed rgba(255, 255, 255, 0.5);
 
   &.top {
     top: 10%;
@@ -279,7 +290,6 @@ export const PlayerCard = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  //   justify-content: center;
   color: #fff;
   cursor: pointer;
   transition: transform 0.2s;
@@ -294,19 +304,17 @@ export const PlayerCard = styled.div`
 
   .avatar {
     position: relative;
-    display: inline-flex; /* inline-flex 로 변경 */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    min-width: 40px; /* 최소 너비 유지 */
+    min-width: 40px;
     height: 40px;
-    padding: 0 6px; /* 좌우 여백 주기 */
-
+    padding: 0 6px;
     border-radius: 50%;
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    flex-shrink: 0; /* 절대 축소되지 않게 */
+    flex-shrink: 0;
   }
 
   .avatar img {
@@ -316,15 +324,15 @@ export const PlayerCard = styled.div`
   }
 
   .avatar-placeholder {
-    white-space: nowrap; /* 한 줄로 유지 */
-    overflow: hidden; /* 넘치는 텍스트 숨김 */
-    text-overflow: ellipsis; /* 잘린 부분 … 처리 */
-
-    font-size: 12px; /* 글자 크기 소폭 다운 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
     font-weight: 700;
     color: #fff;
     user-select: none;
   }
+
   .number {
     font-size: 16px;
     font-weight: 600;
@@ -346,7 +354,7 @@ export const PlayerCard = styled.div`
     }
 
     .avatar-placeholder {
-      font-size: 12px; /* 모바일에서 포지션 텍스트 크기 */
+      font-size: 12px;
     }
 
     .number {

@@ -329,32 +329,23 @@ const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssist
   );
 };
 
-const displayTeams = quarters => {
-  if (!quarters?.length) return <span>팀 정보 없음</span>;
-  const teamNames = quarters.reduce((acc, q) => {
-    q.teams.forEach(t => { if (t.name && !acc.includes(t.name)) acc.push(t.name); });
-    return acc;
-  }, []);
-  return teamNames.length ? (
-    teamNames.map((name, i) => (
-      <React.Fragment key={i}>
-        <span className="font-bold">{name}</span>
-        {i < teamNames.length - 1 && <span className="mx-2">VS</span>}
-      </React.Fragment>
-    ))
-  ) : <span>팀 정보 없음</span>;
-};
-
 const calculateTotalScores = quarters => {
+  // 1) 분기별 득점 집계
   const scores = quarters.reduce((acc, q) => {
     q.goalAssistPairs.forEach(p => {
       if (p.goal.team) acc[p.goal.team] = (acc[p.goal.team] || 0) + 1;
     });
     return acc;
   }, {});
+
   const teams = Object.keys(scores);
-  const maxGoals = Math.max(...Object.values(scores));
-  const winner = maxGoals > 0 ? teams.find(t => scores[t] === maxGoals) : null;
+  const goalValues = Object.values(scores);
+  const maxGoals = goalValues.length ? Math.max(...goalValues) : 0;
+
+  // 2) 최고 득점 팀을 모두 찾고, 하나뿐일 때만 승자 지정
+  const topTeams = teams.filter(t => scores[t] === maxGoals);
+  const winner = (maxGoals > 0 && topTeams.length === 1) ? topTeams[0] : null;
+
   return { scores, winner };
 };
 
@@ -528,7 +519,6 @@ function VodPage() {
             <MatchSection key={match.id}>
               <MatchHeader>
                 <Badge type="home">{formatDate(match.date)}</Badge>
-                <div className="team-info">{displayTeams(match.quarters)}</div>
                 <div className="score-info">{`${scoreDisplay} ${result}`}</div>
               </MatchHeader>
               {match.quarters.map((q, i) => {
@@ -645,34 +635,45 @@ function VodPage() {
                       </TeamsContainer>
                       <StatsList>
                         <StatTitle>공격 포인트</StatTitle>
-                        {q.goalAssistPairs.length ? (
-                          q.goalAssistPairs.map((p, pi) => (
-                            <StatItem key={pi} onClick={() => highlightPlayer(p.goal.player, 'goal')}>
-                              <StatValue>
-                                <div>
-                                  <span>골: {p.goal.player}</span>
-                                  <span className="goal-icon">⚽</span>
-                                </div>
-                                <div>
-                                  <span>어시: {p.assist.player || '없음'}</span>
-                                  {p.assist.player && (
-                                    <span
-                                      className="assist-icon"
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        highlightPlayer(p.assist.player, 'assist');
-                                      }}
-                                    >
-                                      👟
-                                    </span>
-                                  )}
-                                </div>
-                              </StatValue>
-                            </StatItem>
-                          ))
-                        ) : (
-                          <EmptyState>골-어시 기록 없음</EmptyState>
-                        )}
+                        {q.teams.map((team, ti) => {
+                          const teamGoalAssistPairs = q.goalAssistPairs.filter(p => p.goal.team === team.name);
+                          return (
+                            <div key={ti} style={{ marginBottom: '20px' }}>
+                              <StatTitle>{team.name}</StatTitle>
+                              {teamGoalAssistPairs.length ? (
+                                teamGoalAssistPairs.map((p, pi) => (
+                                  <StatItem
+                                    key={pi}
+                                    onClick={() => highlightPlayer(p.goal.player, 'goal')}
+                                  >
+                                    <StatValue>
+                                      <div>
+                                        <span>골: {p.goal.player}</span>
+                                        <span className="goal-icon">⚽</span>
+                                      </div>
+                                      <div>
+                                        <span>어시: {p.assist.player || '없음'}</span>
+                                        {p.assist.player && (
+                                          <span
+                                            className="assist-icon"
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              highlightPlayer(p.assist.player, 'assist');
+                                            }}
+                                          >
+                                            👟
+                                          </span>
+                                        )}
+                                      </div>
+                                    </StatValue>
+                                  </StatItem>
+                                ))
+                              ) : (
+                                <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
+                              )}
+                            </div>
+                          );
+                        })}
                       </StatsList>
                     </QuarterContent>
                   </QuarterSection>

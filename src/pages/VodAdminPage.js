@@ -26,15 +26,14 @@ import {
   PlayerImage,
   PlayerInfo,
   TeamSummary,
-  HelpPanel, 
-  Badge,
   ModalOverlay,
   ModalContent,
   ModalTitle,
   ModalInput,
   ModalButton,
   ErrorMessage,
-  CapsLockWarning
+  CapsLockWarning,
+  Badge // Badge를 VodAdminPageCss에서 임포트
 } from './VodAdminPageCss';
 
 // Icons
@@ -59,20 +58,10 @@ const EditIcon = () => (
   </svg>
 );
 
-const InfoIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"></circle>
-    <line x1="12" y1="16" x2="12" y2="12"></line>
-    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-  </svg>
-);
-
-const SwapIcon = () => (
+const LockIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M7 3L3 7l4 4"></path>
-    <path d="M3 7h18"></path>
-    <path d="M17 21l4-4-4-4"></path>
-    <path d="M21 17H3"></path>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
   </svg>
 );
 
@@ -82,13 +71,6 @@ const ResetIcon = () => (
     <path d="M21 3v5h-5"></path>
     <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
     <path d="M8 16H3v5"></path>
-  </svg>
-);
-
-const LockIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
   </svg>
 );
 
@@ -228,7 +210,6 @@ function MatchAdminPage() {
   const [players, setPlayers] = useState([]);
   const [tempPlayers, setTempPlayers] = useState([]);
   const [activeTeamIndex, setActiveTeamIndex] = useState(0);
-  const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [activeQuarterIndex, setActiveQuarterIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState(null);
@@ -599,11 +580,61 @@ function MatchAdminPage() {
   // Handle drag and drop for a specific quarter
   const onDragEnd = (result, quarterIndex, teamIndex) => {
     if (!result.destination) return;
-    const updatedQuarters = [...quarters];
+
+    const sourceIndex = result.source.index;
+    const destIndex = result.destination.index;
+    const updatedQuarters = JSON.parse(JSON.stringify(quarters));
+
     if (updatedQuarters[quarterIndex].teams[teamIndex]) {
-      const [reorderedPlayer] = updatedQuarters[quarterIndex].teams[teamIndex].players.splice(result.source.index, 1);
-      updatedQuarters[quarterIndex].teams[teamIndex].players.splice(result.destination.index, 0, reorderedPlayer);
+      const players = updatedQuarters[quarterIndex].teams[teamIndex].players;
+      const sourcePlayer = players[sourceIndex];
+      const destPlayer = players[destIndex];
+
+      // 확인 창 표시
+      const sourceName = sourcePlayer.name || '선수 없음';
+      const destName = destPlayer.name || '선수 없음';
+      const confirmMessage = `${sourcePlayer.position} ${sourceName}와 ${destPlayer.position} ${destName}를 바꾸시겠습니까?`;
+      if (!window.confirm(confirmMessage)) {
+        console.log('Position swap cancelled by user');
+        return;
+      }
+
+      // 포지션 및 위치 정보 교체
+      const tempPlayer = { ...sourcePlayer };
+      updatedQuarters[quarterIndex].teams[teamIndex].players[sourceIndex] = {
+        ...destPlayer,
+        position: sourcePlayer.position,
+        top: sourcePlayer.top,
+        left: sourcePlayer.left
+      };
+      updatedQuarters[quarterIndex].teams[teamIndex].players[destIndex] = {
+        ...tempPlayer,
+        position: destPlayer.position,
+        top: destPlayer.top,
+        left: destPlayer.left
+      };
+
+      // 고정 선수 업데이트
+      const teamName = updatedQuarters[quarterIndex].teams[teamIndex].name;
+      if (teamName) {
+        setFixedPlayers(prev => ({
+          ...prev,
+          [teamName]: {
+            ...prev[teamName],
+            [sourcePlayer.position]: {
+              name: destPlayer.name,
+              backNumber: destPlayer.backNumber
+            },
+            [destPlayer.position]: {
+              name: sourcePlayer.name,
+              backNumber: sourcePlayer.backNumber
+            }
+          }
+        }));
+      }
+
       setQuarters(updatedQuarters);
+      console.log(`Swapped ${sourcePlayer.position} ${sourceName} with ${destPlayer.position} ${destName}`);
     }
   };
 
@@ -653,70 +684,6 @@ function MatchAdminPage() {
     setQuarters(updatedQuarters);
   };
 
-  // Handle player selection for swapping
-  const handlePlayerSelect = (quarterIndex, playerIndex) => {
-    setSelectedPlayers(prev => {
-      const key = `${quarterIndex}-${playerIndex}`;
-      if (prev.includes(key)) {
-        return prev.filter(i => i !== key);
-      }
-      if (prev.length >= 2) {
-        return [prev[1], key];
-      }
-      return [...prev, key];
-    });
-  };
-
-  // Swap selected players
-  const swapPlayers = () => {
-    if (selectedPlayers.length !== 2) {
-      alert("포지션을 바꾸려면 두 명의 선수를 선택해주세요.");
-      return;
-    }
-
-    const [key1, key2] = selectedPlayers;
-    const [quarterIndex1, playerIndex1] = key1.split('-').map(Number);
-    const [quarterIndex2, playerIndex2] = key2.split('-').map(Number);
-
-    if (quarterIndex1 !== quarterIndex2) {
-      alert("같은 쿼터 내에서만 선수를 교체할 수 있습니다.");
-      return;
-    }
-
-    const updatedQuarters = [...quarters];
-    const teamName = updatedQuarters[quarterIndex1].teams[activeTeamIndex]?.name;
-    const player1 = { ...updatedQuarters[quarterIndex1].teams[activeTeamIndex].players[playerIndex1] };
-    const player2 = { ...updatedQuarters[quarterIndex2].teams[activeTeamIndex].players[playerIndex2] };
-
-    updatedQuarters[quarterIndex1].teams[activeTeamIndex].players[playerIndex1] = {
-      ...player2,
-      position: player1.position,
-      top: player1.top,
-      left: player1.top
-    };
-    updatedQuarters[quarterIndex2].teams[activeTeamIndex].players[playerIndex2] = {
-      ...player1,
-      position: player2.position,
-      top: player2.top,
-      left: player2.left
-    };
-
-    // 고정 선수 업데이트
-    if (teamName) {
-      setFixedPlayers(prev => ({
-        ...prev,
-        [teamName]: {
-          ...prev[teamName],
-          [player1.position]: { name: player2.name, backNumber: player2.backNumber },
-          [player2.position]: { name: player1.name, backNumber: player1.backNumber }
-        }
-      }));
-    }
-
-    setQuarters(updatedQuarters);
-    setSelectedPlayers([]);
-  };
-
   // Reset current quarter
   const resetCurrentQuarter = () => {
     if (window.confirm(`쿼터 ${activeQuarterIndex + 1}의 팀 설정을 초기화하시겠습니까?`)) {
@@ -724,7 +691,6 @@ function MatchAdminPage() {
       updatedQuarters[activeQuarterIndex] = initializeQuarter(null, null, fixedPlayers);
       setQuarters(updatedQuarters);
       setTempPlayers([]);
-      setSelectedPlayers([]);
       setActiveTeamIndex(0);
       alert(`쿼터 ${activeQuarterIndex + 1}가 초기화되었습니다.`);
     }
@@ -787,7 +753,6 @@ function MatchAdminPage() {
     setActiveTeamIndex(0);
     setActiveQuarterIndex(0);
     setTempPlayers([]);
-    setSelectedPlayers([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1201,13 +1166,10 @@ function MatchAdminPage() {
                                     left: player.left,
                                     opacity: player.name ? 1 : 0.4,
                                     ...provided.draggableProps.style,
-                                    background: selectedPlayers.includes(playerKey) 
-                                      ? 'linear-gradient(135deg, #f1c40f, #e67e22)' 
-                                      : 'linear-gradient(135deg, #3498db, #2980b9)'
+                                    background: 'linear-gradient(135deg, #3498db, #2980b9)'
                                   }}
                                   formation={quarters[activeQuarterIndex].teams[activeTeamIndex]?.formation || '4-4-2'}
                                   position={player.position}
-                                  onClick={() => handlePlayerSelect(activeQuarterIndex, index)}
                                   data-ismyteam={true}
                                 >
                                   <PlayerImage hasImage={false} />
@@ -1231,17 +1193,6 @@ function MatchAdminPage() {
               </FieldView>
               
               <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <Button 
-                  onClick={swapPlayers}
-                  style={{ 
-                    width: 'auto', 
-                    backgroundColor: selectedPlayers.length === 2 ? '#2ecc71' : '#ccc',
-                    cursor: selectedPlayers.length === 2 ? 'pointer' : 'not-allowed'
-                  }}
-                  disabled={selectedPlayers.length !== 2}
-                >
-                  <SwapIcon /> 포지션 변경
-                </Button>
                 <Button 
                   onClick={resetCurrentQuarter}
                   style={{ 
@@ -1378,6 +1329,8 @@ function MatchAdminPage() {
                     ? match.quarters[0].teams.map(t => t.name || '이름 미정').join(' vs ')
                     : '경기 정보 없음'}
                 </div>
+                {/* Badge가 정의되지 않은 경우 임시로 span 태그로 대체 */}
+                {/* <span style={{ backgroundColor: '#3498db', color: '#fff', padding: '4px 8px', borderRadius: '4px' }}>{formatDate(match.date)}</span> */}
                 <Badge type="vod">{formatDate(match.date)}</Badge>
               </div>
               
