@@ -73,8 +73,10 @@ const Home = () => {
   });
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [activeStartDate, setActiveStartDate] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  );
   const [schedules, setSchedules] = useState([]);
-
   const [allNotes, setAllNotes] = useState([]);
   const [announces, setAnnounces] = useState([]);
   const [visibleIds, setVisibleIds] = useState([]);
@@ -83,13 +85,68 @@ const Home = () => {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [hideToday, setHideToday] = useLocalStorage('hideAnnouncementsDate', null);
 
-  const holidays = [
-    '2025-01-01', '2025-01-28', '2025-01-29', '2025-01-30',
-    '2025-03-01', '2025-05-01', '2025-05-05', '2025-05-06',
-    '2025-06-06', '2025-08-15', '2025-10-03', '2025-10-05',
-    '2025-10-06', '2025-10-07', '2025-10-09', '2025-12-25'
-  ];
+  const [holidays, setHolidays] = useState([]);
+  const [anniversaries, setAnniversaries] = useState([]);
 
+
+  useEffect(() => {
+    const fetchAnniversaries = async () => {
+      const year  = activeStartDate.getFullYear();
+      const month = String(activeStartDate.getMonth() + 1).padStart(2, '0');
+      const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getAnniversaryInfo`
+        + `?solYear=${year}&solMonth=${month}`
+        + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
+        + `&_type=json`;
+  
+      try {
+        const res  = await fetch(url);
+        const json = await res.json();
+        let items = json.response.body.items?.item;
+        if (!items) items = [];
+        else if (!Array.isArray(items)) items = [items];
+  
+        // { locdate: '20250603', dateName: '대통령 선거', … }
+        const evts = items.map(i => ({
+          date: `${String(i.locdate).slice(0,4)}-${String(i.locdate).slice(4,6)}-${String(i.locdate).slice(6,8)}`,
+          title: i.dateName
+        }));
+        setAnniversaries(evts);
+      } catch (e) {
+        console.error('기념일 API 에러:', e);
+      }
+    };
+  
+    fetchAnniversaries();
+  }, [activeStartDate]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      const year  = activeStartDate.getFullYear();
+      const month = String(activeStartDate.getMonth() + 1).padStart(2, '0');
+      const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo`
+        + `?solYear=${year}&solMonth=${month}`
+        + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
+        + `&_type=json`;
+
+      try {
+        const res  = await fetch(url);
+        const json = await res.json();
+        let items = json.response.body.items?.item;
+        if (!items) items = [];
+        else if (!Array.isArray(items)) items = [items];
+
+        const days = items.map(i => {
+          const d = String(i.locdate);
+          return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+        });
+        setHolidays(days);
+      } catch (e) {
+        console.error('공휴일 API 에러:', e);
+      }
+    };
+
+    fetchHolidays();
+  }, [activeStartDate]);
   // 공지 fetch & 초기 표시 제어 (한 번만)
   useEffect(() => {
     const fetchNotes = async () => {
@@ -343,13 +400,19 @@ const Home = () => {
             calendarType="gregory"
             locale="ko-KR"
             value={selectedDate}
+            onActiveStartDateChange={({ activeStartDate }) => {
+   setActiveStartDate(activeStartDate); }}
             onChange={onDateChange}
             tileContent={({ date, view }) => view === 'month' && schedules.some(s => format(s.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) ? <span>⚽</span> : null}
             tileClassName={({ date, view }) => {
-              if (view === 'month') {
-                const day = date.getDay(), f = format(date, 'yyyy-MM-dd');
-                if (day === 6) return 'saturday';
-                if (day === 0 || holidays.includes(f)) return 'sunday-or-holiday';
+              if (view !== 'month') return;
+          
+              const dayStr = format(date, 'yyyy-MM-dd');
+              // 토요일
+              if (date.getDay() === 6) return 'saturday';
+              // 일요일 또는 API로 받아온 공휴일
+              if (date.getDay() === 0 || holidays.includes(dayStr)) {
+                return 'sunday-or-holiday';
               }
             }}
             formatDay={(locale, date) => moment(date).format('D')}
