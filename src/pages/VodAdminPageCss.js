@@ -727,6 +727,62 @@ export const Badge = styled.span`
     props.type === 'shorts' ? '#f1c40f' : '#7f8c8d'};
   margin-left: 4px;
 `;
+export const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+export const ModalContent = styled.div`
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+`;
+
+export const ModalTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+`;
+
+export const ModalInput = styled(Input)`
+  width: 100%;
+  margin-bottom: 10px;
+`;
+
+export const ModalButton = styled(Button)`
+  width: 100%;
+  padding: 10px;
+  background-color: #2ecc71;
+
+  &:hover {
+    background-color: #27ae60;
+  }
+`;
+
+export const ErrorMessage = styled.p`
+  color: #e74c3c;
+  font-size: 14px;
+  margin: 10px 0;
+`;
+
+export const CapsLockWarning = styled.p`
+  color: #f1c40f;
+  font-size: 12px;
+  margin: 5px 0;
+`;
 
 // 저장 버튼
 export const SaveButton = styled(Button)`

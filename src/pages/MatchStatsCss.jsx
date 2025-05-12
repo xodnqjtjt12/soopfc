@@ -185,7 +185,7 @@ export const FieldView = styled.div`
 
 export const GoalArea = styled.div`
   position: absolute;
-  width: 100%;
+  //   width: 100%;
   height: 20%;
   background-color: rgba(255, 255, 255, 0.2);
 
@@ -212,9 +212,9 @@ export const GoalArea = styled.div`
 
 export const PenaltyArea = styled.div`
   position: absolute;
-  width: 60%;
+  //   width: 60%;
   height: 30%;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
+  //   border: 2px dashed rgba(255, 255, 255, 0.5);
 
   &.top {
     top: 10%;
@@ -279,7 +279,7 @@ export const PlayerCard = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  //   justify-content: center;
   color: #fff;
   cursor: pointer;
   transition: transform 0.2s;

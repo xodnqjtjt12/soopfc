@@ -18,7 +18,6 @@ import {
   PenaltyArea,
   GoalPost,
   PlayerCard,
-  PlayerInfo,
   TeamsContainer,
   TeamCard,
   TeamName,
@@ -35,7 +34,57 @@ import {
   ScoreBox,
 } from './MatchStatsCss';
 
-// 포지션 미러맵 (왼쪽 ↔ 오른쪽)
+// 모달 스타일
+const modalStyles = {
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '8px',
+    width: '90%',
+    maxWidth: '400px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+  },
+  input: {
+    width: '100%',
+    padding: '8px',
+    marginBottom: '10px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+  },
+  buttonContainer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '10px',
+  },
+  button: {
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  searchButton: {
+    backgroundColor: '#3182f6',
+    color: 'white',
+  },
+  cancelButton: {
+    backgroundColor: '#ccc',
+    color: '#333',
+  },
+};
+
+// 포지션 미러맵
 const MIRROR_POSITION = {
   LB: 'RB', RB: 'LB',
   LW: 'RW', RW: 'LW',
@@ -77,72 +126,72 @@ const FORMATIONS = {
     ],
     mobile: [
       { position: 'GK', top: '5%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'RB', top: '20%', left: '20%' },
-      { position: 'CB1', top: '20%', left: '40%' },
-      { position: 'CB2', top: '20%', left: '60%' },
-      { position: 'LB', top: '20%', left: '80%' },
-      { position: 'CM1', top: '30%', left: '30%' },
-      { position: 'CM2', top: '30%', left: '50%' },
-      { position: 'CM3', top: '30%', left: '70%' },
-      { position: 'RW', top: '38%', left: '20%' },
-      { position: 'ST', top: '38%', left: '50%' },
-      { position: 'LW', top: '38%', left: '80%' },
+      { position: 'RB', top: '20%', left: '14%' },
+      { position: 'CB1', top: '20%', left: '34%' },
+      { position: 'CB2', top: '20%', left: '54%' },
+      { position: 'LB', top: '20%', left: '74%' },
+      { position: 'CM1', top: '30%', left: '24%' },
+      { position: 'CM2', top: '30%', left: '44%' },
+      { position: 'CM3', top: '30%', left: '64%' },
+      { position: 'RW', top: '38%', left: '14%' },
+      { position: 'ST', top: '38%', left: '44%' },
+      { position: 'LW', top: '38%', left: '74%' },
     ],
   },
   '4-4-2': {
     desktop: [
-      { position: 'GK', left: '5%', top: '50%' },
+      { position: 'GK', left: '0%', top: '50%' },
       { position: 'RB', left: '20%', top: '80%' },
       { position: 'CB1', left: '20%', top: '40%' },
       { position: 'CB2', left: '20%', top: '60%' },
       { position: 'LB', left: '20%', top: '20%' },
-      { position: 'RM', left: '35%', top: '80%' },
-      { position: 'CM1', left: '35%', top: '40%' },
-      { position: 'CM2', left: '35%', top: '60%' },
-      { position: 'LM', left: '35%', top: '20%' },
-      { position: 'ST1', left: '45%', top: '40%' },
-      { position: 'ST2', left: '45%', top: '60%' },
+      { position: 'RM', left: '50%', top: '80%' },
+      { position: 'CM1', left: '50%', top: '40%' },
+      { position: 'CM2', left: '50%', top: '60%' },
+      { position: 'LM', left: '50%', top: '20%' },
+      { position: 'ST1', left: '70%', top: '40%' },
+      { position: 'ST2', left: '70%', top: '60%' },
     ],
     mobile: [
       { position: 'GK', top: '5%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'RB', top: '20%', left: '20%' },
-      { position: 'CB1', top: '20%', left: '40%' },
-      { position: 'CB2', top: '20%', left: '60%' },
-      { position: 'LB', top: '20%', left: '80%' },
-      { position: 'RM', top: '35%', left: '20%' },
-      { position: 'CM1', top: '35%', left: '40%' },
-      { position: 'CM2', top: '35%', left: '60%' },
-      { position: 'LM', top: '35%', left: '80%' },
-      { position: 'ST1', top: '48%', left: '40%' },
-      { position: 'ST2', top: '48%', left: '60%' },
+      { position: 'RB', top: '20%', left: '14%' },
+      { position: 'CB1', top: '20%', left: '34%' },
+      { position: 'CB2', top: '20%', left: '54%' },
+      { position: 'LB', top: '20%', left: '74%' },
+      { position: 'RM', top: '35%', left: '14%' },
+      { position: 'CM1', top: '35%', left: '34%' },
+      { position: 'CM2', top: '35%', left: '54%' },
+      { position: 'LM', top: '35%', left: '74%' },
+      { position: 'ST1', top: '48%', left: '34%' },
+      { position: 'ST2', top: '48%', left: '54%' },
     ],
   },
   '3-5-2': {
     desktop: [
       { position: 'GK', left: '5%', top: '50%' },
-      { position: 'CB1', left: '20%', top: '30%' },
-      { position: 'CB2', left: '20%', top: '50%' },
-      { position: 'CB3', left: '20%', top: '70%' },
+      { position: 'CB1', left: '10%', top: '30%' },
+      { position: 'CB2', left: '10%', top: '50%' },
+      { position: 'CB3', left: '10%', top: '70%' },
       { position: 'RWB', left: '35%', top: '15%' },
-      { position: 'CM1', left: '35%', top: '35%' },
-      { position: 'CM2', left: '35%', top: '50%' },
-      { position: 'CM3', left: '35%', top: '65%' },
+      { position: 'CM1', left: '40%', top: '35%' },
+      { position: 'CM2', left: '40%', top: '50%' },
+      { position: 'CM3', left: '40%', top: '65%' },
       { position: 'LWB', left: '35%', top: '85%' },
-      { position: 'ST1', left: '45%', top: '40%' },
-      { position: 'ST2', left: '45%', top: '60%' },
+      { position: 'ST1', left: '70%', top: '40%' },
+      { position: 'ST2', left: '70%', top: '60%' },
     ],
     mobile: [
       { position: 'GK', top: '5%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'CB1', top: '20%', left: '30%' },
-      { position: 'CB2', top: '20%', left: '50%' },
-      { position: 'CB3', top: '20%', left: '70%' },
-      { position: 'RWB', top: '35%', left: '15%' },
-      { position: 'CM1', top: '35%', left: '35%' },
-      { position: 'CM2', top: '35%', left: '50%' },
-      { position: 'CM3', top: '35%', left: '65%' },
-      { position: 'LWB', top: '35%', left: '85%' },
-      { position: 'ST1', top: '48%', left: '40%' },
-      { position: 'ST2', top: '48%', left: '60%' },
+      { position: 'CB1', top: '20%', left: '24%' },
+      { position: 'CB2', top: '20%', left: '44%' },
+      { position: 'CB3', top: '20%', left: '64%' },
+      { position: 'RWB', top: '35%', left: '9%' },
+      { position: 'CM1', top: '35%', left: '29%' },
+      { position: 'CM2', top: '35%', left: '44%' },
+      { position: 'CM3', top: '35%', left: '59%' },
+      { position: 'LWB', top: '35%', left: '79%' },
+      { position: 'ST1', top: '48%', left: '34%' },
+      { position: 'ST2', top: '48%', left: '54%' },
     ],
   },
   '4-2-3-1': {
@@ -154,23 +203,23 @@ const FORMATIONS = {
       { position: 'LB', left: '20%', top: '20%' },
       { position: 'CDM1', left: '35%', top: '40%' },
       { position: 'CDM2', left: '35%', top: '60%' },
-      { position: 'RW', left: '45%', top: '80%' },
-      { position: 'CAM', left: '45%', top: '50%' },
-      { position: 'LW', left: '45%', top: '20%' },
-      { position: 'ST', left: '48%', top: '50%' },
+      { position: 'RW', left: '50%', top: '80%' },
+      { position: 'CAM', left: '50%', top: '55%' },
+      { position: 'LW', left: '50%', top: '20%' },
+      { position: 'ST', left: '70%', top: '50%' },
     ],
     mobile: [
       { position: 'GK', top: '5%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'RB', top: '20%', left: '20%' },
-      { position: 'CB1', top: '20%', left: '40%' },
-      { position: 'CB2', top: '20%', left: '60%' },
-      { position: 'LB', top: '20%', left: '80%' },
-      { position: 'CDM1', top: '35%', left: '40%' },
-      { position: 'CDM2', top: '35%', left: '60%' },
-      { position: 'RW', top: '40%', left: '20%' },
-      { position: 'CAM', top: '40%', left: '50%' },
-      { position: 'LW', top: '40%', left: '80%' },
-      { position: 'ST', top: '48%', left: '50%' },
+      { position: 'RB', top: '15%', left: '14%' },
+      { position: 'CB1', top: '15%', left: '34%' },
+      { position: 'CB2', top: '15%', left: '54%' },
+      { position: 'LB', top: '15%', left: '74%' },
+      { position: 'CDM1', top: '25%', left: '35%' },
+      { position: 'CDM2', top: '25%', left: '54%' },
+      { position: 'RW', top: '40%', left: '14%' },
+      { position: 'CAM', top: '33%', left: '44%' },
+      { position: 'LW', top: '40%', left: '74%' },
+      { position: 'ST', top: '40%', left: '44%' },
     ],
   },
 };
@@ -187,7 +236,6 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
     </div>
   );
 
-  // clone and transform coordinates, then mirror only the position key for away
   const positions = getFormationPositions(team.formation, isMobile).map(pos => {
     const newPos = { ...pos };
     if (!isMobile) {
@@ -196,21 +244,20 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         newPos.left = `${Math.min(leftValue * 0.5, 48)}%`;
       } else {
         const reversedLeft = 100 - leftValue;
-        newPos.left = leftValue === 5 ? '85%' : `${50 + (reversedLeft * 0.35)}%`;
+        newPos.left = leftValue === 5 ? '89%' : `${50 + (reversedLeft * 0.35)}%`;
       }
     } else {
       if (!isHomeTeam) {
-        if (newPos.position === 'GK') newPos.top = '89%';
+        if (newPos.position === 'GK') newPos.top = '88%';
         else if (newPos.position.includes('CB') || newPos.position.includes('RB') || newPos.position.includes('LB'))
           newPos.top = '80%';
         else if (newPos.position.includes('CM') || newPos.position.includes('RM') || newPos.position.includes('LM'))
           newPos.top = '70%';
         else if (newPos.position.includes('ST') || newPos.position.includes('RW') || newPos.position.includes('LW'))
-          newPos.top = '58%';
-        else if (newPos.position === 'CAM') newPos.top = '62%';
-        else if (newPos.position.includes('CDM')) newPos.top = '74%';
+          newPos.top = '53%';
+        else if (newPos.position === 'CAM') newPos.top = '63%';
+        else if (newPos.position.includes('CDM')) newPos.top = '71%';
         else if (newPos.position === 'RWB' || newPos.position === 'LWB') newPos.top = '70%';
-        newPos.left = `${100 - (parseFloat(newPos.left) || 0)}%`;
       }
     }
     if (!isHomeTeam) {
@@ -276,7 +323,8 @@ const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssist
         {renderFormation(teams[0], true, true, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs)}
       </div>
       <div className="relative flex-1 border-t border-white border-opacity-50">
-        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs)}      </div>
+        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs)}
+      </div>
     </div>
   );
 };
@@ -315,7 +363,9 @@ function VodPage() {
   const [filterDate, setFilterDate] = useState('all');
   const [dates, setDates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtered, setFiltered] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [filteredMatches, setFilteredMatches] = useState([]);
   const [openQuarters, setOpenQuarters] = useState({});
   const [highlightedPlayer, setHighlightedPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -328,9 +378,30 @@ function VodPage() {
   }, []);
 
   useEffect(() => { fetchMatches(); }, []);
+
   useEffect(() => {
-    setFiltered(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
-  }, [filterDate, matches]);
+    if (nickname) {
+      const filtered = matches
+        .map(match => {
+          const filteredQuarters = match.quarters
+            .map((quarter, index) => {
+              const hasPlayer = quarter.teams.some(team =>
+                team.players.some(player => player.name.toLowerCase() === nickname.toLowerCase())
+              );
+              if (!hasPlayer) return null;
+              return { ...quarter, quarterIndex: index + 1 };
+            })
+            .filter(quarter => quarter !== null);
+          if (filteredQuarters.length === 0) return null;
+          return { ...match, quarters: filteredQuarters };
+        })
+        .filter(match => match !== null);
+      console.log(`Filtered matches for ${nickname}:`, filtered);
+      setFilteredMatches(filtered);
+    } else {
+      setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
+    }
+  }, [filterDate, matches, nickname]);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -342,7 +413,7 @@ function VodPage() {
         return {
           id: doc.id,
           date,
-          quarters: quarters.map(q => {
+          quarters: quarters.map((q, index) => {
             const teams = (q.teams || []).map((t, ti) => {
               const players = (t.players || []).map(p => ({
                 ...p,
@@ -356,15 +427,15 @@ function VodPage() {
                 players
               };
             });
-            return { teams, goalAssistPairs: q.goalAssistPairs || [] };
+            return { teams, goalAssistPairs: q.goalAssistPairs || [], quarterIndex: index + 1 };
           })
         };
       });
+      console.log('Fetched matches:', data);
       setMatches(data);
-      setFiltered(data);
       setDates([...new Set(data.map(m => m.date))].sort().reverse());
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching matches:', err);
     }
     setLoading(false);
   };
@@ -379,6 +450,17 @@ function VodPage() {
 
   const highlightPlayer = (name, type) => setHighlightedPlayer({ name, type });
 
+  const handleSearch = () => {
+    console.log(`Searching for nickname: ${nickname}`);
+    setShowModal(false);
+  };
+
+  const handleCancel = () => {
+    setNickname('');
+    setShowModal(false);
+    setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
+  };
+
   return (
     <Container>
       <MainContent>
@@ -390,11 +472,55 @@ function VodPage() {
               {dates.map(d => <option key={d} value={d}>{formatDate(d)}</option>)}
             </select>
           </SelectWrapper>
+          <button
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#3182f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+            onClick={() => setShowModal(true)}
+          >
+            내 경기 기록 보기
+          </button>
         </FilterBar>
+
+        {showModal && (
+          <div style={modalStyles.overlay}>
+            <div style={modalStyles.modal}>
+              <h3>내 경기 기록 검색</h3>
+              <input
+                style={modalStyles.input}
+                type="text"
+                value={nickname}
+                onChange={e => setNickname(e.target.value)}
+                placeholder="닉네임 입력"
+                autoFocus
+              />
+              <div style={modalStyles.buttonContainer}>
+                <button
+                  style={{ ...modalStyles.button, ...modalStyles.cancelButton }}
+                  onClick={handleCancel}
+                >
+                  취소
+                </button>
+                <button
+                  style={{ ...modalStyles.button, ...modalStyles.searchButton }}
+                  onClick={handleSearch}
+                  disabled={!nickname.trim()}
+                >
+                  검색
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <LoadingIndicator>로딩 중...</LoadingIndicator>
-        ) : filtered.length ? filtered.map(match => {
+        ) : filteredMatches.length ? filteredMatches.map(match => {
           const { scores, winner } = calculateTotalScores(match.quarters);
           const scoreDisplay = Object.entries(scores).map(([team, goals]) => `${team}: ${goals}`).join(' vs ');
           const result = winner ? `(${winner} 승)` : '(무승부)';
@@ -408,10 +534,50 @@ function VodPage() {
               {match.quarters.map((q, i) => {
                 const isOpen = openQuarters[`${match.id}-${i}`];
                 const scores = calculateScores(q.goalAssistPairs, q.teams);
+                const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
+                const playerStats = nickname ? q.teams.reduce((acc, team) => {
+                  const isPlayerTeam = team.players.some(p => p.name.toLowerCase() === nickname.toLowerCase());
+                  const isDefender = team.players.some(
+                    p => p.name.toLowerCase() === nickname.toLowerCase() && defensivePositions.includes(p.position)
+                  );
+                  if (isPlayerTeam) {
+                    // 골 및 어시스트
+                    q.goalAssistPairs.forEach(pair => {
+                      if (pair.goal.player.toLowerCase() === nickname.toLowerCase()) {
+                        acc.push({ type: 'goal', icon: '⚽', quarter: q.quarterIndex });
+                      }
+                      if (pair.assist.player?.toLowerCase() === nickname.toLowerCase()) {
+                        acc.push({ type: 'assist', icon: '👟', quarter: q.quarterIndex });
+                      }
+                    });
+                    // 클린시트: 상대 팀의 골이 없고, 플레이어가 수비수 포지션일 때
+                    if (isDefender) {
+                      const opponentTeam = q.teams.find(t => t.name !== team.name);
+                      const opponentGoals = q.goalAssistPairs.filter(p => p.goal.team === opponentTeam?.name).length;
+                      if (opponentGoals === 0) {
+                        acc.push({ type: 'cleanSheet', icon: '🧤', quarter: q.quarterIndex });
+                      }
+                    }
+                  }
+                  return acc;
+                }, []) : [];
                 return (
                   <QuarterSection key={i} className={isOpen ? 'open' : ''}>
                     <QuarterHeader onClick={() => toggleQuarter(match.id, i)} className={isOpen ? 'open' : ''}>
-                      <span>쿼터 {i + 1}</span>
+                      <span>쿼터 {q.quarterIndex}</span>
+                      {playerStats.length > 0 && (
+                        <span className="icons-container">
+                          {playerStats.map((stat, si) => (
+                            <span
+                              key={si}
+                              className={`${stat.type}-icon`}
+                              style={{ marginLeft: '2px' }}
+                            >
+                              {stat.icon}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                       <ChevronIcon isOpen={isOpen} />
                     </QuarterHeader>
                     <QuarterContent className={isOpen ? 'open' : ''}>
@@ -438,11 +604,11 @@ function VodPage() {
                       <FieldContainer>
                         <FieldView>
                           <GoalArea className="top" />
-                          <GoalArea className="bottom" />  
-                          <PenaltyArea className="top" />  
-                          <PenaltyArea className="bottom" />  
-                          <GoalPost className="top" />  
-                          <GoalPost className="bottom" />  
+                          <GoalArea className="bottom" />
+                          <PenaltyArea className="top" />
+                          <PenaltyArea className="bottom" />
+                          <GoalPost className="top" />
+                          <GoalPost className="bottom" />
                           {isMobile ? (
                             <MobileFormation
                               teams={q.teams}
@@ -463,10 +629,7 @@ function VodPage() {
                       <TeamsContainer>
                         {q.teams.map((t, ti) => (
                           <TeamCard key={ti}>
-                            <TeamName>
-                              {t.name}
-                              <Badge type={ti === 0 ? 'home' : 'away'} />
-                            </TeamName>
+                            <TeamName>{t.name}</TeamName>
                             <Formation>포메이션: {t.formation}</Formation>
                             <PlayersList>
                               {t.players.map((p, pi) => (
@@ -475,7 +638,7 @@ function VodPage() {
                                   <span className="name">{p.name}</span>
                                   <span className="position">{p.position}</span>
                                 </PlayerItem>
-                              ))}  
+                              ))}
                             </PlayersList>
                           </TeamCard>
                         ))}
@@ -495,7 +658,10 @@ function VodPage() {
                                   {p.assist.player && (
                                     <span
                                       className="assist-icon"
-                                      onClick={e => { e.stopPropagation(); highlightPlayer(p.assist.player, 'assist'); }}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        highlightPlayer(p.assist.player, 'assist');
+                                      }}
                                     >
                                       👟
                                     </span>
@@ -515,7 +681,9 @@ function VodPage() {
             </MatchSection>
           );
         }) : (
-          <EmptyState>등록된 경기가 없습니다.</EmptyState>
+          <EmptyState>
+            {nickname ? `${nickname} 님이 참여한 경기가 없습니다.` : '등록된 경기가 없습니다.'}
+          </EmptyState>
         )}
       </MainContent>
     </Container>

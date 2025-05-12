@@ -27,7 +27,14 @@ import {
   PlayerInfo,
   TeamSummary,
   HelpPanel, 
-  Badge
+  Badge,
+  ModalOverlay,
+  ModalContent,
+  ModalTitle,
+  ModalInput,
+  ModalButton,
+  ErrorMessage,
+  CapsLockWarning
 } from './VodAdminPageCss';
 
 // Icons
@@ -141,33 +148,36 @@ const formations = {
   ]
 };
 
-// Get empty player array based on formation
-const getEmptyPlayers = (formation) => {
+// Get empty player array based on formation, applying fixed players
+const getEmptyPlayers = (formation, fixedPlayers = {}, teamName = '') => {
   const formationData = formations[formation] || formations['4-3-3'];
-  return formationData.map(pos => ({ 
-    backNumber: '', 
-    name: '', 
-    position: pos.position,
-    top: pos.top,
-    left: pos.left
-  }));
+  return formationData.map(pos => {
+    const fixedPlayer = fixedPlayers[teamName]?.[pos.position];
+    return { 
+      backNumber: fixedPlayer?.backNumber || '', 
+      name: fixedPlayer?.name || '', 
+      position: pos.position,
+      top: pos.top,
+      left: pos.left
+    };
+  });
 };
 
 // Initialize a single quarter with exactly two teams
-const initializeQuarter = (team1 = null, team2 = null) => {
+const initializeQuarter = (team1 = null, team2 = null, fixedPlayers = {}) => {
   return {
     teams: [
       { 
         id: team1?.id || null,
         name: team1?.name || '', 
         formation: team1?.formation || '4-3-3', 
-        players: team1?.players || getEmptyPlayers('4-3-3') 
+        players: team1?.players || getEmptyPlayers('4-3-3', fixedPlayers, team1?.name) 
       },
       { 
         id: team2?.id || null,
         name: team2?.name || '', 
         formation: team2?.formation || '4-3-3', 
-        players: team2?.players || getEmptyPlayers('4-3-3') 
+        players: team2?.players || getEmptyPlayers('4-3-3', fixedPlayers, team2?.name) 
       }
     ],
     goalAssistPairs: [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }]
@@ -175,23 +185,23 @@ const initializeQuarter = (team1 = null, team2 = null) => {
 };
 
 // Initialize quarters based on team count
-const initializeAllQuarters = (teams = []) => {
+const initializeAllQuarters = (teams = [], fixedPlayers = {}) => {
   const teamCount = teams.length || 0;
   let quarters;
   if (teamCount === 0) {
-    quarters = Array(4).fill().map(() => initializeQuarter());
+    quarters = Array(4).fill().map(() => initializeQuarter(null, null, fixedPlayers));
   } else if (teamCount === 1) {
-    quarters = Array(4).fill().map(() => initializeQuarter(teams[0]));
+    quarters = Array(4).fill().map(() => initializeQuarter(teams[0], null, fixedPlayers));
   } else if (teamCount === 2) {
-    quarters = Array(4).fill().map(() => initializeQuarter(teams[0], teams[1]));
+    quarters = Array(4).fill().map(() => initializeQuarter(teams[0], teams[1], fixedPlayers));
   } else {
     quarters = [
-      initializeQuarter(teams[0], teams[1]), // A vs B
-      initializeQuarter(teams[0], teams[2]), // A vs C
-      initializeQuarter(teams[1], teams[2]), // B vs C
-      initializeQuarter(teams[0], teams[1]), // A vs B
-      initializeQuarter(teams[0], teams[2]), // A vs C
-      initializeQuarter(teams[1], teams[2])  // B vs C
+      initializeQuarter(teams[0], teams[1], fixedPlayers), // A vs B
+      initializeQuarter(teams[0], teams[2], fixedPlayers), // A vs C
+      initializeQuarter(teams[1], teams[2], fixedPlayers), // B vs C
+      initializeQuarter(teams[0], teams[1], fixedPlayers), // A vs B
+      initializeQuarter(teams[0], teams[2], fixedPlayers), // A vs C
+      initializeQuarter(teams[1], teams[2], fixedPlayers)  // B vs C
     ];
   }
   return quarters;
@@ -224,6 +234,45 @@ function MatchAdminPage() {
   const [editingMatchId, setEditingMatchId] = useState(null);
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState('팀 A');
+  // 비밀번호 인증 상태
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  // 고정 선수 상태
+  const [fixedPlayers, setFixedPlayers] = useState({});
+
+  // 페이지 로드 시 비밀번호 입력 모달 표시
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  // 비밀번호 제출 처리
+  const handlePasswordSubmit = () => {
+    if (password === 'alves') {
+      setIsAuthenticated(true);
+      setError('');
+      setPassword('');
+    } else {
+      setError('비밀번호가 올바르지 않습니다.');
+      setPassword('');
+    }
+  };
+
+  // Enter 키로 비밀번호 제출
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handlePasswordSubmit();
+    }
+  };
+
+  // Caps Lock 감지
+  const handleKeyDown = (e) => {
+    const capsLock = e.getModifierState('CapsLock');
+    setIsCapsLockOn(capsLock);
+  };
 
   // Fetch data
   useEffect(() => {
@@ -240,6 +289,7 @@ function MatchAdminPage() {
     console.log('Quarters updated:', JSON.stringify(quarters, null, 2));
     console.log('Active Quarter Index:', activeQuarterIndex);
     console.log('Active Team Index:', activeTeamIndex);
+    console.log('Fixed Players:', JSON.stringify(fixedPlayers, null, 2));
     quarters.forEach((quarter, idx) => {
       if (quarter && Array.isArray(quarter.teams)) {
         console.log(`Quarter ${idx + 1} Matchup:`, 
@@ -260,7 +310,7 @@ function MatchAdminPage() {
     if (!validQuarters.includes(activeQuarterIndex)) {
       setActiveQuarterIndex(validQuarters[0] || 0);
     }
-  }, [quarters, teams]);
+  }, [quarters, teams, fixedPlayers]);
 
   // Define playerOptions safely
   const playerOptions = (players && tempPlayers) ? 
@@ -291,7 +341,7 @@ function MatchAdminPage() {
                   position: player.position || '',
                   top: player.top || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.top || '',
                   left: player.left || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.left || ''
-                })) : getEmptyPlayers(team.formation || '4-4-2')
+                })) : getEmptyPlayers(team.formation || '4-4-2', fixedPlayers, team.name)
               })) : initializeQuarter().teams,
               goalAssistPairs: Array.isArray(quarter.goalAssistPairs) && quarter.goalAssistPairs.length > 0 
                 ? quarter.goalAssistPairs.map(pair => ({
@@ -300,13 +350,13 @@ function MatchAdminPage() {
                   }))
                 : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }]
             }))
-          : initializeAllQuarters([]);
+          : initializeAllQuarters([], fixedPlayers);
         return { 
           id: doc.id, 
           date: data.date || new Date().toISOString().split('T')[0],
           quarters: quarters.length === 6 ? quarters : [
             ...quarters,
-            ...Array(6 - quarters.length).fill().map(() => initializeQuarter())
+            ...Array(6 - quarters.length).fill().map(() => initializeQuarter(null, null, fixedPlayers))
           ]
         };
       });
@@ -347,7 +397,7 @@ function MatchAdminPage() {
   const handleTeamSave = () => {
     const teamName = quarters[activeQuarterIndex].teams[activeTeamIndex]?.name || '';
     const formation = quarters[activeQuarterIndex].teams[activeTeamIndex]?.formation || '4-4-2';
-    const playersData = quarters[activeQuarterIndex].teams[activeTeamIndex]?.players || getEmptyPlayers(formation);
+    const playersData = quarters[activeQuarterIndex].teams[activeTeamIndex]?.players || getEmptyPlayers(formation, fixedPlayers, teamName);
 
     if (!teamName) {
       alert("팀 이름을 입력해주세요.");
@@ -370,7 +420,7 @@ function MatchAdminPage() {
     }
 
     setTeams(updatedTeams);
-    setQuarters(initializeAllQuarters(updatedTeams));
+    setQuarters(initializeAllQuarters(updatedTeams, fixedPlayers));
     alert(`${selectedTeam}이(가) 저장되었습니다.`);
   };
 
@@ -378,8 +428,16 @@ function MatchAdminPage() {
   const handleTeamDelete = (teamId) => {
     if (window.confirm(`ID ${teamId} 팀을 삭제하시겠습니까?`)) {
       const updatedTeams = teams.filter(team => team.id !== teamId);
+      const teamName = teams.find(team => team.id === teamId)?.name;
+      if (teamName) {
+        setFixedPlayers(prev => {
+          const newFixed = { ...prev };
+          delete newFixed[teamName];
+          return newFixed;
+        });
+      }
       setTeams(updatedTeams);
-      setQuarters(initializeAllQuarters(updatedTeams));
+      setQuarters(initializeAllQuarters(updatedTeams, fixedPlayers));
       alert(`ID ${teamId} 팀이 삭제되었습니다.`);
     }
   };
@@ -391,7 +449,26 @@ function MatchAdminPage() {
     if (updatedQuarters[quarterIndex].teams[teamIndex]) {
       updatedQuarters[quarterIndex].teams[teamIndex][field] = value;
       if (field === 'formation') {
-        updatedQuarters[quarterIndex].teams[teamIndex].players = getEmptyPlayers(value);
+        const teamName = updatedQuarters[quarterIndex].teams[teamIndex].name;
+        const newFormation = value;
+        const formationData = formations[newFormation] || formations['4-3-3'];
+        const existingPlayers = updatedQuarters[quarterIndex].teams[teamIndex].players || [];
+        const fixedTeamPlayers = fixedPlayers[teamName] || {};
+
+        // 새로운 포메이션의 포지션에 고정 선수 적용
+        const newPlayers = formationData.map(pos => {
+          const fixedPlayer = fixedTeamPlayers[pos.position];
+          const existingPlayer = existingPlayers.find(p => p.position === pos.position);
+          return {
+            backNumber: fixedPlayer?.backNumber || existingPlayer?.backNumber || '',
+            name: fixedPlayer?.name || existingPlayer?.name || '',
+            position: pos.position,
+            top: pos.top,
+            left: pos.left
+          };
+        });
+
+        updatedQuarters[quarterIndex].teams[teamIndex].players = newPlayers;
       }
     }
 
@@ -403,6 +480,7 @@ function MatchAdminPage() {
     if (!selected) return;
     
     const updatedQuarters = [...quarters];
+    const teamName = updatedQuarters[quarterIndex].teams[teamIndex]?.name;
     const playerIndex = updatedQuarters[quarterIndex].teams[teamIndex]?.players.findIndex(p => p.position === position);
     
     if (playerIndex !== -1) {
@@ -416,6 +494,17 @@ function MatchAdminPage() {
           { name: playerName, position: '포지션 미정', backNumber: '', isMercenary: true }
         ]);
       }
+
+      // 고정 선수 업데이트
+      if (teamName) {
+        setFixedPlayers(prev => ({
+          ...prev,
+          [teamName]: {
+            ...prev[teamName],
+            [position]: { name: playerName, backNumber: selected.backNumber || '' }
+          }
+        }));
+      }
       
       setQuarters(updatedQuarters);
     }
@@ -427,26 +516,53 @@ function MatchAdminPage() {
       alert("먼저 선수를 선택해주세요.");
       return;
     }
-
-    const updatedQuarters = [...quarters];
+  
+    const updatedQuarters = JSON.parse(JSON.stringify(quarters));
     const teamName = updatedQuarters[quarterIndex].teams[teamIndex]?.name;
-
+  
     if (!teamName) {
       alert("팀 이름이 설정되지 않았습니다.");
       return;
     }
+  
+    // 고정 선수 정보 업데이트
+    setFixedPlayers(prev => ({
+      ...prev,
+      [teamName]: {
+        ...prev[teamName],
+        [position]: { name: playerName, backNumber: backNumber || '' }
+      }
+    }));
 
+    // 모든 쿼터에 고정 선수 적용
     updatedQuarters.forEach((quarter, idx) => {
       const teamIdx = quarter.teams.findIndex(team => team.name === teamName);
       if (teamIdx !== -1) {
+        const formation = quarter.teams[teamIdx].formation || '4-3-3';
+        const formationData = formations[formation] || formations['4-3-3'];
         const playerIdx = quarter.teams[teamIdx].players.findIndex(p => p.position === position);
+        
         if (playerIdx !== -1) {
-          quarter.teams[teamIdx].players[playerIdx].name = playerName;
-          quarter.teams[teamIdx].players[playerIdx].backNumber = backNumber || '';
+          // 포지션이 존재하면 선수 정보 업데이트
+          updatedQuarters[idx].teams[teamIdx].players[playerIdx] = {
+            ...quarter.teams[teamIdx].players[playerIdx],
+            name: playerName,
+            backNumber: backNumber || ''
+          };
+        } else if (formationData.some(p => p.position === position)) {
+          // 포지션이 포메이션에 존재하면 새로 추가
+          const posData = formationData.find(p => p.position === position);
+          updatedQuarters[idx].teams[teamIdx].players.push({
+            position,
+            name: playerName,
+            backNumber: backNumber || '',
+            top: posData.top,
+            left: posData.left
+          });
         }
       }
     });
-
+  
     setQuarters(updatedQuarters);
     alert(`${teamName} 팀의 ${position} 포지션에 ${playerName} 선수가 모든 쿼터에 고정되었습니다.`);
   };
@@ -470,12 +586,12 @@ function MatchAdminPage() {
       id: newTeamId,
       name: newTeamName,
       formation: '4-4-2',
-      players: getEmptyPlayers('4-4-2')
+      players: getEmptyPlayers('4-4-2', fixedPlayers, newTeamName)
     };
 
     const updatedTeams = [...teams, newTeam];
     setTeams(updatedTeams);
-    setQuarters(initializeAllQuarters(updatedTeams));
+    setQuarters(initializeAllQuarters(updatedTeams, fixedPlayers));
     setActiveTeamIndex(currentTeamCount);
     setSelectedTeam(`팀 ${String.fromCharCode(65 + currentTeamCount)}`);
   };
@@ -568,6 +684,7 @@ function MatchAdminPage() {
     }
 
     const updatedQuarters = [...quarters];
+    const teamName = updatedQuarters[quarterIndex1].teams[activeTeamIndex]?.name;
     const player1 = { ...updatedQuarters[quarterIndex1].teams[activeTeamIndex].players[playerIndex1] };
     const player2 = { ...updatedQuarters[quarterIndex2].teams[activeTeamIndex].players[playerIndex2] };
 
@@ -575,7 +692,7 @@ function MatchAdminPage() {
       ...player2,
       position: player1.position,
       top: player1.top,
-      left: player1.left
+      left: player1.top
     };
     updatedQuarters[quarterIndex2].teams[activeTeamIndex].players[playerIndex2] = {
       ...player1,
@@ -583,6 +700,18 @@ function MatchAdminPage() {
       top: player2.top,
       left: player2.left
     };
+
+    // 고정 선수 업데이트
+    if (teamName) {
+      setFixedPlayers(prev => ({
+        ...prev,
+        [teamName]: {
+          ...prev[teamName],
+          [player1.position]: { name: player2.name, backNumber: player2.backNumber },
+          [player2.position]: { name: player1.name, backNumber: player1.backNumber }
+        }
+      }));
+    }
 
     setQuarters(updatedQuarters);
     setSelectedPlayers([]);
@@ -592,7 +721,7 @@ function MatchAdminPage() {
   const resetCurrentQuarter = () => {
     if (window.confirm(`쿼터 ${activeQuarterIndex + 1}의 팀 설정을 초기화하시겠습니까?`)) {
       const updatedQuarters = [...quarters];
-      updatedQuarters[activeQuarterIndex] = initializeQuarter();
+      updatedQuarters[activeQuarterIndex] = initializeQuarter(null, null, fixedPlayers);
       setQuarters(updatedQuarters);
       setTempPlayers([]);
       setSelectedPlayers([]);
@@ -608,16 +737,28 @@ function MatchAdminPage() {
     setDate(match.date);
     
     const matchTeams = [];
+    const newFixedPlayers = {};
     match.quarters.forEach(quarter => {
       quarter.teams.forEach(team => {
         if (team.name && !matchTeams.some(t => t.id === team.id)) {
           matchTeams.push({ ...team });
+          // 고정 선수 추출
+          newFixedPlayers[team.name] = newFixedPlayers[team.name] || {};
+          team.players.forEach(player => {
+            if (player.name) {
+              newFixedPlayers[team.name][player.position] = {
+                name: player.name,
+                backNumber: player.backNumber
+              };
+            }
+          });
         }
       });
     });
 
+    setFixedPlayers(newFixedPlayers);
     setTeams(matchTeams);
-    const updatedQuarters = initializeAllQuarters(matchTeams);
+    const updatedQuarters = initializeAllQuarters(matchTeams, newFixedPlayers);
     
     match.quarters.forEach((quarter, idx) => {
       if (updatedQuarters[idx] && Array.isArray(quarter.teams)) {
@@ -631,7 +772,7 @@ function MatchAdminPage() {
             position: player.position || '',
             top: player.top || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.top || '',
             left: player.left || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.left || ''
-          })) : getEmptyPlayers(team.formation || '4-4-2')
+          })) : getEmptyPlayers(team.formation || '4-4-2', newFixedPlayers, team.name)
         }));
         updatedQuarters[idx].goalAssistPairs = Array.isArray(quarter.goalAssistPairs) && quarter.goalAssistPairs.length > 0 
           ? quarter.goalAssistPairs.map(pair => ({
@@ -658,16 +799,6 @@ function MatchAdminPage() {
     }
 
     try {
-      for (const tempPlayer of tempPlayers) {
-        await addDoc(collection(db, 'players'), {
-          name: tempPlayer.name,
-          position: tempPlayer.position,
-          backNumber: tempPlayer.backNumber,
-          isMercenary: true,
-          createdAt: new Date().toISOString()
-        });
-      }
-
       const teamCount = getTeamCount(teams);
       const validQuarterIndices = getValidQuarterIndices(teamCount);
       const matchData = { 
@@ -699,9 +830,10 @@ function MatchAdminPage() {
       fetchMatches();
       
       setDate(new Date().toISOString().split('T')[0]);
-      setQuarters(initializeAllQuarters([]));
+      setQuarters(initializeAllQuarters([], {}));
       setTeams([]);
       setTempPlayers([]);
+      setFixedPlayers({});
       setActiveTeamIndex(0);
       setActiveQuarterIndex(0);
       setIsEditing(false);
@@ -721,7 +853,8 @@ function MatchAdminPage() {
         if (editingMatchId === id) {
           setIsEditing(false);
           setEditingMatchId(null);
-          setQuarters(initializeAllQuarters([]));
+          setQuarters(initializeAllQuarters([], {}));
+          setFixedPlayers({});
           setDate(new Date().toISOString().split('T')[0]);
         }
       } catch (error) {
@@ -831,13 +964,35 @@ function MatchAdminPage() {
       return '팀 정보 없음';
     } else if (teamCount === 1) {
       return `${team1Name} vs 빈 팀`;
-    } else if (teamCount === 2) {
-      return `${team1Name} vs ${team2Name}`;
     } else {
       return `${team1Name} vs ${team2Name}`;
     }
   };
 
+  // 비밀번호 입력 모달 렌더링
+  if (!isAuthenticated) {
+    return (
+      <ModalOverlay>
+        <ModalContent>
+          <ModalTitle>관리자 인증</ModalTitle>
+          <ModalInput
+            type="password"
+            placeholder="비밀번호를 입력하세요"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          {isCapsLockOn && <CapsLockWarning>Caps Lock이 켜져 있습니다.</CapsLockWarning>}
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          <ModalButton onClick={handlePasswordSubmit}>확인</ModalButton>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  }
+
+  // 기존 콘텐츠 렌더링
   if (loading) {
     return <AdminContainer><p>데이터를 불러오는 중...</p></AdminContainer>;
   }

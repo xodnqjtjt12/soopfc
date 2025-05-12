@@ -1,9 +1,59 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
+import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../App';
 import { format } from 'date-fns';
-import * as S from './Homecss'; // 스타일드 컴포넌트를 Homecss.js에서 가져옴
 import moment from 'moment';
+import styled from 'styled-components';
+import * as S from './Homecss';
+
+// localStorage hook
+function useLocalStorage(key, initialValue) {
+  const [stored, setStored] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+  const setValue = value => {
+    setStored(value);
+    window.localStorage.setItem(key, JSON.stringify(value));
+  };
+  return [stored, setValue];
+}
+
+// 검정색 배경 컨테이너
+const BannerContainer = styled.div`
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+`;
+
+// 버튼 스타일 (SoccerAnnounceBanner와 색상 통일)
+const CloseButton = styled.button`
+  background: linear-gradient(to right, #1a472a, #2d8659);
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  color: white;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  &:hover {
+    background: linear-gradient(to right, #153b24, #267a50);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+`;
 
 const Home = () => {
   const [players, setPlayers] = useState([]);
@@ -12,6 +62,7 @@ const Home = () => {
   const [showHint, setShowHint] = useState(true);
   const [showEnd, setShowEnd] = useState(false);
   const momRef = useRef(null);
+
   const [stats, setStats] = useState({
     members: 0,
     totalGoals: 0,
@@ -22,207 +73,191 @@ const Home = () => {
   });
 
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [scheduleText, setScheduleText] = useState('');
   const [schedules, setSchedules] = useState([]);
 
-  // 2025년 한국 공휴일 목록 (하드코딩)
+  const [allNotes, setAllNotes] = useState([]);
+  const [announces, setAnnounces] = useState([]);
+  const [visibleIds, setVisibleIds] = useState([]);
+  const [countdowns, setCountdowns] = useState({});
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [hideToday, setHideToday] = useLocalStorage('hideAnnouncementsDate', null);
+
   const holidays = [
-    '2025-01-01', // 신정
-    '2025-01-28', // 설날 연휴
-    '2025-01-29', // 설날
-    '2025-01-30', // 설날 연휴
-    '2025-03-01', // 삼일절
-    '2025-05-01', // 근로자의 날
-    '2025-05-05', // 어린이날
-    '2025-05-06', // 대체공휴일
-    '2025-05-06', // 부처님 오신 날
-    '2025-06-06', // 현충일
-    '2025-08-15', // 광복절
-    '2025-10-03', // 개천절
-    '2025-10-05', // 추석 연휴
-    '2025-10-06', // 추석
-    '2025-10-07', // 추석 연휴
-    '2025-10-09', // 한글날
-    '2025-12-25', // 성탄절
+    '2025-01-01', '2025-01-28', '2025-01-29', '2025-01-30',
+    '2025-03-01', '2025-05-01', '2025-05-05', '2025-05-06',
+    '2025-06-06', '2025-08-15', '2025-10-03', '2025-10-05',
+    '2025-10-06', '2025-10-07', '2025-10-09', '2025-12-25'
   ];
-  
 
+  // 공지 fetch & 초기 표시 제어 (한 번만)
   useEffect(() => {
-    const el = momRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      if (scrollLeft < 10) {
-        setShowHint(true);
-        setShowEnd(false);
-      } else if (scrollLeft + clientWidth >= scrollWidth - 10) {
-        setShowHint(false);
-        setShowEnd(true);
-      } else {
-        setShowHint(false);
-        setShowEnd(false);
-      }
+    const fetchNotes = async () => {
+      const snap = await getDocs(collection(db, 'announcements'));
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setAllNotes(data);
+
+      const now = Date.now();
+      const published = data.filter(n => {
+        if (!n.publishTimestamp || !n.publishDuration) return false;
+        const t0 = new Date(n.publishTimestamp).getTime();
+        return now >= t0;
+      });
+
+      setAnnounces(published);
+
+      const ids = published.map(n => n.id);
+      setVisibleIds(ids);
+      const initialCd = {};
+      published.forEach(n => {
+        initialCd[n.id] = n.publishDuration;
+      });
+      setCountdowns(initialCd);
     };
-    el.addEventListener('scroll', onScroll);
-    return () => el.removeEventListener('scroll', onScroll);
+
+    fetchNotes();
   }, []);
 
+  // 카운트다운 타이머
   useEffect(() => {
-    const fetchMOM = async () => {
-      try {
-        const momRef = collection(db, 'MOM');
-        const snapshot = await getDocs(momRef);
-        let momData = snapshot.docs.map((doc) => doc.data());
-        if (momData.length > 0) {
-          let playersData = momData[0].players || [];
-          // xG 계산
-          playersData = playersData.map((player) => {
-            const matches = player.matches || 1; // 0 방지
-            const normalizedGoals = player.goals / matches;
-            const normalizedAssists = player.assists / matches;
-            const normalizedCleanSheets = player.cleanSheets / matches;
-            const normalizedWinRate = player.winRate / 100; // 백분율을 0~1로
-            const normalizedpersonalPoints = player.personalPoints / matches;
-
-            // 가중 합산
-            const xG =
-              0.4 * normalizedGoals +
-              0.3 * normalizedAssists +
-              0.2 * normalizedCleanSheets +
-              0.05 * normalizedWinRate +
-              0.05 * normalizedpersonalPoints;
-
-            return { ...player, xG };
-          });
-
-          // xG 스케일링 (최대값 1)
-          const maxXG = Math.max(...playersData.map((p) => p.xG), 1); // 0 방지
-          playersData = playersData.map((player) => ({
-            ...player,
-            xG: Math.min((player.xG / maxXG).toFixed(3), 1.0),
-          }));
-
-          setMomPlayers(playersData);
-        }
-      } catch (error) {
-        console.error('MOM 데이터 불러오기 오류:', error);
-      }
-    };
-    fetchMOM();
+    const iv = setInterval(() => {
+      setCountdowns(prevCd => {
+        const nextCd = { ...prevCd };
+        Object.entries(prevCd).forEach(([id, sec]) => {
+          if (sec > 0) {
+            nextCd[id] = sec - 1;
+            if (sec - 1 <= 0) {
+              setVisibleIds(v => v.filter(vId => vId !== id));
+            }
+          }
+        });
+        return nextCd;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
   }, []);
 
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'schedules'));
-        const fetched = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          date:
-            doc.data().date instanceof Timestamp
-              ? new Date(doc.data().date.seconds * 1000)
-              : new Date(doc.data().date),
-        }));
-        setSchedules(fetched);
-      } catch (error) {
-        console.error('일정 불러오기 오류:', error);
-      }
-    };
-    fetchSchedules();
-  }, []);
-
+  // players fetch
   useEffect(() => {
     const fetchPlayers = async () => {
-      try {
-        const playersRef = collection(db, 'players');
-        const snapshot = await getDocs(playersRef);
-        const playersData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        playersData.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-        setPlayers(playersData);
-      } catch (error) {
-        console.error('플레이어 데이터 fetch 중 오류:', error);
-      }
+      const snap = await getDocs(collection(db, 'players'));
+      const ps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      ps.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+      setPlayers(ps);
     };
     fetchPlayers();
   }, []);
 
+  // stats & lastUpdated
   useEffect(() => {
-    if (players.length > 0) {
-      const totalGoals = players.reduce((sum, player) => sum + (player.goals || 0), 0);
-      const totalAssists = players.reduce((sum, player) => sum + (player.assists || 0), 0);
-      const totalCleanSheets = players.reduce((sum, player) => sum + (player.cleanSheets || 0), 0);
-      const totalGames = players.reduce((sum, player) => sum + (player.matches || 0), 0);
-
-      const attackpersonalPoints = totalGoals + totalAssists;
-
+    if (players.length) {
+      const totalGoals = players.reduce((s, p) => s + (p.goals || 0), 0);
+      const totalAssists = players.reduce((s, p) => s + (p.assists || 0), 0);
+      const totalCleanSheets = players.reduce((s, p) => s + (p.cleanSheets || 0), 0);
+      const totalGames = players.reduce((s, p) => s + (p.matches || 0), 0);
       setStats({
         members: players.length,
         totalGoals,
         totalAssists,
         totalCleanSheets,
         totalGames,
-        attackpersonalPoints,
+        attackpersonalPoints: totalGoals + totalAssists,
       });
-
-      const latestPlayer = players[0];
-      if (latestPlayer && latestPlayer.updatedAt) {
-        setLastUpdated(new Date(latestPlayer.updatedAt.seconds * 1000));
-      }
+      const lu = players[0].updatedAt;
+      if (lu) setLastUpdated(new Date(lu.seconds * 1000));
     }
   }, [players]);
 
-  const onDateChange = (date) => setSelectedDate(date);
+  // MOM fetch
+  useEffect(() => {
+    const fetchMOM = async () => {
+      const snap = await getDocs(collection(db, 'MOM'));
+      if (snap.docs.length) {
+        let pd = snap.docs[0].data().players || [];
+        pd = pd.map(p => {
+          const m = p.matches || 1;
+          const xGraw =
+            0.4 * (p.goals / m) +
+            0.3 * (p.assists / m) +
+            0.2 * (p.cleanSheets / m) +
+            0.05 * (p.winRate / 100) +
+            0.05 * (p.personalPoints / m);
+          return { ...p, xG: xGraw };
+        });
+        const maxXG = Math.max(...pd.map(p => p.xG), 1);
+        pd = pd.map(p => ({ ...p, xG: (p.xG / maxXG).toFixed(3) }));
+        setMomPlayers(pd);
+      }
+    };
+    fetchMOM();
+  }, []);
 
-  const handleAddSchedule = async (e) => {
-    e.preventDefault();
-    if (!scheduleText.trim()) {
-      alert('일정 내용을 입력해주세요.');
-      return;
-    }
-    try {
-      await addDoc(collection(db, 'schedules'), {
-        date: selectedDate,
-        text: scheduleText.trim(),
+  // MOM scroll hint
+  useEffect(() => {
+    const el = momRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      setShowHint(scrollLeft < 10);
+      setShowEnd(scrollLeft + clientWidth >= scrollWidth - 10);
+    };
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // schedule fetch
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      const snap = await getDocs(collection(db, 'schedules'));
+      const arr = snap.docs.map(d => {
+        const dd = d.data().date;
+        const date = dd instanceof Timestamp ? new Date(dd.seconds * 1000) : new Date(dd);
+        return { id: d.id, text: d.data().text, date };
       });
-      setSchedules((prev) => [
-        ...prev,
-        { date: selectedDate, text: scheduleText.trim() },
-      ]);
-      setScheduleText('');
-      alert('일정이 추가되었습니다.');
-    } catch (error) {
-      console.error('일정 추가 오류:', error);
-      alert('일정을 추가하는 데 문제가 발생했습니다.');
-    }
-  };
+      setSchedules(arr);
+    };
+    fetchSchedules();
+  }, []);
 
-  // 선택한 날짜의 일정 필터링
-  const getSchedulesForSelectedDate = () => {
-    return schedules.filter(
-      (schedule) =>
-        schedule.date && format(schedule.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-    );
-  };
-
-  // 오늘 날짜 기준 다가오는 일정
-  const today = new Date();
+  const onDateChange = date => setSelectedDate(date);
+  const getSchedulesForSelectedDate = () =>
+    schedules.filter(s => format(s.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
   const upcomingSchedules = schedules
-    .filter((schedule) => schedule.date > today)
+    .filter(s => s.date > new Date())
     .sort((a, b) => a.date - b.date)
     .slice(0, 2);
+
+  const handleHideToday = () => {
+    localStorage.setItem('hideAnnouncementsDate', todayStr);
+    setHideToday(todayStr);
+  };
 
   return (
     <S.HomeContainer>
       <S.ContentWrapper>
+        {/* 공지사항 배너 */}
+        {!hideToday && announces.map(n => (
+          visibleIds.includes(n.id) && (
+            <BannerContainer key={n.id}>
+              <Link to="/announcements" style={{ textDecoration: 'none' }}>
+                <S.SoccerAnnounceBanner>
+                  {n.title}
+                  <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>
+                    {countdowns[n.id] > 0 ? `${countdowns[n.id]}s` : ''}
+                  </span>
+                </S.SoccerAnnounceBanner>
+              </Link>
+              <CloseButton onClick={handleHideToday}>
+                오늘 하루 보지 않기
+              </CloseButton>
+            </BannerContainer>
+          )
+        ))}
+
+        {/* Hero Section */}
         <S.HeroSection>
           <S.HeroContent>
-            <S.HeroTitle>
-              더 쉽게
-              <br />
-              더 즐겁게
-              <br />
-              축구하세요
-            </S.HeroTitle>
+            <S.HeroTitle>더 쉽게<br />더 즐겁게<br />축구하세요</S.HeroTitle>
             <S.HeroSubtitle>
               SOOP FC와 함께 축구 실력과 재미를 키워나가세요. 경기 기록, 출석체크, 팀원 통계까지 한눈에 확인하세요.
             </S.HeroSubtitle>
@@ -235,6 +270,7 @@ const Home = () => {
           </S.HeroImageContainer>
         </S.HeroSection>
 
+        {/* Stats */}
         <S.StatsContainer>
           <S.StatItem>
             <S.StatValue>{stats.totalGoals}</S.StatValue>
@@ -259,171 +295,85 @@ const Home = () => {
         </S.StatsContainer>
 
         {lastUpdated && (
-          <div
-            style={{
-              textAlign: 'right',
-              width: '100%',
-              fontSize: '14px',
-              color: '#4e5968',
-              marginTop: '-24px',
-              marginBottom: '40px',
-            }}
-          >
-            마지막 업데이트: {lastUpdated.toLocaleDateString('ko-KR')}{' '}
-            {lastUpdated.toLocaleTimeString('ko-KR')}
+          <div style={{ textAlign: 'right', width: '100%', fontSize: 14, color: '#4e5968', margin: '-24px 0 40px' }}>
+            마지막 업데이트: {lastUpdated.toLocaleDateString('ko-KR')} {lastUpdated.toLocaleTimeString('ko-KR')}
           </div>
         )}
 
-        {/* MOM 플레이어 섹션 */}
-      
-
+        {/* MOM Section */}
         <div style={{ marginBottom: '60px', width: '100%' }}>
-          
           <S.MomSectionTitle>
-            <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" />
-            M.O.M 플레이어
+            <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어
           </S.MomSectionTitle>
-
           {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요! →</S.SwipeHint>}
-          <S.MomPlayersContainer 
-  ref={momRef} 
-  isScrollable={momPlayers.length > 3} 
-  style={{
-    justifyContent: window.innerWidth <= 850 ? 'flex-start' : 
-                   (momPlayers.length > 3 ? 'flex-start' : 'center')
-  }}>
-            {momPlayers.length > 0 ? (
-              momPlayers.map((player, index) => (
-                <S.PlayerCard key={index}>
-                  <S.PlayerHeader>
-                    <S.PlayerContainer>
-                      <S.PlayerRankBadge>
-                        <S.TrophyIcon
-                          src={`${process.env.PUBLIC_URL}/trophy.png`}
-                          alt="Trophy Icon"
-                        />
-                        <S.PlayerRank>{player.rankText || '순위 미정'}</S.PlayerRank>
-                      </S.PlayerRankBadge>
-                      <S.PlayerScore title="누적 MOM점수">{player.momScore}</S.PlayerScore>
-                    </S.PlayerContainer>
-                    <S.PlayerName>{player.name}</S.PlayerName>
-                  </S.PlayerHeader>
-
-                  <S.PositionTags>
-                    {player.formations &&
-                      player.formations.map((pos, idx) => (
-                        <S.PositionTag key={idx} position={pos}>
-                          {pos}
-                        </S.PositionTag>
-                      ))}
-                  </S.PositionTags>
-                  <S.WhiteDivider />
-
-                  <S.StatRow>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel>골</S.StatLabel>
-                    <S.StatLabel>{player.goals}</S.StatLabel>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel>도움</S.StatLabel>
-                    <S.StatLabel>{player.assists}</S.StatLabel>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel>클린시트</S.StatLabel>
-                    <S.StatLabel>{player.cleanSheets}</S.StatLabel>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel>경기수</S.StatLabel>
-                    <S.StatLabel>{player.matches}</S.StatLabel>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel title="승률">승률</S.StatLabel>
-                    <S.StatLabel title="승률">{player.winRate}%</S.StatLabel>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel title="승점">승점</S.StatLabel>
-                    <S.StatLabel title="승점">{player.personalPoints}</S.StatLabel>
-                  </S.StatRow>
-                  <S.StatRow>
-                    <S.StatLabel title="승리 기여도">WAR</S.StatLabel>
-                    <S.StatLabel title="승리 기여도">{player.xG}</S.StatLabel>
-                  </S.StatRow>
-                </S.PlayerCard>
-              ))
-            ) : (
-              <p>MOM 플레이어가 없습니다.</p>
-            )}
+          <S.MomPlayersContainer ref={momRef}>
+            {momPlayers.length > 0 ? momPlayers.map((p, i) => (
+              <S.PlayerCard key={i}>
+                <S.PlayerHeader>
+                  <S.PlayerContainer>
+                    <S.PlayerRankBadge>
+                      <S.TrophyIcon src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy Icon" />
+                      <S.PlayerRank>{p.rankText || '순위 미정'}</S.PlayerRank>
+                    </S.PlayerRankBadge>
+                    <S.PlayerScore title="누적 MOM점수">{p.momScore}</S.PlayerScore>
+                  </S.PlayerContainer>
+                  <S.PlayerName>{p.name}</S.PlayerName>
+                </S.PlayerHeader>
+                <S.PositionTags>
+                  {p.formations?.map((pos, idx) => <S.PositionTag key={idx} position={pos}>{pos}</S.PositionTag>)}
+                </S.PositionTags>
+                <S.WhiteDivider />
+                <S.StatRow><S.StatLabel>골</S.StatLabel><S.StatLabel>{p.goals}</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>도움</S.StatLabel><S.StatLabel>{p.assists}</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>클린시트</S.StatLabel><S.StatLabel>{p.cleanSheets}</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>경기수</S.StatLabel><S.StatLabel>{p.matches}</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>승률</S.StatLabel><S.StatLabel>{p.winRate}%</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>승점</S.StatLabel><S.StatLabel>{p.personalPoints}</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.xG}</S.StatLabel></S.StatRow>
+              </S.PlayerCard>
+            )) : <p>MOM 플레이어가 없습니다.</p>}
           </S.MomPlayersContainer>
           {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
         </div>
 
+        {/* Schedule Section */}
         <S.ScheduleSection>
           <S.ScheduleHeader>📅 축구 일정 보기</S.ScheduleHeader>
           <S.StyledCalendar
-            calendarType="gregory" // 일요일부터 시작
-            locale="ko-KR" // 한국 로케일 설정
+            calendarType="gregory"
+            locale="ko-KR"
             value={selectedDate}
             onChange={onDateChange}
-            tileContent={({ date, view }) => {
-              if (view === 'month') {
-                const formattedDate = format(date, 'yyyy-MM-dd');
-                const hasSchedule = schedules.some(
-                  (schedule) =>
-                    schedule.date &&
-                    format(schedule.date, 'yyyy-MM-dd') === formattedDate
-                );
-                return hasSchedule ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                    ⚽
-                  </span>
-                ) : null;
-              }
-              return null;
-            }}
+            tileContent={({ date, view }) => view === 'month' && schedules.some(s => format(s.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) ? <span>⚽</span> : null}
             tileClassName={({ date, view }) => {
               if (view === 'month') {
-                const day = date.getDay();
-                const formattedDate = format(date, 'yyyy-MM-dd');
-                // 토요일: 파란색
-                if (day === 6) {
-                  return 'saturday';
-                }
-                // 일요일 또는 공휴일: 빨간색
-                if (day === 0 || holidays.includes(formattedDate)) {
-                  return 'sunday-or-holiday';
-                }
+                const day = date.getDay(), f = format(date, 'yyyy-MM-dd');
+                if (day === 6) return 'saturday';
+                if (day === 0 || holidays.includes(f)) return 'sunday-or-holiday';
               }
-              return null;
             }}
-            formatDay={(locale, date) => moment(date).format("D")}
+            formatDay={(locale, date) => moment(date).format('D')}
           />
 
-          <div style={{ marginTop: '24px' }}>
+          <div style={{ marginTop: 24 }}>
             <strong>{format(selectedDate, 'yyyy년 MM월 dd일')} 일정</strong>
             <S.ScheduleList>
-              {getSchedulesForSelectedDate().length > 0 ? (
-                getSchedulesForSelectedDate().map((item, index) => (
-                  <S.ScheduleItem key={index}>{item.text}</S.ScheduleItem>
-                ))
-              ) : (
-                <S.ScheduleItem>일정 없음</S.ScheduleItem>
-              )}
+              {getSchedulesForSelectedDate().length > 0 ?
+                getSchedulesForSelectedDate().map((it, idx) => <S.ScheduleItem key={idx}>{it.text}</S.ScheduleItem>)
+                : <S.ScheduleItem>일정 없음</S.ScheduleItem>}
             </S.ScheduleList>
           </div>
 
-          <div style={{ marginTop: '24px' }}>
+          <div style={{ marginTop: 24 }}>
             <strong>다가오는 일정</strong>
             <S.ScheduleList>
-              {upcomingSchedules.length > 0 ? (
-                upcomingSchedules.map((schedule, index) => (
-                  <S.ScheduleItem key={index}>
-                    {format(schedule.date, 'yyyy년 MM월 dd일 (E)')} - {schedule.text}
+              {upcomingSchedules.length > 0 ?
+                upcomingSchedules.map((s, idx) =>
+                  <S.ScheduleItem key={idx}>
+                    {format(s.date, 'yyyy년 MM월 dd일 (E)')} - {s.text}
                   </S.ScheduleItem>
-                ))
-              ) : (
-                <S.ScheduleItem>다가오는 일정이 없습니다.</S.ScheduleItem>
-              )}
+                )
+                : <S.ScheduleItem>다가오는 일정이 없습니다.</S.ScheduleItem>}
             </S.ScheduleList>
           </div>
         </S.ScheduleSection>

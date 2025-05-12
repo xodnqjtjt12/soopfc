@@ -571,6 +571,45 @@ const fadeIn = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
+export const SoccerAnnounceBanner = styled.div`
+  background: linear-gradient(to right, #1a472a, #2d8659);
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  color: white;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: ${fadeIn} 0.5s ease-out;
+  
+  &::before {
+    content: "⚽";
+    font-size: 1.5rem;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.1) 10px,
+      transparent 10px,
+      transparent 20px
+    );
+    border-radius: 6px;
+    pointer-events: none;
+  }
+
+  
+`;
+
 export const SwipeHint = styled.div`
   display: none;
   @media (max-width: 640px) {

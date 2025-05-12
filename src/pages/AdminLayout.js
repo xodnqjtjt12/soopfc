@@ -31,6 +31,7 @@ export default function AdminLayout() {
         <StyledLink to="power-ranking">파워 랭킹</StyledLink>  {/* /admin/power-ranking */}
         <StyledLink to="schedule">일정</StyledLink>           {/* /admin/schedule */}
         <StyledLink to="vod">경기기록 관리</StyledLink> {/* /admin/vod-admin */}
+        <StyledLink to="announcements">공지사항 관리</StyledLink> {/* /admin/announcements */}
       </Sidebar>
       <Content>
         <Outlet />  {/* 중첩된 Route 들이 이 위치에 렌더됩니다 :contentReference[oaicite:4]{index=4} */}
