@@ -329,25 +329,139 @@ const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssist
   );
 };
 
+const normalizeTeamName = (name) => {
+  return name ? name.trim().toLowerCase() : '';
+};
+
 const calculateTotalScores = quarters => {
-  // 1) 분기별 득점 집계
-  const scores = quarters.reduce((acc, q) => {
-    q.goalAssistPairs.forEach(p => {
-      if (p.goal.team) acc[p.goal.team] = (acc[p.goal.team] || 0) + 1;
+  console.log('Total quarters:', quarters.length);
+  const isPointsBased = quarters.length > 4; // 1~6 쿼터: 승점제, 1~4 쿼터: 점수제
+  console.log('Scoring method:', isPointsBased ? 'Points-based' : 'Score-based');
+
+  // 1) 쿼터별 팀별 골 수 및 승점 집계
+  const teamStats = quarters.reduce((acc, q) => {
+    console.log(`Processing quarter ${q.quarterIndex}, goalAssistPairs:`, q.goalAssistPairs);
+    console.log(`Quarter ${q.quarterIndex}, Teams:`, q.teams.map(t => t.name), `Length: ${q.teams.length}`);
+
+    // 쿼터별 팀별 골 수 계산
+    const scores = q.teams.reduce((scoreAcc, team) => {
+      const teamName = normalizeTeamName(team.name);
+      const goals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === teamName).length;
+      scoreAcc[team.name] = goals;
+      console.log(`Quarter ${q.quarterIndex}, Team ${team.name}, Normalized: ${teamName}, Goals: ${goals}`);
+      return scoreAcc;
+    }, {});
+
+    console.log(`Quarter ${q.quarterIndex}, Scores:`, scores);
+
+    // 팀 목록
+     const teams = q.teams.map(team => team.name);
+    teams.forEach(team => {
+      if (!acc[team]) {
+        acc[team] = { goals: 0, points: 0 };
+      }
+      acc[team].goals += scores[team] || 0;
     });
+
+    // 승점 계산
+    if (teams.length >= 3) {
+      // 3팀 이상: 쿼터별 승무패로 승점 계산
+      const pairs = [];
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+          pairs.push([teams[i], teams[j]]);
+        }
+      }
+      console.log(`Quarter ${q.quarterIndex}, Pairs:`, pairs);
+
+      pairs.forEach(([team1, team2]) => {
+        const goals1 = scores[team1] || 0;
+        const goals2 = scores[team2] || 0;
+        console.log(`Comparing ${team1} (${goals1}) vs ${team2} (${goals2})`);
+        if (goals1 > goals2) {
+          acc[team1].points += 3; // 승리: 3점
+          console.log(`${team1} wins, +3 points`);
+        } else if (goals1 < goals2) {
+          acc[team2].points += 3; // 승리: 3점
+          console.log(`${team2} wins, +3 points`);
+        } else {
+          acc[team1].points += 1; // 무승부: 1점
+          acc[team2].points += 1; // 무승부: 1점
+          console.log(`Draw, ${team1} and ${team2} +1 point each`);
+        }
+      });
+    } else if (teams.length === 2) {
+      // 2팀: 골 수 비교로 승점 계산
+      const [team1, team2] = teams;
+      const goals1 = scores[team1] || 0;
+      const goals2 = scores[team2] || 0;
+      console.log(`Comparing ${team1} (${goals1}) vs ${team2} (${goals2})`);
+      if (goals1 > goals2) {
+        acc[team1].points += 3; // 승리: 3점
+        console.log(`${team1} wins, +3 points`);
+      } else if (goals1 < goals2) {
+        acc[team2].points += 3; // 승리: 3점
+        console.log(`${team2} wins, +3 points`);
+      } else {
+        acc[team1].points += 1; // 무승부: 1점
+        acc[team2].points += 1; // 무승부: 1점
+        console.log(`Draw, ${team1} and ${team2} +1 point each`);
+      }
+    } else {
+      console.log(`Quarter ${q.quarterIndex}: Less than 2 teams, skipping points calculation`);
+    }
+
+    console.log(`Team stats after quarter ${q.quarterIndex}:`, acc);
     return acc;
   }, {});
 
-  const teams = Object.keys(scores);
-  const goalValues = Object.values(scores);
-  const maxGoals = goalValues.length ? Math.max(...goalValues) : 0;
+  const teams = Object.keys(teamStats);
+  const isMultiTeam = teams.length >= 3;
 
-  // 2) 최고 득점 팀을 모두 찾고, 하나뿐일 때만 승자 지정
-  const topTeams = teams.filter(t => scores[t] === maxGoals);
-  const winner = (maxGoals > 0 && topTeams.length === 1) ? topTeams[0] : null;
+  // 2) 승자 판단
+  let winner = null;
+  if (isPointsBased) {
+    // 승점제 (1~6 쿼터): 승점 우선, 동률 시 골 수
+    const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
+    const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
+    if (topTeams.length === 1) {
+      winner = topTeams[0];
+    } else if (topTeams.length > 1) {
+      const maxGoals = Math.max(...topTeams.map(t => teamStats[t].goals));
+      const topGoalTeams = topTeams.filter(t => teamStats[t].goals === maxGoals);
+      winner = topGoalTeams.length === 1 ? topGoalTeams[0] : null;
+    }
+  } else {
+    // 점수제 (1~4 쿼터): 승점 기준, 동률 시 골 수
+    if (isMultiTeam) {
+      const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
+      const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
+      if (topTeams.length === 1) {
+        winner = topTeams[0];
+      } else if (topTeams.length > 1) {
+        const maxGoals = Math.max(...topTeams.map(t => teamStats[t].goals));
+        const topGoalTeams = topTeams.filter(t => teamStats[t].goals === maxGoals);
+        winner = topGoalTeams.length === 1 ? topGoalTeams[0] : null;
+      }
+    } else if (teams.length === 2) {
+      const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
+      const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
+      if (topTeams.length === 1) {
+        winner = topTeams[0];
+      } else if (topTeams.length === 2) {
+        const maxGoals = Math.max(...topTeams.map(t => teamStats[t].goals));
+        const topGoalTeams = topTeams.filter(t => teamStats[t].goals === maxGoals);
+        winner = (maxGoals > 0 && topGoalTeams.length === 1) ? topGoalTeams[0] : null;
+      }
+    }
+  }
 
-  return { scores, winner };
+  console.log('Final teamStats:', teamStats, 'Winner:', winner);
+  return { teamStats, winner, isMultiTeam };
 };
+
+const calculateScores = (pairs, teams) =>
+  teams.map(t => ({ name: t.name, goals: pairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(t.name)).length, points: 0 }));
 
 function VodPage() {
   const [matches, setMatches] = useState([]);
@@ -401,7 +515,7 @@ function VodPage() {
       const snap = await getDocs(q);
       const data = snap.docs.map(doc => {
         const { date, quarters = [] } = doc.data();
-        return {
+        const matchData = {
           id: doc.id,
           date,
           quarters: quarters.map((q, index) => {
@@ -421,8 +535,10 @@ function VodPage() {
             return { teams, goalAssistPairs: q.goalAssistPairs || [], quarterIndex: index + 1 };
           })
         };
+        console.log('Fetched match:', matchData);
+        return matchData;
       });
-      console.log('Fetched matches:', data);
+      console.log('All fetched matches:', data);
       setMatches(data);
       setDates([...new Set(data.map(m => m.date))].sort().reverse());
     } catch (err) {
@@ -435,9 +551,6 @@ function VodPage() {
     setOpenQuarters(prev => ({ ...prev, [`${matchId}-${idx}`]: !prev[`${matchId}-${idx}`] }));
     setHighlightedPlayer(null);
   };
-
-  const calculateScores = (pairs, teams) =>
-    teams.map(t => ({ name: t.name, goals: pairs.filter(p => p.goal.team === t.name).length }));
 
   const highlightPlayer = (name, type) => setHighlightedPlayer({ name, type });
 
@@ -452,10 +565,16 @@ function VodPage() {
     setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && nickname.trim()) {
+      handleSearch();
+    }
+  };
+
   return (
     <Container>
       <MainContent>
-        <PageTitle>경기 기록</PageTitle>
+        <PageTitle>2025시즌 SOOP FC 경기 기록</PageTitle>
         <FilterBar>
           <SelectWrapper>
             <select value={filterDate} onChange={e => setFilterDate(e.target.value)}>
@@ -487,6 +606,7 @@ function VodPage() {
                 type="text"
                 value={nickname}
                 onChange={e => setNickname(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="닉네임 입력"
                 autoFocus
               />
@@ -512,18 +632,71 @@ function VodPage() {
         {loading ? (
           <LoadingIndicator>로딩 중...</LoadingIndicator>
         ) : filteredMatches.length ? filteredMatches.map(match => {
-          const { scores, winner } = calculateTotalScores(match.quarters);
-          const scoreDisplay = Object.entries(scores).map(([team, goals]) => `${team}: ${goals}`).join(' vs ');
-          const result = winner ? `(${winner} 승)` : '(무승부)';
+          const { teamStats, winner, isMultiTeam } = calculateTotalScores(match.quarters);
+          const scoreDisplay = isMultiTeam ? (
+            isMobile ? (
+              <div className="vertical">
+                {Object.entries(teamStats).map(([team, stats], index) => (
+                  <React.Fragment key={team}>
+                    <div>{team}: {stats.points}점</div>
+                    {index < Object.keys(teamStats).length - 1 && <div>vs</div>}
+                  </React.Fragment>
+                ))}
+                {winner && <div>({winner} 승)</div>}
+              </div>
+            ) : (
+              Object.entries(teamStats).map(([team, stats]) => `${team}: ${stats.points}점`).join(' vs ') + (winner ? ` (${winner} 승)` : '')
+            )
+          ) : (
+            Object.entries(teamStats).map(([team, stats]) => `${team}: ${stats.goals}`).join(' vs ') + (winner ? ` (${winner} 승)` : ' (무승부)')
+          );
+
           return (
             <MatchSection key={match.id}>
               <MatchHeader>
                 <Badge type="home">{formatDate(match.date)}</Badge>
-                <div className="score-info">{`${scoreDisplay} ${result}`}</div>
+                <div className={`score-info ${isMultiTeam && isMobile ? 'vertical' : ''}`}>{scoreDisplay}</div>
               </MatchHeader>
               {match.quarters.map((q, i) => {
                 const isOpen = openQuarters[`${match.id}-${i}`];
-                const scores = calculateScores(q.goalAssistPairs, q.teams);
+                const scores = isMultiTeam
+                  ? q.teams.map(team => {
+                      const goals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)).length;
+                      return { name: team.name, goals, points: 0 }; // 초기화
+                    })
+                  : calculateScores(q.goalAssistPairs, q.teams);
+
+                // 쿼터별 승점 계산 (3팀 이상일 경우, 승자 계산용)
+                if (isMultiTeam) {
+                  const quarterScores = q.teams.reduce((acc, team) => {
+                    acc[team.name] = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)).length;
+                    return acc;
+                  }, {});
+                  const pairs = [];
+                  for (let ti = 0; ti < q.teams.length; ti++) {
+                    for (let tj = ti + 1; tj < q.teams.length; tj++) {
+                      pairs.push([q.teams[ti].name, q.teams[tj].name]);
+                    }
+                  }
+                  console.log(`Quarter ${q.quarterIndex}, QuarterScores:`, quarterScores, `Pairs:`, pairs);
+                  pairs.forEach(([team1, team2]) => {
+                    const goals1 = quarterScores[team1] || 0;
+                    const goals2 = quarterScores[team2] || 0;
+                    console.log(`Quarter ${q.quarterIndex}: ${team1} (${goals1}) vs ${team2} (${goals2})`);
+                    if (goals1 > goals2) {
+                      scores.find(s => s.name === team1).points += 3;
+                      console.log(`Quarter ${q.quarterIndex}: ${team1} wins, +3 points`);
+                    } else if (goals1 < goals2) {
+                      scores.find(s => s.name === team2).points += 3;
+                      console.log(`Quarter ${q.quarterIndex}: ${team2} wins, +3 points`);
+                    } else {
+                      scores.find(s => s.name === team1).points += 1;
+                      scores.find(s => s.name === team2).points += 1;
+                      console.log(`Quarter ${q.quarterIndex}: Draw, ${team1} and ${team2} +1 point each`);
+                    }
+                  });
+                }
+
                 const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
                 const playerStats = nickname ? q.teams.reduce((acc, team) => {
                   const isPlayerTeam = team.players.some(p => p.name.toLowerCase() === nickname.toLowerCase());
@@ -531,7 +704,6 @@ function VodPage() {
                     p => p.name.toLowerCase() === nickname.toLowerCase() && defensivePositions.includes(p.position)
                   );
                   if (isPlayerTeam) {
-                    // 골 및 어시스트
                     q.goalAssistPairs.forEach(pair => {
                       if (pair.goal.player.toLowerCase() === nickname.toLowerCase()) {
                         acc.push({ type: 'goal', icon: '⚽', quarter: q.quarterIndex });
@@ -540,10 +712,9 @@ function VodPage() {
                         acc.push({ type: 'assist', icon: '👟', quarter: q.quarterIndex });
                       }
                     });
-                    // 클린시트: 상대 팀의 골이 없고, 플레이어가 수비수 포지션일 때
                     if (isDefender) {
                       const opponentTeam = q.teams.find(t => t.name !== team.name);
-                      const opponentGoals = q.goalAssistPairs.filter(p => p.goal.team === opponentTeam?.name).length;
+                      const opponentGoals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)).length;
                       if (opponentGoals === 0) {
                         acc.push({ type: 'cleanSheet', icon: '🧤', quarter: q.quarterIndex });
                       }
@@ -636,7 +807,7 @@ function VodPage() {
                       <StatsList>
                         <StatTitle>공격 포인트</StatTitle>
                         {q.teams.map((team, ti) => {
-                          const teamGoalAssistPairs = q.goalAssistPairs.filter(p => p.goal.team === team.name);
+                          const teamGoalAssistPairs = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name));
                           return (
                             <div key={ti} style={{ marginBottom: '20px' }}>
                               <StatTitle>{team.name}</StatTitle>

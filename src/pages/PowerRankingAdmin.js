@@ -47,21 +47,21 @@ const PowerRankingAdmin = () => {
             const normalizedpersonalPoints = player.personalPoints / matches;
 
             // 가중 합산
-            const xG =
+            const war =
               0.4 * normalizedGoals +
               0.3 * normalizedAssists +
               0.2 * normalizedCleanSheets +
               0.05 * normalizedWinRate +
               0.05 * normalizedpersonalPoints;
 
-            return { ...player, xG };
+            return { ...player, war };
           });
 
           // xG 스케일링 (최대값 1)
-          const maxXG = Math.max(...playersData.map((p) => p.xG), 1); // 0 방지
+          const maxXG = Math.max(...playersData.map((p) => p.war), 1); // 0 방지
           playersData = playersData.map((player) => ({
             ...player,
-            xG: Math.min((player.xG / maxXG).toFixed(3), 1.0),
+            war: Math.min((player.war / maxXG).toFixed(3), 1.0),
           }));
 
           setPlayers(playersData);
@@ -203,7 +203,7 @@ const PowerRankingAdmin = () => {
         cleanSheets: p.player.cleanSheets || 0,
         winRate: p.player.winRate || 0,
         personalPoints: p.player.personalPoints || 0,
-        xG: p.player.xG || 0,
+        war: p.player.war || 0,
         formations: p.formations || [],
         momScore: p.player.momScore || 0,
       }));
@@ -287,7 +287,7 @@ const PowerRankingAdmin = () => {
                 )}
                 <S.PlayerStats>
                   경기수: {p.player.matches} | 골: {p.player.goals} | 어시: {p.player.assists} | 클린시트:{' '}
-                  {p.player.cleanSheets} | 승률: {p.player.winRate}% | 승점: {p.player.personalPoints} | xG: {p.player.xG} | mom누적점수: {p.player.momScore}
+                  {p.player.cleanSheets} | 승률: {p.player.winRate}% | 승점: {p.player.personalPoints} | war: {p.player.xG} | mom누적점수: {p.player.momScore}
                 </S.PlayerStats>
                 <S.PlayerStats>
                   포메이션: {p.formations.length > 0 ? p.formations.join(', ') : '지정 안됨'}

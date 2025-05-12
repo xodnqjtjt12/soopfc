@@ -70,6 +70,8 @@ const Home = () => {
     totalCleanSheets: 0,
     totalGames: 0,
     attackpersonalPoints: 0,
+    war: 0,
+
   });
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -226,28 +228,21 @@ const Home = () => {
   }, [players]);
 
   // MOM fetch
-  useEffect(() => {
-    const fetchMOM = async () => {
-      const snap = await getDocs(collection(db, 'MOM'));
-      if (snap.docs.length) {
-        let pd = snap.docs[0].data().players || [];
-        pd = pd.map(p => {
-          const m = p.matches || 1;
-          const xGraw =
-            0.4 * (p.goals / m) +
-            0.3 * (p.assists / m) +
-            0.2 * (p.cleanSheets / m) +
-            0.05 * (p.winRate / 100) +
-            0.05 * (p.personalPoints / m);
-          return { ...p, xG: xGraw };
-        });
-        const maxXG = Math.max(...pd.map(p => p.xG), 1);
-        pd = pd.map(p => ({ ...p, xG: (p.xG / maxXG).toFixed(3) }));
-        setMomPlayers(pd);
-      }
-    };
-    fetchMOM();
-  }, []);
+ useEffect(() => {
+  const fetchMOM = async () => {
+    const snap = await getDocs(collection(db, 'MOM'));
+    if (snap.docs.length) {
+      const raw = snap.docs[0].data().players || [];
+      const formatted = raw.map(p => ({
+        ...p,
+        // p.xG가 숫자 혹은 숫자형 문자열이라고 가정
+        xG: Number(p.xG).toFixed(3)
+      }));
+      setMomPlayers(formatted);
+    }
+  };
+  fetchMOM();
+}, []);
 
   // MOM scroll hint
   useEffect(() => {

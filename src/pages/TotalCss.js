@@ -21,22 +21,10 @@ export const bounce = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 `;
-export const ScrollToTopButton = styled.button`
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
-  width: 48px;
-  height: 48px;
-  border: none;display
-  border-radius: 24px;
-  background-color: #3182f6;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  opacity: ${(props) => (props.visible ? 1 : 0)};
-  transform: translateY(${(props) => (props.visible ? '0' : '100px')});
-  transition: opacity 0.3s, transform 0.3s;
-  z-index: 1000;
+
+export const slideOut = keyframes`
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-100px); }
 `;
 
 // 순위에 따라 색상 반환하는 함수
@@ -56,11 +44,11 @@ export const getRatingColor = (value) => {
 
 // 스타일 컴포넌트 정의
 export const OuterWrapper = styled.div`
-  background-color: #f9fafb;    /* 기본(PC) 배경 */ :contentReference[oaicite:0]{index=0}
+  background-color: #f9fafb;
   padding-top: 24px;
 
   @media (max-width: 640px) {
-    background-color: #ffffff;  /* 모바일에서 흰색으로 */ :contentReference[oaicite:1]{index=1}
+    background-color: #ffffff;
   }
 `;
 
@@ -73,8 +61,8 @@ export const Container = styled.div`
   border-radius: 20px;
   box-shadow: 0 10px 20px rgba(0,0,0,0.1);
   @media (max-width: 640px) {
-padding: 15px;
- margin: -70px 16px 0 16px;   /* ↑ 상단 –8px, 좌우 16px 유지 */  
+    padding: 15px;
+    margin: -70px 16px 0 16px;
   }
 `;
 
@@ -147,7 +135,6 @@ export const RankMessage = styled.div`
   animation: ${slideIn} 0.5s ease-out;
 `;
 
-// FIFA-style player card
 export const PlayerData = styled.div`
   margin-top: 30px;
   background: linear-gradient(135deg, #303030, #1a1a1a);
@@ -413,4 +400,76 @@ export const Title = styled.div`
   @media (max-width: 640px) {
     font-size: 16px;
   }
+`;
+
+// TopSearchedPlayers 스타일
+export const TopPlayersContainer = styled.div`
+  position: fixed;
+    top: 1px;
+  right: 20px;
+  width: 300px;
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  color: #fff;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 1000;
+
+  /* 화면 크기에 따라 왼쪽으로 이동 */
+  @media (max-width: 1100px) {
+    transform: translateX(-${(props) => Math.min((1100 - props.windowWidth) * 0.5, 300)}px);
+  }
+
+  /* Container에 부딪히면 사라짐 */
+  @media (max-width: 900px) {
+    opacity: 0;
+    transform: translateX(-100px);
+    pointer-events: none;
+  }
+
+  /* 모바일에서 숨김 */
+  @media (max-width: 640px) {
+    display: none;
+  }
+`;
+
+export const TopPlayersTitle = styled.div`
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: ${fadeIn} 0.5s ease-out;
+`;
+
+export const TopPlayerItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #333;
+  animation: ${slideIn} 0.5s ease-out;
+`;
+
+export const PlayerRank = styled.span`
+  font-weight: bold;
+  width: 30px;
+`;
+
+export const PlayerNameText = styled.span`
+  flex: 1;
+`;
+
+export const RankChange = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+export const LastUpdate = styled.div`
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-top: 15px;
+  text-align: center;
 `;
