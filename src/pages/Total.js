@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, orderBy, query } from 'firebase/firestore';
 import { db } from '../App';
 import { FaFutbol, FaShoePrints, FaShieldAlt, FaRunning, FaStar, FaMedal, FaChartLine, FaTrophy, FaCheck, FaTimes, FaEquals } from 'react-icons/fa';
@@ -8,7 +9,7 @@ import {
   StatsGrid, StatRow, StatHeader, StatLabel, StatValue, StatBarContainer, StatBar,
   AdvancedStatsSection, AdvancedStatsTitle, AdvancedStatsGrid, AdvancedStatCard,
   AdvancedStatValue, AdvancedStatLabel, LevelUpMessage, TitleContainer, Title,
-  getRankColor, getRatingColor
+  getRankColor, getRatingColor, ToggleHistoryButton // 추가
 } from './TotalCss';
 
 // 선수 Rating 계산 (FIFA 스타일)
@@ -31,7 +32,6 @@ const calculateRating = (playerInfo) => {
 
   return Math.min(99, Math.floor(calculatedRating));
 };
-
 
 // 선수 칭호 계산
 const getPlayerTitles = (playerInfo) => {
@@ -595,6 +595,10 @@ const Total = () => {
                 <Title key={index}>{title}</Title>
               ))}
             </TitleContainer>
+
+            <ToggleHistoryButton as={Link} to={`/player-history/${playerInfo.name}`}>
+              선수 기록 더보기
+            </ToggleHistoryButton>
           </PlayerData>
         )}
       </Container>

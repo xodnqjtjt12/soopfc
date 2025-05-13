@@ -27,6 +27,11 @@ export const slideOut = keyframes`
   to { opacity: 0; transform: translateX(-100px); }
 `;
 
+export const expand = keyframes`
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 1000px; opacity: 1; }
+`;
+
 // 순위에 따라 색상 반환하는 함수
 export const getRankColor = (rank) => {
   if (rank === 1) return '#FFD700'; // 금색
@@ -402,10 +407,97 @@ export const Title = styled.div`
   }
 `;
 
+// 선수 기록 더보기 버튼 스타일 (토글 버튼으로 사용)
+export const ToggleHistoryButton = styled.button`
+  display: block;
+  margin: 20px auto;
+  padding: 15px 30px;
+  font-size: 18px;
+  color: white;
+  background-color: #0182ff;
+  border: none;
+  border-radius: 10px;
+display: flex;
+justify-content: center; /* 수평 중앙 정렬 */
+align-items: center;     /* 수직 중앙 정렬 */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: ${fadeIn} 0.5s ease-out;
+
+  &:hover {
+    background-color: #2c5282;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 640px) {
+    font-size: 16px;
+    padding: 12px 24px;
+  }
+`;
+
+// 히스토리 섹션 컨테이너
+export const HistorySection = styled.div`
+  padding: 20px;
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  margin-top: 20px;
+  animation: ${expand} 0.5s ease-out;
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    padding: 15px;
+  }
+`;
+
+// PlayerHistorySection 스타일
+export const HistoryTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  overflow: hidden;
+  animation: ${fadeIn} 0.5s ease-out;
+`;
+
+export const HistoryTableHeader = styled.th`
+  padding: 15px;
+  background-color: #303030;
+  color: #f8f8f8;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 1px solid #3a3a3a;
+
+  @media (max-width: 640px) {
+    font-size: 14px;
+    padding: 10px;
+  }
+`;
+
+export const HistoryTableRow = styled.tr`
+  &:nth-child(even) {
+    background-color: #252525;
+  }
+`;
+
+export const HistoryTableCell = styled.td`
+  padding: 15px;
+  color: #f8f8f8;
+  font-size: 16px;
+  text-align: center;
+  border-bottom: 1px solid #3a3a3a;
+
+  @media (max-width: 640px) {
+    font-size: 14px;
+    padding: 10px;
+  }
+`;
+
 // TopSearchedPlayers 스타일
 export const TopPlayersContainer = styled.div`
   position: fixed;
-    top: 1px;
+  top: 1px;
   right: 20px;
   width: 300px;
   background-color: #1a1a1a;

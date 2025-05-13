@@ -43,12 +43,46 @@ export const FilterBar = styled.div`
 
 export const SelectWrapper = styled.div`
   select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 10px 14px;
+    border: 2px solid #0a5c36; /* 축구 잔디 색상 */
+    border-radius: 30px; /* 축구공 형태 느낌의 둥근 모서리 */
+    font-size: 15px;
+    font-weight: 600;
     background-color: #fff;
     cursor: pointer;
+    color: #222;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    width: 100%;
+    max-width: 300px;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a5c36' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 17px center;
+    background-size: 16px;
+
+    &:hover {
+      border-color: #074027;
+      background-color: #f8fff8;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #0a5c36;
+      box-shadow: 0 0 0 3px rgba(10, 92, 54, 0.25);
+    }
+  }
+
+  /* 모바일 반응형 스타일 */
+  @media (max-width: 768px) {
+    select {
+      padding: 12px 16px;
+      font-size: 16px; /* 모바일에서 더 큰 글씨 */
+      width: 100%;
+      max-width: 100%;
+      background-position: right 16px center;
+      background-size: 18px;
+    }
   }
 `;
 

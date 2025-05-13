@@ -1,4 +1,3 @@
-// App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -12,16 +11,17 @@ import TopAssistProvider from './pages/TopAssistProvider';
 import TopDefender from './pages/TopDefender';
 import OverallRankings from './pages/OverallRankings';
 import Total from './pages/Total';
-import Announcements from './pages/Announcements';  
-
+import Announcements from './pages/Announcements';
 import AdminLayout from './pages/AdminLayout';
 import AdminPage from './pages/AdminPage';
 import PowerRankingAdmin from './pages/PowerRankingAdmin';
 import SchedulePage from './pages/SchedulePage';
-import VodPage from './pages/VodPage';               // ← 새로 추가
+import VodPage from './pages/VodPage';
 import MomRanking from './pages/MomRanking';
-import VodAdminPage from './pages/VodAdminPage';   // ← 새로 추가
+import VodAdminPage from './pages/VodAdminPage';
 import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
+import PlayerHistorySectionAdmin from './pages/PlayerHistorySectionAdmin';
+import PlayerHistorySection from './pages/PlayerHistorySection'; // 수정
 
 // Components
 import Header from './components/Header';
@@ -83,15 +83,15 @@ function App() {
         <Routes>
           {/* 메인 사이트 라우트 */}
           <Route path="/" element={<Home />} />
-          <Route path="/announcements" element={<Announcements />} />    {/* ← 메인용 공지사항 */}
+          <Route path="/announcements" element={<Announcements />} />
           <Route path="/top-goal-scorer" element={<TopGoalScorer />} />
           <Route path="/top-assists" element={<TopAssistProvider />} />
           <Route path="/top-defender" element={<TopDefender />} />
           <Route path="/overall-rankings" element={<OverallRankings />} />
           <Route path="/total" element={<Total />} />
           <Route path="/mom-ranking" element={<MomRanking />} />
-          <Route path="/vod" element={<VodPage />} />           {/* ← 새로 추가 */}
-          
+          <Route path="/vod" element={<VodPage />} />
+          <Route path="/player-history/:playerId" element={<PlayerHistorySection />} /> {/* 수정 */}
 
           {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}
           <Route path="/admin" element={<AdminLayout />}>
@@ -99,8 +99,9 @@ function App() {
             <Route path="players" element={<AdminPage />} />
             <Route path="power-ranking" element={<PowerRankingAdmin />} />
             <Route path="schedule" element={<SchedulePage />} />
-            <Route path="vod" element={<VodAdminPage />} />     {/* ← 새로 추가 */}
+            <Route path="vod" element={<VodAdminPage />} />
             <Route path="announcements" element={<AnnouncementsAdmin />} />
+            <Route path="history" element={<PlayerHistorySectionAdmin />} />
           </Route>
         </Routes>
       </AppContainer>
