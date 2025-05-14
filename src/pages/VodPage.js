@@ -112,27 +112,27 @@ const formatDate = dateString => {
 const FORMATIONS = {
   '4-3-3': {
     desktop: [
-      { position: 'GK', left: '5%', top: '50%' },
-      { position: 'RB', left: '20%', top: '80%' },
+      { position: 'GK', left: '1%', top: '47%' },
+      { position: 'RB', left: '20%', top: '90%' },
       { position: 'CB1', left: '20%', top: '40%' },
       { position: 'CB2', left: '20%', top: '60%' },
-      { position: 'LB', left: '20%', top: '20%' },
-      { position: 'CM1', left: '40%', top: '30%' },
-      { position: 'CM2', left: '40%', top: '50%' },
-      { position: 'CM3', left: '40%', top: '70%' },
-      { position: 'RW', left: '60%', top: '80%' },
-      { position: 'ST', left: '60%', top: '50%' },
-      { position: 'LW', left: '60%', top: '20%' },
+      { position: 'LB', left: '20%', top: '10%' },
+      { position: 'CM1', left: '50%', top: '30%' },
+      { position: 'CM2', left: '50%', top: '50%' },
+      { position: 'CM3', left: '50%', top: '70%' },
+      { position: 'RW', left: '79%', top: '80%' },
+      { position: 'ST', left: '79%', top: '47%' },
+      { position: 'LW', left: '79%', top: '20%' },
     ],
     mobile: [
-      { position: 'GK', top: '5%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'RB', top: '20%', left: '14%' },
-      { position: 'CB1', top: '20%', left: '34%' },
-      { position: 'CB2', top: '20%', left: '54%' },
-      { position: 'LB', top: '20%', left: '74%' },
-      { position: 'CM1', top: '30%', left: '24%' },
-      { position: 'CM2', top: '30%', left: '44%' },
-      { position: 'CM3', top: '30%', left: '64%' },
+      { position: 'GK', top: '0%', left: '50%', transform: 'translate(-50%, 0)' },
+      { position: 'RB', top: '10%', left: '14%' },
+      { position: 'CB1', top: '10%', left: '34%' },
+      { position: 'CB2', top: '10%', left: '54%' },
+      { position: 'LB', top: '10%', left: '74%' },
+      { position: 'CM1', top: '23%', left: '24%' },
+      { position: 'CM2', top: '23%', left: '44%' },
+      { position: 'CM3', top: '23%', left: '64%' },
       { position: 'RW', top: '38%', left: '14%' },
       { position: 'ST', top: '38%', left: '44%' },
       { position: 'LW', top: '38%', left: '74%' },
@@ -196,30 +196,30 @@ const FORMATIONS = {
   },
   '4-2-3-1': {
     desktop: [
-      { position: 'GK', left: '5%', top: '50%' },
-      { position: 'RB', left: '20%', top: '80%' },
-      { position: 'CB1', left: '20%', top: '40%' },
-      { position: 'CB2', left: '20%', top: '60%' },
-      { position: 'LB', left: '20%', top: '20%' },
-      { position: 'CDM1', left: '35%', top: '40%' },
-      { position: 'CDM2', left: '35%', top: '60%' },
-      { position: 'RW', left: '50%', top: '80%' },
-      { position: 'CAM', left: '50%', top: '55%' },
-      { position: 'LW', left: '50%', top: '20%' },
-      { position: 'ST', left: '70%', top: '50%' },
+      { position: 'GK', left: '0%', top: '47%' },
+      { position: 'RB', left: '20%', top: '84%' },
+      { position: 'CB1', left: '20%', top: '35%' },
+      { position: 'CB2', left: '20%', top: '55%' },
+      { position: 'LB', left: '20%', top: '9%' },
+      { position: 'CDM1', left: '35%', top: '35%' },
+      { position: 'CDM2', left: '35%', top: '55%' },
+      { position: 'RW', left: '60%', top: '80%' },
+      { position: 'CAM', left: '60%', top: '47%' },
+      { position: 'LW', left: '60%', top: '20%' },
+      { position: 'ST', left: '79%', top: '47%' },
     ],
     mobile: [
-      { position: 'GK', top: '5%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'RB', top: '15%', left: '14%' },
-      { position: 'CB1', top: '15%', left: '34%' },
-      { position: 'CB2', top: '15%', left: '54%' },
-      { position: 'LB', top: '15%', left: '74%' },
-      { position: 'CDM1', top: '25%', left: '35%' },
-      { position: 'CDM2', top: '25%', left: '54%' },
-      { position: 'RW', top: '40%', left: '14%' },
-      { position: 'CAM', top: '33%', left: '44%' },
-      { position: 'LW', top: '40%', left: '74%' },
-      { position: 'ST', top: '40%', left: '44%' },
+      { position: 'GK', top: '0%', left: '50%', transform: 'translate(-50%, 0)' },
+      { position: 'RB', top: '10%', left: '14%' },
+      { position: 'CB1', top: '10%', left: '34%' },
+      { position: 'CB2', top: '10%', left: '54%' },
+      { position: 'LB', top: '10%', left: '74%' },
+      { position: 'CDM1', top: '20%', left: '35%' },
+      { position: 'CDM2', top: '20%', left: '54%' },
+      { position: 'RW', top: '28%', left: '14%' },
+      { position: 'CAM', top: '28%', left: '44%' },
+      { position: 'LW', top: '28%', left: '74%' },
+      { position: 'ST', top: '38%', left: '44%' },
     ],
   },
 };
@@ -246,15 +246,82 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         const reversedLeft = 100 - leftValue;
         newPos.left = leftValue === 5 ? '89%' : `${50 + (reversedLeft * 0.35)}%`;
       }
+       // ↓ B팀  위치를 수정 4231기준% → 60% 로 내립니다.
+ if (!isHomeTeam && newPos.position === 'GK') {
+    newPos.top = '47%';
+    newPos.left = '94%'; // 원하는 퍼센트로 조정
+   }
+  if (!isHomeTeam) {
+      // GK
+     if (newPos.position === 'GK') {
+        newPos.top = '47%';
+        newPos.left = '94%';
+     }
+      // CB1, CB2 (CB3 도 필요하면 startsWith('CB') 로 묶어도 OK)
+      if (newPos.position.startsWith('CB1')) {
+         newPos.top = '35%';
+         newPos.left = '85%';
+       }
+         if (newPos.position.startsWith('CB2')) {
+         newPos.top = '55%';
+         newPos.left = '85%';
+       }
+      // CM 계열
+       if (newPos.position.startsWith('CDM1')) {
+        newPos.top = '55%';
+         newPos.left = '77%';
+      }
+        if (newPos.position.startsWith('CDM2')) {
+        newPos.top = '35%';
+          newPos.left = '77%';
+      }
+        if (newPos.position.startsWith('LB')) {
+        newPos.top = '8%';
+          newPos.left = '85%';
+      }
+        if (newPos.position.startsWith('RB')) {
+        newPos.top = '85%';
+          newPos.left = '85%';
+      }
+       if (newPos.position.startsWith('CAM')) {
+        newPos.top = '47%';
+          newPos.left = '67%';
+      }
+         if (newPos.position.startsWith('RW')) {
+        newPos.top = '80%';
+          newPos.left = '67%';
+      }
+         if (newPos.position.startsWith('LW')) {
+        newPos.top = '20%';
+          newPos.left = '67%';
+      }
+       if (newPos.position.startsWith('ST')) {
+        newPos.top = '47%';
+          newPos.left = '55%';
+      }
+        if (newPos.position.startsWith('ST1')) {
+        newPos.top = '35%';
+          newPos.left = '55%';
+      }
+        if (newPos.position.startsWith('ST2')) {
+        newPos.top = '60%';
+          newPos.left = '55%';
+      }
+    }
+   
     } else {
       if (!isHomeTeam) {
-        if (newPos.position === 'GK') newPos.top = '88%';
+        if (newPos.position === 'GK') newPos.top = '91%';
         else if (newPos.position.includes('CB') || newPos.position.includes('RB') || newPos.position.includes('LB'))
-          newPos.top = '80%';
+          newPos.top = '85%';
         else if (newPos.position.includes('CM') || newPos.position.includes('RM') || newPos.position.includes('LM'))
           newPos.top = '70%';
+         else if (newPos.position.includes('CDM1') || newPos.position.includes('CDM2'))
+          newPos.top = '74%';
+          else if (newPos.position.includes('CAM'))
+          newPos.top = '65%';
         else if (newPos.position.includes('ST') || newPos.position.includes('RW') || newPos.position.includes('LW'))
-          newPos.top = '53%';
+          newPos.top = '56%';
         else if (newPos.position === 'CAM') newPos.top = '63%';
         else if (newPos.position.includes('CDM')) newPos.top = '71%';
         else if (newPos.position === 'RWB' || newPos.position === 'LWB') newPos.top = '70%';
@@ -722,133 +789,147 @@ function VodPage() {
                   }
                   return acc;
                 }, []) : [];
-                return (
-                  <QuarterSection key={i} className={isOpen ? 'open' : ''}>
-                    <QuarterHeader onClick={() => toggleQuarter(match.id, i)} className={isOpen ? 'open' : ''}>
-                      <span>쿼터 {q.quarterIndex}</span>
-                      {playerStats.length > 0 && (
-                        <span className="icons-container">
-                          {playerStats.map((stat, si) => (
-                            <span
-                              key={si}
-                              className={`${stat.type}-icon`}
-                              style={{ marginLeft: '2px' }}
-                            >
-                              {stat.icon}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                      <ChevronIcon isOpen={isOpen} />
-                    </QuarterHeader>
-                    <QuarterContent className={isOpen ? 'open' : ''}>
-                      <ScoreBox>
-                        {scores.map((s, si) => (
-                          <React.Fragment key={si}>
-                            <div className={`team team-${si}`}>
-                              {si === 0 ? (
-                                <>
-                                  <div className="name">{s.name}</div>
-                                  <div className="score-value">{s.goals}</div>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="score-value">{s.goals}</div>
-                                  <div className="name">{s.name}</div>
-                                </>
-                              )}
-                            </div>
-                            {si < scores.length - 1 && <span className="separator">VS</span>}
-                          </React.Fragment>
-                        ))}
-                      </ScoreBox>
-                      <FieldContainer>
-                        <FieldView>
-                          <GoalArea className="top" />
-                          <GoalArea className="bottom" />
-                          <PenaltyArea className="top" />
-                          <PenaltyArea className="bottom" />
-                          <GoalPost className="top" />
-                          <GoalPost className="bottom" />
-                          {isMobile ? (
-                            <MobileFormation
-                              teams={q.teams}
-                              highlightedPlayer={highlightedPlayer}
-                              highlightPlayer={highlightPlayer}
-                              goalAssistPairs={q.goalAssistPairs}
-                            />
-                          ) : (
-                            <DesktopFormation
-                              teams={q.teams}
-                              highlightedPlayer={highlightedPlayer}
-                              highlightPlayer={highlightPlayer}
-                              goalAssistPairs={q.goalAssistPairs}
-                            />
-                          )}
-                        </FieldView>
-                      </FieldContainer>
-                      <TeamsContainer>
-                        {q.teams.map((t, ti) => (
-                          <TeamCard key={ti}>
-                            <TeamName>{t.name}</TeamName>
-                            <Formation>포메이션: {t.formation}</Formation>
-                            <PlayersList>
-                              {t.players.map((p, pi) => (
-                                <PlayerItem key={pi}>
-                                  <span className="number">{p.backNumber}</span>
-                                  <span className="name">{p.name}</span>
-                                  <span className="position">{p.position}</span>
-                                </PlayerItem>
-                              ))}
-                            </PlayersList>
-                          </TeamCard>
-                        ))}
-                      </TeamsContainer>
-                      <StatsList>
-                        <StatTitle>공격 포인트</StatTitle>
-                        {q.teams.map((team, ti) => {
-                          const teamGoalAssistPairs = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name));
-                          return (
-                            <div key={ti} style={{ marginBottom: '20px' }}>
-                              <StatTitle>{team.name}</StatTitle>
-                              {teamGoalAssistPairs.length ? (
-                                teamGoalAssistPairs.map((p, pi) => (
-                                  <StatItem
-                                    key={pi}
-                                    onClick={() => highlightPlayer(p.goal.player, 'goal')}
-                                  >
-                                    <StatValue>
-                                      <div>
-                                        <span>골: {p.goal.player}</span>
-                                        <span className="goal-icon">⚽</span>
-                                      </div>
-                                      <div>
-                                        <span>어시: {p.assist.player || '없음'}</span>
-                                        {p.assist.player && (
-                                          <span
-                                            className="assist-icon"
-                                            onClick={e => {
-                                              e.stopPropagation();
-                                              highlightPlayer(p.assist.player, 'assist');
-                                            }}
-                                          >
-                                            👟
-                                          </span>
-                                        )}
-                                      </div>
-                                    </StatValue>
-                                  </StatItem>
-                                ))
-                              ) : (
-                                <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </StatsList>
-                    </QuarterContent>
-                  </QuarterSection>
-                );
+              return (
+  <QuarterSection key={i} className={isOpen ? 'open' : ''}>
+    <QuarterHeader onClick={() => toggleQuarter(match.id, i)} className={isOpen ? 'open' : ''}>
+      <span>쿼터 {q.quarterIndex}</span>
+      {playerStats.length > 0 && (
+        <span className="icons-container">
+          {playerStats.map((stat, si) => (
+            <span
+              key={si}
+              className={`${stat.type}-icon`}
+              style={{ marginLeft: '2px' }}
+            >
+              {stat.icon}
+            </span>
+          ))}
+        </span>
+      )}
+      <ChevronIcon isOpen={isOpen} />
+    </QuarterHeader>
+    <QuarterContent className={isOpen ? 'open' : ''}>
+      <ScoreBox>
+        {scores.map((s, si) => (
+          <React.Fragment key={si}>
+            <div className={`team team-${si}`}>
+              {si === 0 ? (
+                <>
+                  <div className="name">{s.name}</div>
+                  <div className="score-value">{s.goals}</div>
+                </>
+              ) : (
+                <>
+                  <div className="score-value">{s.goals}</div>
+                  <div className="name">{s.name}</div>
+                </>
+              )}
+            </div>
+            {si < scores.length - 1 && <span className="separator">VS</span>}
+          </React.Fragment>
+        ))}
+      </ScoreBox>
+      <FieldContainer>
+        <FieldView>
+          {/* Remove GoalArea and use FieldView's built-in classes */}
+          <div className="goal-area-left" />
+          <div className="goal-area-right" />
+          <PenaltyArea className="top" />
+          <PenaltyArea className="bottom" />
+          <GoalPost className="top" />
+          <GoalPost className="bottom" />
+          <div className="center-line" />
+          <div className="center-circle" />
+          <div className="center-spot" />
+          <div className="penalty-box-left" />
+          <div className="penalty-box-right" />
+          <div className="penalty-arc-left" />
+          <div className="penalty-arc-right" />
+          <div className="penalty-spot-left" />
+          <div className="penalty-spot-right" />
+          <div className="corner老太太:corner-arc-top-left" />
+          <div className="corner-arc-top-right" />
+          <div className="corner-arc-bottom-left" />
+          <div className="corner-arc-bottom-right" />
+          {isMobile ? (
+            <MobileFormation
+              teams={q.teams}
+              highlightedPlayer={highlightedPlayer}
+              highlightPlayer={highlightPlayer}
+              goalAssistPairs={q.goalAssistPairs}
+            />
+          ) : (
+            <DesktopFormation
+              teams={q.teams}
+              highlightedPlayer={highlightedPlayer}
+              highlightPlayer={highlightPlayer}
+              goalAssistPairs={q.goalAssistPairs}
+            />
+          )}
+        </FieldView>
+      </FieldContainer>
+      <TeamsContainer>
+        {q.teams.map((t, ti) => (
+          <TeamCard key={ti}>
+            <TeamName>{t.name}</TeamName>
+            <Formation>포메이션: {t.formation}</Formation>
+            <PlayersList>
+              {t.players.map((p, pi) => (
+                <PlayerItem key={pi}>
+                  <span className="number">{p.backNumber}</span>
+                  <span className="name">{p.name}</span>
+                  <span className="position">{p.position}</span>
+                </PlayerItem>
+              ))}
+            </PlayersList>
+          </TeamCard>
+        ))}
+      </TeamsContainer>
+      <StatsList>
+        <StatTitle>공격 포인트</StatTitle>
+        {q.teams.map((team, ti) => {
+          const teamGoalAssistPairs = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name));
+          return (
+            <div key={ti} style={{ marginBottom: '20px' }}>
+              <StatTitle>{team.name}</StatTitle>
+              {teamGoalAssistPairs.length ? (
+                teamGoalAssistPairs.map((p, pi) => (
+                  <StatItem
+                    key={pi}
+                    onClick={() => highlightPlayer(p.goal.player, 'goal')}
+                  >
+                    <StatValue>
+                      <div>
+                        <span>골: {p.goal.player}</span>
+                        <span className="goal-icon">⚽</span>
+                      </div>
+                      <div>
+                        <span>어시: {p.assist.player || '없음'}</span>
+                        {p.assist.player && (
+                          <span
+                            className="assist-icon"
+                            onClick={e => {
+                              e.stopPropagation();
+                              highlightPlayer(p.assist.player, 'assist');
+                            }}
+                          >
+                            👟
+                          </span>
+                        )}
+                      </div>
+                    </StatValue>
+                  </StatItem>
+                ))
+              ) : (
+                <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
+              )}
+            </div>
+          );
+        })}
+      </StatsList>
+    </QuarterContent>
+  </QuarterSection>
+);
               })}
             </MatchSection>
           );

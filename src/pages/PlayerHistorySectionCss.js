@@ -451,7 +451,7 @@ export const RankingSummary = styled.div`
   @media (max-width: 640px) {
     padding: 12px;
     & > div {
-      flex-direction: column;
+    //   flex-direction: column;
       overflow-x: hidden;
       gap: 8px;
     }
@@ -469,10 +469,12 @@ export const SectionTitle = styled.h3`
   color: #1a1a1a;
   margin-bottom: 12px;
 
-  @media (max-width: 640px) {
+ @media (max-width: 640px) {
     font-size: 18px;
     margin-left: 8px;
     margin-bottom: 10px;
+    text-align: center;   /* 모바일에서 제목 중앙 정렬 */
+    margin-left: 0;       /* 모바일에서 왼쪽 여백 제거 */
   }
 `;
 

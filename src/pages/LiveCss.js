@@ -35,6 +35,10 @@ export const MatchVS = styled.div`
   padding: 20px 0;
   border-bottom: 1px solid #e5e5e5;
   border-radius: 8px;
+
+  @media (max-width: 768px) {
+    padding: 15px 0;
+  }
 `;
 
 export const TeamContainer = styled.div`
@@ -44,6 +48,11 @@ export const TeamContainer = styled.div`
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    gap: 10px;
+  }
 `;
 
 export const TeamInfo = styled.div`
@@ -57,11 +66,19 @@ export const TeamName = styled.h3`
   font-size: 22px;
   font-weight: bold;
   margin-bottom: 10px;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
 `;
 
 export const TeamStats = styled.div`
   font-size: 14px;
   color: #666;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
 `;
 
 export const VSIndicator = styled.div`
@@ -69,6 +86,10 @@ export const VSIndicator = styled.div`
   flex-direction: column;
   align-items: center;
   margin: 0 30px;
+
+  @media (max-width: 768px) {
+    margin: 0 15px;
+  }
 `;
 
 export const VSText = styled.span`
@@ -76,6 +97,10 @@ export const VSText = styled.span`
   font-weight: bold;
   margin: 10px 0;
   color: #888;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
 `;
 
 export const MatchDate = styled.div`
@@ -83,6 +108,10 @@ export const MatchDate = styled.div`
   color: #666;
   text-align: center;
   margin-top: 5px;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
 `;
 
 export const Section = styled.div`
@@ -100,18 +129,33 @@ export const SectionTitle = styled.h3`
   border-bottom: 1px solid #e5e5e5;
   background-color: #f5f5f5;
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
 `;
 
 export const LineupContainer = styled.div`
   display: flex;
   justify-content: space-between;
   padding: 0;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 export const TeamLineup = styled.div`
   flex: 1;
   padding: 15px;
   border-right: ${props => props.hasBorder ? '1px solid #e5e5e5' : 'none'};
+
+  @media (max-width: 768px) {
+    border-right: none;
+    border-bottom: ${props => props.hasBorder ? '1px solid #e5e5e5' : 'none'};
+    padding: 12px;
+  }
 `;
 
 export const TeamLineupHeader = styled.div`
@@ -119,6 +163,10 @@ export const TeamLineupHeader = styled.div`
   margin-bottom: 10px;
   border-bottom: 1px solid #e5e5e5;
   font-weight: bold;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 export const PlayerList = styled.ul`
@@ -136,6 +184,10 @@ export const PlayerItem = styled.li`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 768px) {
+    padding: 6px 0;
+  }
 `;
 
 export const PlayerName = styled.span`
@@ -145,15 +197,27 @@ export const PlayerName = styled.span`
     content: '${props => props.isCaptain ? ' (주장)' : ''}';
     color: #3b82f6;
   }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 export const PlayerPosition = styled.span`
   color: #888;
   font-size: 13px;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
 `;
 
 export const StatsSection = styled.div`
   padding: 15px;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 `;
 
 export const StatRow = styled.div`
@@ -205,6 +269,11 @@ export const PreviousMatchesTitle = styled.h3`
   border-bottom: 1px solid #e5e5e5;
   background-color: #f5f5f5;
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
 `;
 
 export const MatchList = styled.ul`
@@ -223,21 +292,44 @@ export const MatchItem = styled.li`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 768px) {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 `;
 
 export const MatchTeams = styled.div`
   flex: 1;
   display: flex;
   align-items: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
 `;
 
 export const MatchTeam = styled.span`
   font-weight: ${props => props.isWinner ? 'bold' : 'normal'};
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 export const MatchScore = styled.div`
   margin: 0 15px;
   font-weight: bold;
+
+  @media (max-width: 768px) {
+    margin: 5px 0;
+    font-size: 14px;
+    text-align: left;
+  }
 `;
 
 export const MatchInfo = styled.div`
@@ -245,10 +337,20 @@ export const MatchInfo = styled.div`
   color: #888;
   text-align: right;
   width: 120px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    text-align: left;
+    font-size: 12px;
+  }
 `;
 
 export const MatchDateInfo = styled.div`
   font-size: 12px;
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+  }
 `;
 
 export const ErrorMessage = styled.div`
@@ -260,6 +362,11 @@ export const ErrorMessage = styled.div`
 export const ChartContainer = styled.div`
   height: 300px;
   padding: 20px;
+
+  @media (max-width: 768px) {
+    height: 250px;
+    padding: 15px;
+  }
 `;
 
 export const TeamsContainer = styled.div`
@@ -279,6 +386,10 @@ export const TeamCard = styled.div`
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 
 export const TeamHeader = styled.h3`
@@ -308,6 +419,10 @@ export const CaptainInfo = styled.p`
 
 export const StatsContainer = styled.div`
   margin-top: 40px;
+
+  @media (max-width: 768px) {
+    margin-top: 30px;
+  }
 `;
 
 export const StatsGrid = styled.div`
@@ -332,6 +447,10 @@ export const GraphContainer = styled.div`
   background: #f9fafb;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 
 export const GraphWrapper = styled.div`
@@ -379,12 +498,36 @@ export const CheerGauge = styled.div`
   margin: 20px auto;
   border-radius: 10px;
   overflow: hidden;
+  position: relative;
+
+  @media (max-width: 768px) {
+    max-width: 90%;
+    height: 18px;
+  }
 `;
 
 export const GaugeBar = styled.div`
   background-color: ${props => props.color || '#3182f6'};
   width: ${props => props.width || '50%'};
   transition: width 0.3s ease;
+`;
+
+export const GaugeText = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+//   background-color: rgba(0, 0, 0, 0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
 `;
 
 export const ChatSection = styled.div`
@@ -410,6 +553,10 @@ export const ChatTitle = styled.h3`
   font-size: 16px;
   font-weight: bold;
   margin-bottom: 10px;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 export const ChatMessages = styled.ul`
@@ -429,6 +576,10 @@ export const ChatMessage = styled.li`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
 `;
 
 export const ChatInputContainer = styled.div`
@@ -442,6 +593,10 @@ export const ChatInput = styled.input`
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   font-size: 14px;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
 `;
 
 export const ChatButton = styled.button`
@@ -455,5 +610,59 @@ export const ChatButton = styled.button`
 
   &:hover {
     background-color: #2563eb;
+  }
+
+  @media (max-width: 768px) {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+`;
+
+// 상대 전적 스타일 컴포넌트
+export const HeadToHead = styled.div`
+  margin-bottom: 20px;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    display: none; /* 모바일에서 전적 숨김 */
+  }
+`;
+
+export const HeadToHeadTitle = styled.h4`
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+`;
+
+export const HeadToHeadStats = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-size: 16px;
+`;
+
+export const HeadToHeadTeam = styled.span`
+  font-weight: bold;
+`;
+
+export const HeadToHeadVS = styled.span`
+  color: #666;
+`;
+
+// 라인업 공개 메시지 스타일
+export const LineupMessage = styled.div`
+  padding: 15px;
+  text-align: center;
+  font-size: 16px;
+  color: #666;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin: 10px;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 12px;
+    margin: 8px;
   }
 `;

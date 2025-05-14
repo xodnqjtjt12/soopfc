@@ -7,7 +7,7 @@ import * as S from './LiveAdminCss';
 // 포지션 옵션
 const POSITIONS = {
   GK: '골키퍼',
-  CB: '중앙 수비수',
+  CB: '수비수',
   MF: '미드필더',
   FW: '공격수'
 };
@@ -299,7 +299,7 @@ const LiveAdmin = () => {
 
   return (
     <S.Container>
-      <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'}</S.SectionTitle>
+      <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (라인업은 설정한 시간에서 4시간전에나옴)</S.SectionTitle>
       
       <S.FormContainer onSubmit={handleSubmit}>
         <S.Input

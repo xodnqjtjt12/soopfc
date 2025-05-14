@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../App';
-import { format } from 'date-fns';
+import { format, startOfDay, addHours, isWithinInterval } from 'date-fns';
 import moment from 'moment';
 import styled from 'styled-components';
 import * as S from './Homecss';
@@ -55,6 +55,14 @@ const CloseButton = styled.button`
   }
 `;
 
+// 경기 상세 버튼 (PrimaryButton 스타일 상속)
+const MatchButton = styled(S.PrimaryButton).attrs({
+  as: Link,
+})`
+  text-decoration: none;
+  margin-left: 10px;
+`;
+
 const Home = () => {
   const [players, setPlayers] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -71,7 +79,6 @@ const Home = () => {
     totalGames: 0,
     attackpersonalPoints: 0,
     war: 0,
-
   });
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -83,6 +90,7 @@ const Home = () => {
   const [announces, setAnnounces] = useState([]);
   const [visibleIds, setVisibleIds] = useState([]);
   const [countdowns, setCountdowns] = useState({});
+  const [liveMatches, setLiveMatches] = useState([]);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [hideToday, setHideToday] = useLocalStorage('hideAnnouncementsDate', null);
@@ -90,91 +98,69 @@ const Home = () => {
   const [holidays, setHolidays] = useState([]);
   const [anniversaries, setAnniversaries] = useState([]);
 
-
+  // live 컬렉션에서 경기 데이터 가져오기
   useEffect(() => {
-    const fetchAnniversaries = async () => {
-      const year  = activeStartDate.getFullYear();
-      const month = String(activeStartDate.getMonth() + 1).padStart(2, '0');
-      const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getAnniversaryInfo`
-        + `?solYear=${year}&solMonth=${month}`
-        + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
-        + `&_type=json`;
-  
+    const fetchLiveMatches = async () => {
       try {
-        const res  = await fetch(url);
-        const json = await res.json();
-        let items = json.response.body.items?.item;
-        if (!items) items = [];
-        else if (!Array.isArray(items)) items = [items];
-  
-        // { locdate: '20250603', dateName: '대통령 선거', … }
-        const evts = items.map(i => ({
-          date: `${String(i.locdate).slice(0,4)}-${String(i.locdate).slice(4,6)}-${String(i.locdate).slice(6,8)}`,
-          title: i.dateName
+        const snap = await getDocs(collection(db, 'live'));
+        const matches = snap.docs.map(doc => ({
+          id: doc.id,
+          date: doc.data().date
         }));
-        setAnniversaries(evts);
-      } catch (e) {
-        console.error('기념일 API 에러:', e);
-      }
-    };
-  
-    fetchAnniversaries();
-  }, [activeStartDate]);
-
-  useEffect(() => {
-    const fetchHolidays = async () => {
-      const year  = activeStartDate.getFullYear();
-      const month = String(activeStartDate.getMonth() + 1).padStart(2, '0');
-      const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo`
-        + `?solYear=${year}&solMonth=${month}`
-        + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
-        + `&_type=json`;
-
-      try {
-        const res  = await fetch(url);
-        const json = await res.json();
-        let items = json.response.body.items?.item;
-        if (!items) items = [];
-        else if (!Array.isArray(items)) items = [items];
-
-        const days = items.map(i => {
-          const d = String(i.locdate);
-          return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+        // 날짜별로 그룹화 (중복 제거)
+        const uniqueDates = [];
+        const seenDates = new Set();
+        matches.forEach(match => {
+          const date = match.date instanceof Timestamp
+            ? new Date(match.date.seconds * 1000)
+            : new Date(match.date);
+          const dateStr = format(date, 'yyyy-MM-dd');
+          if (!seenDates.has(dateStr) && !isNaN(date.getTime())) {
+            seenDates.add(dateStr);
+            uniqueDates.push({ date, dateStr });
+          }
         });
-        setHolidays(days);
+        setLiveMatches(uniqueDates);
+        console.log('가져온 경기 날짜:', uniqueDates);
       } catch (e) {
-        console.error('공휴일 API 에러:', e);
+        console.error('live 컬렉션 fetch 에러:', e);
       }
     };
+    fetchLiveMatches();
+  }, []);
 
-    fetchHolidays();
-  }, [activeStartDate]);
-  
-  // 공지 fetch & 초기 표시 제어 (한 번만)
+  // 공지사항 fetch & 초기 표시 제어
   useEffect(() => {
     const fetchNotes = async () => {
-      const snap = await getDocs(collection(db, 'announcements'));
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAllNotes(data);
+      try {
+        const snap = await getDocs(collection(db, 'announcements'));
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setAllNotes(data);
 
-      const now = Date.now();
-      const published = data.filter(n => {
-        if (!n.publishTimestamp || !n.publishDuration) return false;
-        const t0 = new Date(n.publishTimestamp).getTime();
-        return now >= t0;
-      });
+        const now = Date.now();
+        const published = data.filter(n => {
+          if (!n.publishTimestamp || !n.publishDuration) return false;
+          const t0 = new Date(n.publishTimestamp).getTime();
+          const t1 = t0 + n.publishDuration * 1000;
+          return now >= t0 && now <= t1;
+        });
 
-      setAnnounces(published);
+        setAnnounces(published);
 
-      const ids = published.map(n => n.id);
-      setVisibleIds(ids);
-      const initialCd = {};
-      published.forEach(n => {
-        initialCd[n.id] = n.publishDuration;
-      });
-      setCountdowns(initialCd);
+        const ids = published.map(n => n.id);
+        setVisibleIds(ids);
+        const initialCd = {};
+        published.forEach(n => {
+          const t0 = new Date(n.publishTimestamp).getTime();
+          const remainingSec = Math.max(0, Math.floor((t0 + n.publishDuration * 1000 - now) / 1000));
+          initialCd[n.id] = remainingSec;
+        });
+        setCountdowns(initialCd);
+        console.log('공지사항:', published, 'visibleIds:', ids, 'countdowns:', initialCd);
+      } catch (e) {
+        console.error('공지사항 fetch 에러:', e);
+      }
     };
-
     fetchNotes();
   }, []);
 
@@ -196,6 +182,64 @@ const Home = () => {
     }, 1000);
     return () => clearInterval(iv);
   }, []);
+
+  useEffect(() => {
+    const fetchAnniversaries = async () => {
+      const year = activeStartDate.getFullYear();
+      const month = String(activeStartDate.getMonth() + 1).padStart(2, '0');
+      const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getAnniversaryInfo`
+        + `?solYear=${year}&solMonth=${month}`
+        + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
+        + `&_type=json`;
+  
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        let items = json.response.body.items?.item;
+        if (!items) items = [];
+        else if (!Array.isArray(items)) items = [items];
+  
+        const evts = items.map(i => ({
+          date: `${String(i.locdate).slice(0,4)}-${String(i.locdate).slice(4,6)}-${String(i.locdate).slice(6,8)}`,
+          title: i.dateName
+        }));
+        setAnniversaries(evts);
+      } catch (e) {
+        console.error('기념일 API 에러:', e);
+      }
+    };
+  
+    fetchAnniversaries();
+  }, [activeStartDate]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      const year = activeStartDate.getFullYear();
+      const month = String(activeStartDate.getMonth() + 1).padStart(2, '0');
+      const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo`
+        + `?solYear=${year}&solMonth=${month}`
+        + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
+        + `&_type=json`;
+
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        let items = json.response.body.items?.item;
+        if (!items) items = [];
+        else if (!Array.isArray(items)) items = [items];
+
+        const days = items.map(i => {
+          const d = String(i.locdate);
+          return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+        });
+        setHolidays(days);
+      } catch (e) {
+        console.error('공휴일 API 에러:', e);
+      }
+    };
+
+    fetchHolidays();
+  }, [activeStartDate]);
 
   // players fetch
   useEffect(() => {
@@ -230,16 +274,15 @@ const Home = () => {
 
   // MOM fetch
   useEffect(() => {
-  const fetchMOM = async () => {
-    const snap = await getDocs(collection(db, 'MOM'));
-    if (snap.docs.length) {
-      // Firestore에 players 배열 안에 이미 xG 필드가 들어있다고 가정
-      const data = snap.docs[0].data().players || [];
-      setMomPlayers(data);
-    }
-  };
-  fetchMOM();
-}, []);
+    const fetchMOM = async () => {
+      const snap = await getDocs(collection(db, 'MOM'));
+      if (snap.docs.length) {
+        const data = snap.docs[0].data().players || [];
+        setMomPlayers(data);
+      }
+    };
+    fetchMOM();
+  }, []);
 
   // MOM scroll hint
   useEffect(() => {
@@ -281,11 +324,20 @@ const Home = () => {
     setHideToday(todayStr);
   };
 
+  // 버튼 표시 여부 확인
+  const isMatchButtonVisible = (matchDate) => {
+    if (!matchDate || isNaN(matchDate.getTime())) return false;
+    const start = startOfDay(matchDate); // 경기일 00:00
+    const end = addHours(start, 48); // 48시간 후
+    const now = new Date();
+    return isWithinInterval(now, { start, end });
+  };
+
   return (
     <S.HomeContainer>
       <S.ContentWrapper>
         {/* 공지사항 배너 */}
-        {!hideToday && announces.map(n => (
+        {hideToday !== todayStr && announces.map(n => (
           visibleIds.includes(n.id) && (
             <BannerContainer key={n.id}>
               <Link to="/announcements" style={{ textDecoration: 'none' }}>
@@ -312,6 +364,13 @@ const Home = () => {
             </S.HeroSubtitle>
             <S.ButtonGroup>
               <S.PrimaryButton href="/total">내 스탯 보기</S.PrimaryButton>
+              {liveMatches.map(match => (
+                isMatchButtonVisible(match.date) && (
+                  <MatchButton key={match.dateStr} to="/live">
+                    {format(match.date, 'M월 d일')} 경기 보기
+                  </MatchButton>
+                )
+              ))}
             </S.ButtonGroup>
           </S.HeroContent>
           <S.HeroImageContainer>
@@ -393,16 +452,15 @@ const Home = () => {
             locale="ko-KR"
             value={selectedDate}
             onActiveStartDateChange={({ activeStartDate }) => {
-   setActiveStartDate(activeStartDate); }}
+              setActiveStartDate(activeStartDate);
+            }}
             onChange={onDateChange}
             tileContent={({ date, view }) => view === 'month' && schedules.some(s => format(s.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) ? <span>⚽</span> : null}
             tileClassName={({ date, view }) => {
               if (view !== 'month') return;
           
               const dayStr = format(date, 'yyyy-MM-dd');
-              // 토요일
               if (date.getDay() === 6) return 'saturday';
-              // 일요일 또는 API로 받아온 공휴일
               if (date.getDay() === 0 || holidays.includes(dayStr)) {
                 return 'sunday-or-holiday';
               }

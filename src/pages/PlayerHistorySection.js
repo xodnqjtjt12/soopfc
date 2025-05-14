@@ -445,7 +445,7 @@ const PlayerHistorySection = () => {
           <PHS.Button onClick={() => navigate('/total')} style={{ marginRight: '10px' }}>
             <FaArrowLeft /> 뒤로
           </PHS.Button>
-          <h2>{playerId} 선수의 연도별 기록</h2>
+          <h2>{playerId} 연도별 기록</h2>
         </div>
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -516,7 +516,14 @@ const PlayerHistorySection = () => {
               {rankingDataLoading ? (
                 <div className="loading">발롱도르에서 트로피 가져오는중...</div>
               ) : (
-                <div style={{ display: 'flex', gap: '10px' }}>
+                 <div
+                 style={{
+                    display: 'flex',
+                    gap: '10px',
+                    justifyContent: 'center', // 모바일/데스크탑 모두 가운데 정렬
+                    flexWrap: 'wrap'           // 줄바꿈 시에도 정렬 유지
+                 }}
+               >
                   {years
                     .filter(year => {
                       if (!rankingData[year]) return false;
