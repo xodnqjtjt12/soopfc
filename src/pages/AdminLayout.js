@@ -40,7 +40,8 @@ export default function AdminLayout() {
         <StyledLink to="schedule">일정</StyledLink>
         <StyledLink to="vod">경기기록 관리</StyledLink>
         <StyledLink to="announcements">공지사항 관리</StyledLink>
-        <StyledLink to="history">레거시 데이터 관리</StyledLink> {/* 추가 */}
+        <StyledLink to="history">레거시 데이터 관리</StyledLink>
+        <StyledLink to="live">라인업 관리</StyledLink> {/* 추가 */}
       </Sidebar>
       <Content>
         <Outlet />

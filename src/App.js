@@ -21,7 +21,9 @@ import MomRanking from './pages/MomRanking';
 import VodAdminPage from './pages/VodAdminPage';
 import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
 import PlayerHistorySectionAdmin from './pages/PlayerHistorySectionAdmin';
-import PlayerHistorySection from './pages/PlayerHistorySection'; // 수정
+import PlayerHistorySection from './pages/PlayerHistorySection';
+ import Live from './pages/Live'; 
+import LiveAdmin from './pages/LiveAdmin'; // 추가
 
 // Components
 import Header from './components/Header';
@@ -91,7 +93,8 @@ function App() {
           <Route path="/total" element={<Total />} />
           <Route path="/mom-ranking" element={<MomRanking />} />
           <Route path="/vod" element={<VodPage />} />
-          <Route path="/player-history/:playerId" element={<PlayerHistorySection />} /> {/* 수정 */}
+          <Route path="/player-history/:playerId" element={<PlayerHistorySection />} />
+          <Route path="/live" element={<Live />} /> 추가
 
           {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}
           <Route path="/admin" element={<AdminLayout />}>
@@ -102,6 +105,7 @@ function App() {
             <Route path="vod" element={<VodAdminPage />} />
             <Route path="announcements" element={<AnnouncementsAdmin />} />
             <Route path="history" element={<PlayerHistorySectionAdmin />} />
+            <Route path="live" element={<LiveAdmin />} /> {/* 추가 */}
           </Route>
         </Routes>
       </AppContainer>

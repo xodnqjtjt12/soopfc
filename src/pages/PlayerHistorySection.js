@@ -726,7 +726,7 @@ const PlayerHistorySection = () => {
                     </PHS.PartnerCard>
                     <PHS.PartnerCard>
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00C49F' }}>
-                        {bestPartners.teamMate.name || '없음'} ({bestPartners.teamMate.count}회)
+                        {bestPartners.teamMate.name || '없음'} ({bestPartners.teamMate.count}쿼터)
                       </div>
                       <div style={{ marginTop: '4px', fontSize: '13px', color: '#aaa' }}>
                         같은 팀 많이 한 파트너

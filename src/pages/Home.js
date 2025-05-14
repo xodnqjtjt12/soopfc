@@ -149,6 +149,7 @@ const Home = () => {
 
     fetchHolidays();
   }, [activeStartDate]);
+  
   // 공지 fetch & 초기 표시 제어 (한 번만)
   useEffect(() => {
     const fetchNotes = async () => {
@@ -228,17 +229,13 @@ const Home = () => {
   }, [players]);
 
   // MOM fetch
- useEffect(() => {
+  useEffect(() => {
   const fetchMOM = async () => {
     const snap = await getDocs(collection(db, 'MOM'));
     if (snap.docs.length) {
-      const raw = snap.docs[0].data().players || [];
-      const formatted = raw.map(p => ({
-        ...p,
-        // p.xG가 숫자 혹은 숫자형 문자열이라고 가정
-        xG: Number(p.xG).toFixed(3)
-      }));
-      setMomPlayers(formatted);
+      // Firestore에 players 배열 안에 이미 xG 필드가 들어있다고 가정
+      const data = snap.docs[0].data().players || [];
+      setMomPlayers(data);
     }
   };
   fetchMOM();
