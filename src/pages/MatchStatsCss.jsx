@@ -33,17 +33,21 @@ export const PageTitle = styled.h1`
 
 export const FilterBar = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between; /* 또는 flex-start로 시작 */
+  align-items: center; /* 세로(블록축) 가운데 정렬 */
+  text-align: center; /* 텍스트 가로 중앙 정렬 */
   margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap; /* 모바일에서 필요시 줄바꿈 지원 */
 
   @media (max-width: 768px) {
-    justify-content: center;
+    justify-content: center; /* 모바일에서는 가로 중앙 정렬 */
   }
 `;
 
 export const SelectWrapper = styled.div`
   select {
-    padding: 10px 14px;
+    padding: 10px 24px 10px 14px; /* 오른쪽 패딩 증가로 텍스트와 화살표 간격 확보 */
     border: 2px solid #0a5c36; /* 축구 잔디 색상 */
     border-radius: 30px; /* 축구공 형태 느낌의 둥근 모서리 */
     font-size: 15px;
@@ -56,9 +60,11 @@ export const SelectWrapper = styled.div`
     width: 100%;
     max-width: 300px;
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a5c36' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      textAlign: 'center',      // ← 가로 가운데 정렬
+  lineHeight: '1.2',
+
     background-repeat: no-repeat;
-    background-position: right 17px center;
+    background-position: right 24px center; /* 화살표 위치 오른쪽으로 24px 이동 */
     background-size: 16px;
 
     &:hover {
@@ -76,11 +82,11 @@ export const SelectWrapper = styled.div`
   /* 모바일 반응형 스타일 */
   @media (max-width: 768px) {
     select {
-      padding: 12px 16px;
+      padding: 12px 30px 12px 16px; /* 모바일에서도 오른쪽 패딩 확보 */
       font-size: 16px; /* 모바일에서 더 큰 글씨 */
       width: 100%;
       max-width: 100%;
-      background-position: right 16px center;
+      background-position: right 24px center; /* 모바일에서도 화살표 위치 동일하게 유지 */
       background-size: 18px;
     }
   }
@@ -750,6 +756,7 @@ export const PlayerCard = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    background: #ffffff; /* 기본 배경색 */
     width: 48px;
     height: 48px;
     padding: 0;
@@ -793,7 +800,7 @@ export const PlayerCard = styled.div`
     text-overflow: ellipsis;
     font-size: 12px;
     font-weight: 700;
-    color: #fff;
+    color: #0a5c36;
     user-select: none;
     position: relative;
     z-index: 2;
@@ -821,7 +828,7 @@ export const PlayerCard = styled.div`
     font-size: 12px;
     text-align: center;
     width: 100%;
-    margin-top: 6px;
+    // margin-top: 6px;
     text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.8);
     white-space: nowrap;
     overflow: hidden;

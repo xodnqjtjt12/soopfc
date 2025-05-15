@@ -241,7 +241,7 @@ export const VodList = styled.ul`
   
   @media (max-width: ${breakpoints.mobile}) {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 20px;  
   }
 `;
 

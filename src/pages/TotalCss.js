@@ -410,7 +410,7 @@ export const Title = styled.div`
 // 선수 기록 더보기 버튼 스타일 (토글 버튼으로 사용)
 export const ToggleHistoryButton = styled.button`
   display: block;
-  margin: 20px auto;
+   margin: 16px 16px;
   padding: 15px 30px;
   font-size: 18px;
   color: white;
@@ -420,6 +420,7 @@ export const ToggleHistoryButton = styled.button`
 display: flex;
 justify-content: center; /* 수평 중앙 정렬 */
 align-items: center;     /* 수직 중앙 정렬 */
+text-decoration: none;   /* ← 이 줄을 추가하세요 (밑줄 제거) */
   cursor: pointer;
   transition: all 0.3s ease;
   animation: ${fadeIn} 0.5s ease-out;

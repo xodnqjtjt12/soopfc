@@ -41,7 +41,7 @@ const PlayerHistorySection = () => {
     return name ? name.trim().toLowerCase() : '';
   };
 
-  // 연도별 통계 랭킹 조회
+  // 연도별 통계 랭킹 조회 (동률 순위 처리 추가)
   useEffect(() => {
     const fetchRankingData = async () => {
       setRankingDataLoading(true);
@@ -68,13 +68,37 @@ const PlayerHistorySection = () => {
                 }
               });
               
+              // 값 기준으로 내림차순 정렬
               playerStats.sort((a, b) => b.value - a.value);
-              const top3 = playerStats.slice(0, 3);
-              const playerRank = playerStats.findIndex(item => item.id === playerId) + 1;
+              
+              // 동률 순위 계산
+              const ranks = [];
+              let currentRank = 1;
+              let currentValue = null;
+              let playersAtCurrentValue = 0;
+
+              playerStats.forEach((player, index) => {
+                if (player.value !== currentValue) {
+                  currentRank += playersAtCurrentValue;
+                  currentValue = player.value;
+                  playersAtCurrentValue = 1;
+                } else {
+                  playersAtCurrentValue++;
+                }
+                ranks.push({
+                  id: player.id,
+                  value: player.value,
+                  rank: currentRank
+                });
+              });
+
+              // 상위 3명 추출 (동률 포함 가능)
+              const top3 = ranks.slice(0, Math.min(3, ranks.length));
+              const playerRank = ranks.find(item => item.id === playerId)?.rank || null;
               
               rankData[year][stat] = {
                 top3,
-                playerRank: playerRank > 0 ? playerRank : null
+                playerRank
               };
             });
           } else {
@@ -109,12 +133,34 @@ const PlayerHistorySection = () => {
               statRankingToCheck.forEach(stat => {
                 if (yearlyPlayerStats[stat]) {
                   yearlyPlayerStats[stat].sort((a, b) => b.value - a.value);
-                  const top3 = yearlyPlayerStats[stat].slice(0, 3);
-                  const playerRank = yearlyPlayerStats[stat].findIndex(item => item.id === playerId) + 1;
+                  
+                  // 동률 순위 계산
+                  const ranks = [];
+                  let currentRank = 1;
+                  let currentValue = null;
+                  let playersAtCurrentValue = 0;
+
+                  yearlyPlayerStats[stat].forEach((player, index) => {
+                    if (player.value !== currentValue) {
+                      currentRank += playersAtCurrentValue;
+                      currentValue = player.value;
+                      playersAtCurrentValue = 1;
+                    } else {
+                      playersAtCurrentValue++;
+                    }
+                    ranks.push({
+                      id: player.id,
+                      value: player.value,
+                      rank: currentRank
+                    });
+                  });
+
+                  const top3 = ranks.slice(0, Math.min(3, ranks.length));
+                  const playerRank = ranks.find(item => item.id === playerId)?.rank || null;
                   
                   rankData[year][stat] = {
                     top3,
-                    playerRank: playerRank > 0 ? playerRank : null
+                    playerRank
                   };
                 } else {
                   rankData[year][stat] = { top3: [], playerRank: null };
@@ -135,12 +181,34 @@ const PlayerHistorySection = () => {
                 });
                 
                 playerStats.sort((a, b) => b.value - a.value);
-                const top3 = playerStats.slice(0, 3);
-                const playerRank = playerStats.findIndex(item => item.id === playerId) + 1;
+                
+                // 동률 순위 계산
+                const ranks = [];
+                let currentRank = 1;
+                let currentValue = null;
+                let playersAtCurrentValue = 0;
+
+                playerStats.forEach((player, index) => {
+                  if (player.value !== currentValue) {
+                    currentRank += playersAtCurrentValue;
+                    currentValue = player.value;
+                    playersAtCurrentValue = 1;
+                  } else {
+                    playersAtCurrentValue++;
+                  }
+                  ranks.push({
+                    id: player.id,
+                    value: player.value,
+                    rank: currentRank
+                  });
+                });
+
+                const top3 = ranks.slice(0, Math.min(3, ranks.length));
+                const playerRank = ranks.find(item => item.id === playerId)?.rank || null;
                 
                 rankData[year][stat] = {
                   top3,
-                  playerRank: playerRank > 0 ? playerRank : null
+                  playerRank
                 };
               });
             }
@@ -263,7 +331,6 @@ const PlayerHistorySection = () => {
         const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
         let isDefender = false;
 
-        // playerId가 수비수인지 확인
         matchesSnapshot.forEach(doc => {
           const match = doc.data();
           if (match.date && new Date(match.date).getFullYear() === 2025) {
@@ -282,7 +349,6 @@ const PlayerHistorySection = () => {
           const match = doc.data();
           if (match.date && new Date(match.date).getFullYear() === 2025) {
             match.quarters.forEach(quarter => {
-              // 같은 팀 파트너
               const playerTeam = quarter.teams.find(team => 
                 team.players.some(p => p.name.toLowerCase() === playerId.toLowerCase())
               );
@@ -294,7 +360,6 @@ const PlayerHistorySection = () => {
                 });
               }
 
-              // 클린 시트 파트너
               if (isDefender) {
                 const playerTeam = quarter.teams.find(team => 
                   team.players.some(p => p.name.toLowerCase() === playerId.toLowerCase())
@@ -314,7 +379,6 @@ const PlayerHistorySection = () => {
                 }
               }
 
-              // 어시스트 관련 파트너
               (quarter.goalAssistPairs || []).forEach(pair => {
                 if (pair.assist.player?.toLowerCase() === playerId.toLowerCase() && pair.goal.player) {
                   const goalPlayer = pair.goal.player;
@@ -386,9 +450,9 @@ const PlayerHistorySection = () => {
       personalPoints: '개인승점'
     };
     
-    const playerRank = rankInfo.top3.findIndex(item => item.id === playerId) + 1;
+    const playerRank = rankInfo.top3.find(item => item.id === playerId)?.rank;
     
-    if (playerRank === 0 || value === 0) return null;
+    if (!playerRank || value === 0) return null;
     
     let icon, color, text;
     
@@ -443,7 +507,7 @@ const PlayerHistorySection = () => {
       <PHS.Container>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
           <PHS.Button onClick={() => navigate('/total')} style={{ marginRight: '10px' }}>
-            <FaArrowLeft /> 뒤로
+            <FaArrowLeft /> 
           </PHS.Button>
           <h2>{playerId} 연도별 기록</h2>
         </div>
@@ -516,45 +580,51 @@ const PlayerHistorySection = () => {
               {rankingDataLoading ? (
                 <div className="loading">발롱도르에서 트로피 가져오는중...</div>
               ) : (
-                 <div
-                 style={{
+                <div
+                  style={{
                     display: 'flex',
                     gap: '10px',
-                    justifyContent: 'center', // 모바일/데스크탑 모두 가운데 정렬
-                    flexWrap: 'wrap'           // 줄바꿈 시에도 정렬 유지
-                 }}
-               >
+                    justifyContent: 'center',
+                    flexWrap: 'wrap'
+                  }}
+                >
                   {years
                     .filter(year => {
                       if (!rankingData[year]) return false;
                       return statRankingToCheck.some(stat => {
                         if (rankingData[year][stat]) {
-                          const playerIndex = rankingData[year][stat].top3.findIndex(item => item.id === playerId);
-                          return playerIndex !== -1 && rankingData[year][stat].top3[playerIndex].value > 0;
+                          const playerRank = rankingData[year][stat].top3.find(item => item.id === playerId)?.rank;
+                          return playerRank && playerRank <= 3 && rankingData[year][stat].top3.find(item => item.id === playerId)?.value > 0;
                         }
                         return false;
                       });
                     })
                     .map(year => (
                       <div key={year} style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                        backgroundColor: '#1a1a1a',
                         borderRadius: '8px',
                         padding: '12px',
                         width: '200px',
                         flexShrink: 0
                       }}>
-                        <h4 style={{ marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '4px', fontSize: '16px' }}>
+                        <h4 style={{
+                          margin: '0 0 8px 0',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          paddingBottom: '4px',
+                          fontSize: '16px',
+                          color: '#ffffff'
+                        }}>
                           {year}년 수상 기록
                         </h4>
                         <div>
                           {statRankingToCheck.map((stat, index) => {
                             if (!rankingData[year][stat]) return null;
-                            const playerIndex = rankingData[year][stat].top3.findIndex(item => item.id === playerId);
-                            if (playerIndex === -1) return null;
-                            const rank = playerIndex + 1;
-                            const statValue = rankingData[year][stat].top3[playerIndex].value;
+                            const playerItem = rankingData[year][stat].top3.find(item => item.id === playerId);
+                            if (!playerItem) return null;
+                            const rank = playerItem.rank;
+                            const statValue = playerItem.value;
                             
-                            if (statValue <= 0) return null;
+                            if (statValue <= 0 || rank > 3) return null;
                             
                             const statLabels = {
                               goals: '득점',
@@ -632,7 +702,7 @@ const PlayerHistorySection = () => {
                   <ResponsiveContainer width="100%" height={400}>
                     <LineChart
                       data={historyData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                      margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="year" />
@@ -682,8 +752,8 @@ const PlayerHistorySection = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-            <Line type="monotone" dataKey="goals" name="득점" stroke="#8884d8" strokeWidth={2} />
-<Line type="monotone" dataKey="assists" name="어시스트" stroke="#82ca9d" strokeWidth={2} />
+                      <Line type="monotone" dataKey="goals" name="득점" stroke="#8884d8" strokeWidth={2} />
+                      <Line type="monotone" dataKey="assists" name="어시스트" stroke="#82ca9d" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
                 </PHS.GraphContainer>

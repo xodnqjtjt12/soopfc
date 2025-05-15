@@ -60,7 +60,110 @@ const MatchButton = styled(S.PrimaryButton).attrs({
   as: Link,
 })`
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3182f6; /* 세미콜론 추가함 */
+  color: white;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  border: 1px solid #2671e2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   margin-left: 10px;
+  position: relative; /* 애니메이션 위치 기준점 */
+  animation: float 3s ease-in-out infinite; /* 둥둥 떠다니는 애니메이션 */
+  
+  /* 둥둥 떠다니는 애니메이션 정의 */
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+  
+  /* 아이콘이 있을 경우 간격 추가 */
+  svg {
+    margin-right: 6px;
+    font-size: 18px;
+  }
+  
+  &:hover {
+    background-color: #1b6ef3;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation-play-state: paused; /* 호버 시 애니메이션 일시정지 */
+    transform: translateY(-2px); /* 호버 시 고정된 위치 */
+  }
+  
+  &:active {
+    background-color: #0f5ad7;
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    animation-play-state: paused; /* 클릭 시 애니메이션 일시정지 */
+  }
+  
+  /* PC 환경 */
+  @media (min-width: 768px) {
+    padding: 12px 20px;
+    font-size: 16px;
+    
+    /* 아이콘 크기 */
+    svg {
+      font-size: 20px;
+    }
+    
+    /* PC에서는 좀 더 큰 움직임 */
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
+      100% {
+        transform: translateY(0px);
+      }
+    }
+  }
+  
+  /* 모바일 환경 */
+  @media (max-width: 767px) {
+    padding: 8px 14px;
+    font-size: 14px;
+    margin-left: 6px;
+    
+    /* 모바일에서는 버튼을 더 눈에 띄게 */
+    width: auto;
+    white-space: nowrap;
+    
+    /* 작은 화면에서 텍스트 축소 방지 */
+    min-width: fit-content;
+    
+    /* 모바일에서는 더 작은 움직임 */
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+      100% {
+        transform: translateY(0px);
+      }
+    }
+  }
+  
+  /* 매우 작은 화면 */
+  @media (max-width: 360px) {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
 `;
 
 const Home = () => {
@@ -367,7 +470,7 @@ const Home = () => {
               {liveMatches.map(match => (
                 isMatchButtonVisible(match.date) && (
                   <MatchButton key={match.dateStr} to="/live">
-                    {format(match.date, 'M월 d일')} 경기 보기
+                    {format(match.date, 'M월 d일')} 라인업
                   </MatchButton>
                 )
               ))}

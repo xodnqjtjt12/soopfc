@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../App';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import styled from 'styled-components';
 import {
   Container,
   MainContent,
   PageTitle,
-  FilterBar,
-  SelectWrapper,
   MatchSection,
   MatchHeader,
   QuarterSection,
@@ -34,7 +33,115 @@ import {
   ScoreBox,
 } from './MatchStatsCss';
 
-// 모달 스타일
+// Toss-inspired button
+const TossButton = styled.button`
+  padding: 12px 20px;
+  background-color: #3182f6; /* Toss의 시그니처 블루 */
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 100, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  max-width: 220px;
+  width: 100%;
+  text-align: center;
+
+  &:hover {
+    background-color: #0052cc; /* 호버 시 더 어두운 블루 */
+    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    background-color: #004099;
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
+  }
+
+  &:disabled {
+    background-color: #b3d4ff;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 120px;
+    max-width: 180px;
+  }
+`;
+
+// Toss-inspired select dropdown
+const TossSelect = styled.select`
+  padding: 12px 16px;
+  background-color: #ffffff;
+  color: #222222;
+  border: 2px solid #e6e6e6; /* 밝은 회색 테두리 */
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 140px;
+  max-width: 220px;
+  width: 100%;
+  appearance: none; /* 기본 드롭다운 화살표 제거 */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+
+  &:hover {
+    border-color: #0064ff;
+    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.2);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #0064ff;
+    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 14px;
+    font-size: 14px;
+    min-width: 120px;
+    max-width: 180px;
+    background-size: 14px;
+  }
+`;
+
+// FilterBar wrapper
+const FilterBarWrapper = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 0;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+    flex-direction: column;
+    align-items: center;
+  }
+`;
+
+// Modal styles (unchanged)
 const modalStyles = {
   overlay: {
     position: 'fixed',
@@ -57,7 +164,7 @@ const modalStyles = {
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
   },
   input: {
-    width: '100%',
+    // width: '100%',
     padding: '8px',
     marginBottom: '10px',
     border: '1px solid #ccc',
@@ -84,7 +191,29 @@ const modalStyles = {
   },
 };
 
-// 포지션 미러맵
+// PlayerPopup (unchanged)
+const PlayerPopup = styled.div`
+  position: absolute;
+  background-color: white;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  width: 200px;
+  font-size: 14px;
+  color: #333;
+  top: ${props => props.top || '0'};
+  left: ${props => props.left || '0'};
+  transform: translate(10px, -50%);
+
+  @media (max-width: 768px) {
+    width: 150px;
+    font-size: 12px;
+    padding: 8px;
+  }
+`;
+
+// Position mirror map (unchanged)
 const MIRROR_POSITION = {
   LB: 'RB', RB: 'LB',
   LW: 'RW', RW: 'LW',
@@ -92,7 +221,7 @@ const MIRROR_POSITION = {
   LM: 'RM', RM: 'LM'
 };
 
-// Chevron Icon
+// Chevron Icon (unchanged)
 const ChevronIcon = ({ isOpen }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
        style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
@@ -100,7 +229,7 @@ const ChevronIcon = ({ isOpen }) => (
   </svg>
 );
 
-// Format date
+// Format date (unchanged)
 const formatDate = dateString => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -108,7 +237,7 @@ const formatDate = dateString => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} (${['일', '월', '화', '수', '목', '금', '토'][date.getDay()]})`;
 };
 
-// Formation positions
+// Formation positions (unchanged)
 const FORMATIONS = {
   '4-3-3': {
     desktop: [
@@ -224,12 +353,12 @@ const FORMATIONS = {
   },
 };
 
-// Get formation positions
+// Get formation positions (unchanged)
 const getFormationPositions = (formation, isMobile) =>
   FORMATIONS[formation]?.[isMobile ? 'mobile' : 'desktop'] || FORMATIONS['4-3-3'][isMobile ? 'mobile' : 'desktop'];
 
-// Render formation
-const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highlightPlayer, side, goalAssistPairs) => {
+// Render formation (unchanged)
+const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highlightPlayer, side, goalAssistPairs, handlePlayerClick) => {
   if (!team?.players?.length) return (
     <div className="absolute inset-0 flex items-center justify-center text-white">
       {isHomeTeam ? '홈' : '어웨이'} 팀 선수 데이터 없음
@@ -246,79 +375,74 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         const reversedLeft = 100 - leftValue;
         newPos.left = leftValue === 5 ? '89%' : `${50 + (reversedLeft * 0.35)}%`;
       }
-       // ↓ B팀  위치를 수정 4231기준% → 60% 로 내립니다.
- if (!isHomeTeam && newPos.position === 'GK') {
-    newPos.top = '47%';
-    newPos.left = '94%'; // 원하는 퍼센트로 조정
-   }
-  if (!isHomeTeam) {
-      // GK
-     if (newPos.position === 'GK') {
+      if (!isHomeTeam && newPos.position === 'GK') {
         newPos.top = '47%';
-        newPos.left = '94%';
-     }
-      // CB1, CB2 (CB3 도 필요하면 startsWith('CB') 로 묶어도 OK)
-      if (newPos.position.startsWith('CB1')) {
-         newPos.top = '35%';
-         newPos.left = '85%';
-       }
-         if (newPos.position.startsWith('CB2')) {
-         newPos.top = '55%';
-         newPos.left = '85%';
-       }
-      // CM 계열
-       if (newPos.position.startsWith('CDM1')) {
-        newPos.top = '55%';
-         newPos.left = '77%';
+        newPos.left = '93%';
       }
-        if (newPos.position.startsWith('CDM2')) {
-        newPos.top = '35%';
+      if (!isHomeTeam) {
+        if (newPos.position === 'GK') {
+          newPos.top = '47%';
+          newPos.left = '94%';
+        }
+        if (newPos.position.startsWith('CB1')) {
+          newPos.top = '35%';
+          newPos.left = '85%';
+        }
+        if (newPos.position.startsWith('CB2')) {
+          newPos.top = '55%';
+          newPos.left = '85%';
+        }
+        if (newPos.position.startsWith('CDM1')) {
+          newPos.top = '55%';
           newPos.left = '77%';
-      }
+        }
+        if (newPos.position.startsWith('CDM2')) {
+          newPos.top = '35%';
+          newPos.left = '77%';
+        }
         if (newPos.position.startsWith('LB')) {
-        newPos.top = '8%';
+          newPos.top = '8%';
           newPos.left = '85%';
-      }
+        }
         if (newPos.position.startsWith('RB')) {
-        newPos.top = '85%';
+          newPos.top = '85%';
           newPos.left = '85%';
-      }
-       if (newPos.position.startsWith('CAM')) {
-        newPos.top = '47%';
+        }
+        if (newPos.position.startsWith('CAM')) {
+          newPos.top = '47%';
           newPos.left = '67%';
-      }
-         if (newPos.position.startsWith('RW')) {
-        newPos.top = '80%';
+        }
+        if (newPos.position.startsWith('RW')) {
+          newPos.top = '80%';
           newPos.left = '67%';
-      }
-         if (newPos.position.startsWith('LW')) {
-        newPos.top = '20%';
+        }
+        if (newPos.position.startsWith('LW')) {
+          newPos.top = '20%';
           newPos.left = '67%';
-      }
-       if (newPos.position.startsWith('ST')) {
-        newPos.top = '47%';
+        }
+        if (newPos.position.startsWith('ST')) {
+          newPos.top = '47%';
           newPos.left = '55%';
-      }
+        }
         if (newPos.position.startsWith('ST1')) {
-        newPos.top = '35%';
+          newPos.top = '35%';
           newPos.left = '55%';
-      }
+        }
         if (newPos.position.startsWith('ST2')) {
-        newPos.top = '60%';
+          newPos.top = '60%';
           newPos.left = '55%';
+        }
       }
-    }
-   
     } else {
       if (!isHomeTeam) {
-        if (newPos.position === 'GK') newPos.top = '91%';
+        if (newPos.position === 'GK') newPos.top = '92%';
         else if (newPos.position.includes('CB') || newPos.position.includes('RB') || newPos.position.includes('LB'))
           newPos.top = '85%';
         else if (newPos.position.includes('CM') || newPos.position.includes('RM') || newPos.position.includes('LM'))
           newPos.top = '70%';
-         else if (newPos.position.includes('CDM1') || newPos.position.includes('CDM2'))
+        else if (newPos.position.includes('CDM1') || newPos.position.includes('CDM2'))
           newPos.top = '74%';
-          else if (newPos.position.includes('CAM'))
+        else if (newPos.position.includes('CAM'))
           newPos.top = '65%';
         else if (newPos.position.includes('ST') || newPos.position.includes('RW') || newPos.position.includes('LW'))
           newPos.top = '56%';
@@ -344,7 +468,7 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         style={{ left: pos.left, top: pos.top, transform: pos.transform }}
         highlighted={highlightedPlayer?.name === player.name}
         highlightType={highlightedPlayer?.type}
-        onClick={() => highlightPlayer(player.name, 'goal')}
+        onClick={(e) => handlePlayerClick(e, player, goalAssistPairs, pos)}
       >
         <div className="avatar">
           {player.avatarUrl ? (
@@ -364,53 +488,55 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
   });
 };
 
-const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs }) => {
+// DesktopFormation (unchanged)
+const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, handlePlayerClick }) => {
   if (!teams || teams.length < 2) {
     return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
   }
   return (
     <div className="w-full h-full grid grid-cols-2 relative">
       <div className="relative border-r border-white border-opacity-50">
-        {renderFormation(teams[0], true, false, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs)}
+        {renderFormation(teams[0], true, false, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, handlePlayerClick)}
       </div>
       <div className="relative">
-        {renderFormation(teams[1], false, false, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs)}
+        {renderFormation(teams[1], false, false, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, handlePlayerClick)}
       </div>
     </div>
   );
 };
 
-const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs }) => {
+// MobileFormation (unchanged)
+const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, handlePlayerClick }) => {
   if (!teams || teams.length < 2) {
     return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
   }
   return (
     <div className="w-full h-full flex flex-col">
       <div className="relative flex-1">
-        {renderFormation(teams[0], true, true, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs)}
+        {renderFormation(teams[0], true, true, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, handlePlayerClick)}
       </div>
       <div className="relative flex-1 border-t border-white border-opacity-50">
-        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs)}
+        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, handlePlayerClick)}
       </div>
     </div>
   );
 };
 
+// Normalize team name (unchanged)
 const normalizeTeamName = (name) => {
   return name ? name.trim().toLowerCase() : '';
 };
 
-const calculateTotalScores = quarters => {
+// Calculate total scores (unchanged)
+const calculateTotalScores = (quarters) => {
   console.log('Total quarters:', quarters.length);
-  const isPointsBased = quarters.length > 4; // 1~6 쿼터: 승점제, 1~4 쿼터: 점수제
+  const isPointsBased = quarters.length > 4;
   console.log('Scoring method:', isPointsBased ? 'Points-based' : 'Score-based');
 
-  // 1) 쿼터별 팀별 골 수 및 승점 집계
   const teamStats = quarters.reduce((acc, q) => {
     console.log(`Processing quarter ${q.quarterIndex}, goalAssistPairs:`, q.goalAssistPairs);
     console.log(`Quarter ${q.quarterIndex}, Teams:`, q.teams.map(t => t.name), `Length: ${q.teams.length}`);
 
-    // 쿼터별 팀별 골 수 계산
     const scores = q.teams.reduce((scoreAcc, team) => {
       const teamName = normalizeTeamName(team.name);
       const goals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === teamName).length;
@@ -421,8 +547,7 @@ const calculateTotalScores = quarters => {
 
     console.log(`Quarter ${q.quarterIndex}, Scores:`, scores);
 
-    // 팀 목록
-     const teams = q.teams.map(team => team.name);
+    const teams = q.teams.map(team => team.name);
     teams.forEach(team => {
       if (!acc[team]) {
         acc[team] = { goals: 0, points: 0 };
@@ -430,9 +555,7 @@ const calculateTotalScores = quarters => {
       acc[team].goals += scores[team] || 0;
     });
 
-    // 승점 계산
     if (teams.length >= 3) {
-      // 3팀 이상: 쿼터별 승무패로 승점 계산
       const pairs = [];
       for (let i = 0; i < teams.length; i++) {
         for (let j = i + 1; j < teams.length; j++) {
@@ -446,32 +569,31 @@ const calculateTotalScores = quarters => {
         const goals2 = scores[team2] || 0;
         console.log(`Comparing ${team1} (${goals1}) vs ${team2} (${goals2})`);
         if (goals1 > goals2) {
-          acc[team1].points += 3; // 승리: 3점
+          acc[team1].points += 3;
           console.log(`${team1} wins, +3 points`);
         } else if (goals1 < goals2) {
-          acc[team2].points += 3; // 승리: 3점
+          acc[team2].points += 3;
           console.log(`${team2} wins, +3 points`);
         } else {
-          acc[team1].points += 1; // 무승부: 1점
-          acc[team2].points += 1; // 무승부: 1점
+          acc[team1].points += 1;
+          acc[team2].points += 1;
           console.log(`Draw, ${team1} and ${team2} +1 point each`);
         }
       });
     } else if (teams.length === 2) {
-      // 2팀: 골 수 비교로 승점 계산
       const [team1, team2] = teams;
       const goals1 = scores[team1] || 0;
       const goals2 = scores[team2] || 0;
       console.log(`Comparing ${team1} (${goals1}) vs ${team2} (${goals2})`);
       if (goals1 > goals2) {
-        acc[team1].points += 3; // 승리: 3점
+        acc[team1].points += 3;
         console.log(`${team1} wins, +3 points`);
       } else if (goals1 < goals2) {
-        acc[team2].points += 3; // 승리: 3점
+        acc[team2].points += 3;
         console.log(`${team2} wins, +3 points`);
       } else {
-        acc[team1].points += 1; // 무승부: 1점
-        acc[team2].points += 1; // 무승부: 1점
+        acc[team1].points += 1;
+        acc[team2].points += 1;
         console.log(`Draw, ${team1} and ${team2} +1 point each`);
       }
     } else {
@@ -485,10 +607,8 @@ const calculateTotalScores = quarters => {
   const teams = Object.keys(teamStats);
   const isMultiTeam = teams.length >= 3;
 
-  // 2) 승자 판단
   let winner = null;
   if (isPointsBased) {
-    // 승점제 (1~6 쿼터): 승점 우선, 동률 시 골 수
     const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
     const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
     if (topTeams.length === 1) {
@@ -499,7 +619,6 @@ const calculateTotalScores = quarters => {
       winner = topGoalTeams.length === 1 ? topGoalTeams[0] : null;
     }
   } else {
-    // 점수제 (1~4 쿼터): 승점 기준, 동률 시 골 수
     if (isMultiTeam) {
       const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
       const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
@@ -527,6 +646,7 @@ const calculateTotalScores = quarters => {
   return { teamStats, winner, isMultiTeam };
 };
 
+// Calculate scores (unchanged)
 const calculateScores = (pairs, teams) =>
   teams.map(t => ({ name: t.name, goals: pairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(t.name)).length, points: 0 }));
 
@@ -541,6 +661,8 @@ function VodPage() {
   const [openQuarters, setOpenQuarters] = useState({});
   const [highlightedPlayer, setHighlightedPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [popup, setPopup] = useState(null);
+  const popupRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -549,7 +671,9 @@ function VodPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  useEffect(() => { fetchMatches(); }, []);
+  useEffect(() => {
+    fetchMatches();
+  }, []);
 
   useEffect(() => {
     if (nickname) {
@@ -574,6 +698,18 @@ function VodPage() {
       setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
     }
   }, [filterDate, matches, nickname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (popupRef.current && !popupRef.current.contains(event.target)) {
+        setPopup(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -617,9 +753,25 @@ function VodPage() {
   const toggleQuarter = (matchId, idx) => {
     setOpenQuarters(prev => ({ ...prev, [`${matchId}-${idx}`]: !prev[`${matchId}-${idx}`] }));
     setHighlightedPlayer(null);
+    setPopup(null);
   };
 
   const highlightPlayer = (name, type) => setHighlightedPlayer({ name, type });
+
+  const handlePlayerClick = (event, player, goalAssistPairs, pos) => {
+    event.stopPropagation();
+    highlightPlayer(player.name, 'goal');
+    const rect = event.currentTarget.getBoundingClientRect();
+    const goalAssists = goalAssistPairs.filter(
+      pair => pair.goal.player === player.name || pair.assist.player === player.name
+    );
+    setPopup({
+      player: player.name,
+      goalAssists,
+      top: `${rect.top + window.scrollY + rect.height / 2}px`,
+      left: `${rect.right + window.scrollX}px`,
+    });
+  };
 
   const handleSearch = () => {
     console.log(`Searching for nickname: ${nickname}`);
@@ -642,27 +794,19 @@ function VodPage() {
     <Container>
       <MainContent>
         <PageTitle>2025시즌 SOOP FC 경기 기록</PageTitle>
-        <FilterBar>
-          <SelectWrapper>
-            <select value={filterDate} onChange={e => setFilterDate(e.target.value)}>
-              <option value="all">모든 날짜</option>
-              {dates.map(d => <option key={d} value={d}>{formatDate(d)}</option>)}
-            </select>
-          </SelectWrapper>
-          <button
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#3182f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-            onClick={() => setShowModal(true)}
-          >
+        <FilterBarWrapper>
+          <TossSelect value={filterDate} onChange={e => setFilterDate(e.target.value)}>
+            <option value="all">모든 날짜</option>
+            {dates.map(d => (
+              <option key={d} value={d}>
+                {formatDate(d)}
+              </option>
+            ))}
+          </TossSelect>
+          <TossButton onClick={() => setShowModal(true)}>
             내 경기 기록 보기
-          </button>
-        </FilterBar>
+          </TossButton>
+        </FilterBarWrapper>
 
         {showModal && (
           <div style={modalStyles.overlay}>
@@ -698,242 +842,293 @@ function VodPage() {
 
         {loading ? (
           <LoadingIndicator>로딩 중...</LoadingIndicator>
-        ) : filteredMatches.length ? filteredMatches.map(match => {
-          const { teamStats, winner, isMultiTeam } = calculateTotalScores(match.quarters);
-          const scoreDisplay = isMultiTeam ? (
-            isMobile ? (
-              <div className="vertical">
-                {Object.entries(teamStats).map(([team, stats], index) => (
-                  <React.Fragment key={team}>
-                    <div>{team}: {stats.points}점</div>
-                    {index < Object.keys(teamStats).length - 1 && <div>vs</div>}
-                  </React.Fragment>
-                ))}
-                {winner && <div>({winner} 승)</div>}
-              </div>
+        ) : filteredMatches.length ? (
+          filteredMatches.map(match => {
+            const { teamStats, winner, isMultiTeam } = calculateTotalScores(match.quarters);
+            const scoreDisplay = isMultiTeam ? (
+              isMobile ? (
+                <div className="vertical">
+                  {Object.entries(teamStats).map(([team, stats], index) => (
+                    <React.Fragment key={team}>
+                      <div>{team}: {stats.points}점</div>
+                      {index < Object.keys(teamStats).length - 1 && <div>vs</div>}
+                    </React.Fragment>
+                  ))}
+                  {winner && <div>({winner} 승)</div>}
+                </div>
+              ) : (
+                Object.entries(teamStats)
+                  .map(([team, stats]) => `${team}: ${stats.points}점`)
+                  .join(' vs ') + (winner ? ` (${winner} 승)` : '')
+              )
             ) : (
-              Object.entries(teamStats).map(([team, stats]) => `${team}: ${stats.points}점`).join(' vs ') + (winner ? ` (${winner} 승)` : '')
-            )
-          ) : (
-            Object.entries(teamStats).map(([team, stats]) => `${team}: ${stats.goals}`).join(' vs ') + (winner ? ` (${winner} 승)` : ' (무승부)')
-          );
+              Object.entries(teamStats)
+                .map(([team, stats]) => `${team}: ${stats.goals}`)
+                .join(' vs ') + (winner ? ` (${winner} 승)` : ' (무승부)')
+            );
 
-          return (
-            <MatchSection key={match.id}>
-              <MatchHeader>
-                <Badge type="home">{formatDate(match.date)}</Badge>
-                <div className={`score-info ${isMultiTeam && isMobile ? 'vertical' : ''}`}>{scoreDisplay}</div>
-              </MatchHeader>
-              {match.quarters.map((q, i) => {
-                const isOpen = openQuarters[`${match.id}-${i}`];
-                const scores = isMultiTeam
-                  ? q.teams.map(team => {
-                      const goals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)).length;
-                      return { name: team.name, goals, points: 0 }; // 초기화
-                    })
-                  : calculateScores(q.goalAssistPairs, q.teams);
+            return (
+              <MatchSection key={match.id}>
+                <MatchHeader>
+                  <Badge type="home">{formatDate(match.date)}</Badge>
+                  <div className={`score-info ${isMultiTeam && isMobile ? 'vertical' : ''}`}>
+                    {scoreDisplay}
+                  </div>
+                </MatchHeader>
+                {match.quarters.map((q, i) => {
+                  const isOpen = openQuarters[`${match.id}-${i}`];
+                  const scores = isMultiTeam
+                    ? q.teams.map(team => {
+                        const goals = q.goalAssistPairs.filter(
+                          p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
+                        ).length;
+                        return { name: team.name, goals, points: 0 };
+                      })
+                    : calculateScores(q.goalAssistPairs, q.teams);
 
-                // 쿼터별 승점 계산 (3팀 이상일 경우, 승자 계산용)
-                if (isMultiTeam) {
-                  const quarterScores = q.teams.reduce((acc, team) => {
-                    acc[team.name] = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)).length;
-                    return acc;
-                  }, {});
-                  const pairs = [];
-                  for (let ti = 0; ti < q.teams.length; ti++) {
-                    for (let tj = ti + 1; tj < q.teams.length; tj++) {
-                      pairs.push([q.teams[ti].name, q.teams[tj].name]);
-                    }
-                  }
-                  console.log(`Quarter ${q.quarterIndex}, QuarterScores:`, quarterScores, `Pairs:`, pairs);
-                  pairs.forEach(([team1, team2]) => {
-                    const goals1 = quarterScores[team1] || 0;
-                    const goals2 = quarterScores[team2] || 0;
-                    console.log(`Quarter ${q.quarterIndex}: ${team1} (${goals1}) vs ${team2} (${goals2})`);
-                    if (goals1 > goals2) {
-                      scores.find(s => s.name === team1).points += 3;
-                      console.log(`Quarter ${q.quarterIndex}: ${team1} wins, +3 points`);
-                    } else if (goals1 < goals2) {
-                      scores.find(s => s.name === team2).points += 3;
-                      console.log(`Quarter ${q.quarterIndex}: ${team2} wins, +3 points`);
-                    } else {
-                      scores.find(s => s.name === team1).points += 1;
-                      scores.find(s => s.name === team2).points += 1;
-                      console.log(`Quarter ${q.quarterIndex}: Draw, ${team1} and ${team2} +1 point each`);
-                    }
-                  });
-                }
-
-                const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
-                const playerStats = nickname ? q.teams.reduce((acc, team) => {
-                  const isPlayerTeam = team.players.some(p => p.name.toLowerCase() === nickname.toLowerCase());
-                  const isDefender = team.players.some(
-                    p => p.name.toLowerCase() === nickname.toLowerCase() && defensivePositions.includes(p.position)
-                  );
-                  if (isPlayerTeam) {
-                    q.goalAssistPairs.forEach(pair => {
-                      if (pair.goal.player.toLowerCase() === nickname.toLowerCase()) {
-                        acc.push({ type: 'goal', icon: '⚽', quarter: q.quarterIndex });
+                  if (isMultiTeam) {
+                    const quarterScores = q.teams.reduce((acc, team) => {
+                      acc[team.name] = q.goalAssistPairs.filter(
+                        p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
+                      ).length;
+                      return acc;
+                    }, {});
+                    const pairs = [];
+                    for (let ti = 0; ti < q.teams.length; ti++) {
+                      for (let tj = ti + 1; tj < q.teams.length; tj++) {
+                        pairs.push([q.teams[ti].name, q.teams[tj].name]);
                       }
-                      if (pair.assist.player?.toLowerCase() === nickname.toLowerCase()) {
-                        acc.push({ type: 'assist', icon: '👟', quarter: q.quarterIndex });
+                    }
+                    console.log(`Quarter ${q.quarterIndex}, QuarterScores:`, quarterScores, `Pairs:`, pairs);
+                    pairs.forEach(([team1, team2]) => {
+                      const goals1 = quarterScores[team1] || 0;
+                      const goals2 = quarterScores[team2] || 0;
+                      console.log(`Quarter ${q.quarterIndex}: ${team1} (${goals1}) vs ${team2} (${goals2})`);
+                      if (goals1 > goals2) {
+                        scores.find(s => s.name === team1).points += 3;
+                        console.log(`Quarter ${q.quarterIndex}: ${team1} wins, +3 points`);
+                      } else if (goals1 < goals2) {
+                        scores.find(s => s.name === team2).points += 3;
+                        console.log(`Quarter ${q.quarterIndex}: ${team2} wins, +3 points`);
+                      } else {
+                        scores.find(s => s.name === team1).points += 1;
+                        scores.find(s => s.name === team2).points += 1;
+                        console.log(
+                          `Quarter ${q.quarterIndex}: Draw, ${team1} and ${team2} +1 point each`
+                        );
                       }
                     });
-                    if (isDefender) {
-                      const opponentTeam = q.teams.find(t => t.name !== team.name);
-                      const opponentGoals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)).length;
-                      if (opponentGoals === 0) {
-                        acc.push({ type: 'cleanSheet', icon: '🧤', quarter: q.quarterIndex });
-                      }
-                    }
                   }
-                  return acc;
-                }, []) : [];
-              return (
-  <QuarterSection key={i} className={isOpen ? 'open' : ''}>
-    <QuarterHeader onClick={() => toggleQuarter(match.id, i)} className={isOpen ? 'open' : ''}>
-      <span>쿼터 {q.quarterIndex}</span>
-      {playerStats.length > 0 && (
-        <span className="icons-container">
-          {playerStats.map((stat, si) => (
-            <span
-              key={si}
-              className={`${stat.type}-icon`}
-              style={{ marginLeft: '2px' }}
-            >
-              {stat.icon}
-            </span>
-          ))}
-        </span>
-      )}
-      <ChevronIcon isOpen={isOpen} />
-    </QuarterHeader>
-    <QuarterContent className={isOpen ? 'open' : ''}>
-      <ScoreBox>
-        {scores.map((s, si) => (
-          <React.Fragment key={si}>
-            <div className={`team team-${si}`}>
-              {si === 0 ? (
-                <>
-                  <div className="name">{s.name}</div>
-                  <div className="score-value">{s.goals}</div>
-                </>
-              ) : (
-                <>
-                  <div className="score-value">{s.goals}</div>
-                  <div className="name">{s.name}</div>
-                </>
-              )}
-            </div>
-            {si < scores.length - 1 && <span className="separator">VS</span>}
-          </React.Fragment>
-        ))}
-      </ScoreBox>
-      <FieldContainer>
-        <FieldView>
-          {/* Remove GoalArea and use FieldView's built-in classes */}
-          <div className="goal-area-left" />
-          <div className="goal-area-right" />
-          <PenaltyArea className="top" />
-          <PenaltyArea className="bottom" />
-          <GoalPost className="top" />
-          <GoalPost className="bottom" />
-          <div className="center-line" />
-          <div className="center-circle" />
-          <div className="center-spot" />
-          <div className="penalty-box-left" />
-          <div className="penalty-box-right" />
-          <div className="penalty-arc-left" />
-          <div className="penalty-arc-right" />
-          <div className="penalty-spot-left" />
-          <div className="penalty-spot-right" />
-          <div className="corner老太太:corner-arc-top-left" />
-          <div className="corner-arc-top-right" />
-          <div className="corner-arc-bottom-left" />
-          <div className="corner-arc-bottom-right" />
-          {isMobile ? (
-            <MobileFormation
-              teams={q.teams}
-              highlightedPlayer={highlightedPlayer}
-              highlightPlayer={highlightPlayer}
-              goalAssistPairs={q.goalAssistPairs}
-            />
-          ) : (
-            <DesktopFormation
-              teams={q.teams}
-              highlightedPlayer={highlightedPlayer}
-              highlightPlayer={highlightPlayer}
-              goalAssistPairs={q.goalAssistPairs}
-            />
-          )}
-        </FieldView>
-      </FieldContainer>
-      <TeamsContainer>
-        {q.teams.map((t, ti) => (
-          <TeamCard key={ti}>
-            <TeamName>{t.name}</TeamName>
-            <Formation>포메이션: {t.formation}</Formation>
-            <PlayersList>
-              {t.players.map((p, pi) => (
-                <PlayerItem key={pi}>
-                  <span className="number">{p.backNumber}</span>
-                  <span className="name">{p.name}</span>
-                  <span className="position">{p.position}</span>
-                </PlayerItem>
-              ))}
-            </PlayersList>
-          </TeamCard>
-        ))}
-      </TeamsContainer>
-      <StatsList>
-        <StatTitle>공격 포인트</StatTitle>
-        {q.teams.map((team, ti) => {
-          const teamGoalAssistPairs = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name));
-          return (
-            <div key={ti} style={{ marginBottom: '20px' }}>
-              <StatTitle>{team.name}</StatTitle>
-              {teamGoalAssistPairs.length ? (
-                teamGoalAssistPairs.map((p, pi) => (
-                  <StatItem
-                    key={pi}
-                    onClick={() => highlightPlayer(p.goal.player, 'goal')}
-                  >
-                    <StatValue>
-                      <div>
-                        <span>골: {p.goal.player}</span>
-                        <span className="goal-icon">⚽</span>
-                      </div>
-                      <div>
-                        <span>어시: {p.assist.player || '없음'}</span>
-                        {p.assist.player && (
-                          <span
-                            className="assist-icon"
-                            onClick={e => {
-                              e.stopPropagation();
-                              highlightPlayer(p.assist.player, 'assist');
-                            }}
-                          >
-                            👟
+
+                  const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
+                  const playerStats = nickname
+                    ? q.teams.reduce((acc, team) => {
+                        const isPlayerTeam = team.players.some(
+                          p => p.name.toLowerCase() === nickname.toLowerCase()
+                        );
+                        const isDefender = team.players.some(
+                          p =>
+                            p.name.toLowerCase() === nickname.toLowerCase() &&
+                            defensivePositions.includes(p.position)
+                        );
+                        if (isPlayerTeam) {
+                          q.goalAssistPairs.forEach(pair => {
+                            if (pair.goal.player.toLowerCase() === nickname.toLowerCase()) {
+                              acc.push({ type: 'goal', icon: '⚽', quarter: q.quarterIndex });
+                            }
+                            if (pair.assist.player?.toLowerCase() === nickname.toLowerCase()) {
+                              acc.push({ type: 'assist', icon: '👟', quarter: q.quarterIndex });
+                            }
+                          });
+                          if (isDefender) {
+                            const opponentTeam = q.teams.find(t => t.name !== team.name);
+                            const opponentGoals = q.goalAssistPairs.filter(
+                              p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)
+                            ).length;
+                            if (opponentGoals === 0) {
+                              acc.push({ type: 'cleanSheet', icon: '🧤', quarter: q.quarterIndex });
+                            }
+                          }
+                        }
+                        return acc;
+                      }, [])
+                    : [];
+
+                  return (
+                    <QuarterSection key={i} className={isOpen ? 'open' : ''}>
+                      <QuarterHeader
+                        onClick={() => toggleQuarter(match.id, i)}
+                        className={isOpen ? 'open' : ''}
+                      >
+                        <span>쿼터 {q.quarterIndex}</span>
+                        {playerStats.length > 0 && (
+                          <span className="icons-container">
+                            {playerStats.map((stat, si) => (
+                              <span
+                                key={si}
+                                className={`${stat.type}-icon`}
+                                style={{ marginLeft: '2px' }}
+                              >
+                                {stat.icon}
+                              </span>
+                            ))}
                           </span>
                         )}
-                      </div>
-                    </StatValue>
-                  </StatItem>
-                ))
-              ) : (
-                <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
-              )}
-            </div>
-          );
-        })}
-      </StatsList>
-    </QuarterContent>
-  </QuarterSection>
-);
-              })}
-            </MatchSection>
-          );
-        }) : (
+                        <ChevronIcon isOpen={isOpen} />
+                      </QuarterHeader>
+                      <QuarterContent className={isOpen ? 'open' : ''}>
+                        <ScoreBox>
+                          {scores.map((s, si) => (
+                            <React.Fragment key={si}>
+                              <div className={`team team-${si}`}>
+                                {si === 0 ? (
+                                  <>
+                                    <div className="name">{s.name}</div>
+                                    <div className="score-value">{s.goals}</div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="score-value">{s.goals}</div>
+                                    <div className="name">{s.name}</div>
+                                  </>
+                                )}
+                              </div>
+                              {si < scores.length - 1 && <span className="separator">VS</span>}
+                            </React.Fragment>
+                          ))}
+                        </ScoreBox>
+                        <FieldContainer>
+                          <FieldView>
+                            <div className="goal-area-left" />
+                            <div className="goal-area-right" />
+                            <PenaltyArea className="top" />
+                            <PenaltyArea className="bottom" />
+                            <GoalPost className="top" />
+                            <GoalPost className="bottom" />
+                            <div className="center-line" />
+                            <div className="center-circle" />
+                            <div className="center-spot" />
+                            <div className="penalty-box-left" />
+                            <div className="penalty-box-right" />
+                            <div className="penalty-arc-left" />
+                            <div className="penalty-arc-right" />
+                            <div className="penalty-spot-left" />
+                            <div className="penalty-spot-right" />
+                            <div className="corner-arc-top-left" />
+                            <div className="corner-arc-top-right" />
+                            <div className="corner-arc-bottom-left" />
+                            <div className="corner-arc-bottom-right" />
+                            {isMobile ? (
+                              <MobileFormation
+                                teams={q.teams}
+                                highlightedPlayer={highlightedPlayer}
+                                highlightPlayer={highlightPlayer}
+                                goalAssistPairs={q.goalAssistPairs}
+                                handlePlayerClick={handlePlayerClick}
+                              />
+                            ) : (
+                              <DesktopFormation
+                                teams={q.teams}
+                                highlightedPlayer={highlightedPlayer}
+                                highlightPlayer={highlightPlayer}
+                                goalAssistPairs={q.goalAssistPairs}
+                                handlePlayerClick={handlePlayerClick}
+                              />
+                            )}
+                            {popup && (
+                              <PlayerPopup ref={popupRef} top={popup.top} left={popup.left}>
+                                <strong>{popup.player}</strong>
+                                {popup.goalAssists.length > 0 ? (
+                                  popup.goalAssists.map((pair, index) => (
+                                    <div key={index}>
+                                      {pair.goal.player === popup.player && (
+                                        <div>
+                                          골: {pair.goal.player} 어시: {pair.assist.player || '없음'}
+                                        </div>
+                                      )}
+                                      {pair.assist.player === popup.player && (
+                                        <div>
+                                          골: {pair.goal.player} 어시: {pair.assist.player}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div>골/어시 기록이 없습니다.</div>
+                                )}
+                              </PlayerPopup>
+                            )}
+                          </FieldView>
+                        </FieldContainer>
+                        <TeamsContainer>
+                          {q.teams.map((t, ti) => (
+                            <TeamCard key={ti}>
+                              <TeamName>{t.name}</TeamName>
+                              <Formation>포메이션: {t.formation}</Formation>
+                              <PlayersList>
+                                {t.players.map((p, pi) => (
+                                  <PlayerItem key={pi}>
+                                    <span className="number">{p.backNumber}</span>
+                                    <span className="name">{p.name}</span>
+                                    <span className="position">{p.position}</span>
+                                  </PlayerItem>
+                                ))}
+                              </PlayersList>
+                            </TeamCard>
+                          ))}
+                        </TeamsContainer>
+                        <StatsList>
+                          <StatTitle>공격 포인트</StatTitle>
+                          {q.teams.map((team, ti) => {
+                            const teamGoalAssistPairs = q.goalAssistPairs.filter(
+                              p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
+                            );
+                            return (
+                              <div key={ti} style={{ marginBottom: '20px' }}>
+                                <StatTitle>{team.name}</StatTitle>
+                                {teamGoalAssistPairs.length ? (
+                                  teamGoalAssistPairs.map((p, pi) => (
+                                    <StatItem
+                                      key={pi}
+                                      onClick={() => highlightPlayer(p.goal.player, 'goal')}
+                                    >
+                                      <StatValue>
+                                        <div>
+                                          <span>골: {p.goal.player}</span>
+                                          <span className="goal-icon">⚽</span>
+                                        </div>
+                                        <div>
+                                          <span>어시: {p.assist.player || '없음'}</span>
+                                          {p.assist.player && (
+                                            <span
+                                              className="assist-icon"
+                                              onClick={e => {
+                                                e.stopPropagation();
+                                                highlightPlayer(p.assist.player, 'assist');
+                                              }}
+                                            >
+                                              👟
+                                            </span>
+                                          )}
+                                        </div>
+                                      </StatValue>
+                                    </StatItem>
+                                  ))
+                                ) : (
+                                  <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </StatsList>
+                      </QuarterContent>
+                    </QuarterSection>
+                  );
+                })}
+              </MatchSection>
+            );
+          })
+        ) : (
           <EmptyState>
             {nickname ? `${nickname} 님이 참여한 경기가 없습니다.` : '등록된 경기가 없습니다.'}
           </EmptyState>

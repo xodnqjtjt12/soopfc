@@ -387,8 +387,10 @@ const Live = () => {
   const captainB = teamB.captain;
 
   const totalCheers = (cheers.teamA?.cheers || 0) + (cheers.teamB?.cheers || 0);
-  const teamACheerPercentage = totalCheers ? Math.round(((cheers.teamA?.cheers || 0) / totalCheers) * 100) : 50;
-  const teamBCheerPercentage = totalCheers ? Math.round(((cheers.teamB?.cheers || 0) / totalCheers) * 100) : 50;
+  const teamACheerCount = cheers.teamA?.cheers || 0;
+  const teamBCheerCount = cheers.teamB?.cheers || 0;
+  const teamACheerPercentage = totalCheers ? (teamACheerCount / totalCheers) * 100 : 50;
+  const teamBCheerPercentage = totalCheers ? (teamBCheerCount / totalCheers) * 100 : 50;
 
   // 라인업 공개 여부 확인
   const now = new Date();
@@ -406,7 +408,7 @@ const Live = () => {
             <S.TeamName>{teamA.teamName}</S.TeamName>
             <S.TeamStats>
               {captainStats[captainA] && (
-                <>{captainStats[captainA].win}승 · {captainStats[captainA].draw}무 {captainStats[captainA].lose}패</>
+                <>{captainStats[captainA].win}승 {captainStats[captainA].draw}무 {captainStats[captainA].lose}패</>
               )}
             </S.TeamStats>
           </S.TeamInfo>
@@ -422,7 +424,7 @@ const Live = () => {
             <S.TeamName>{teamB.teamName}</S.TeamName>
             <S.TeamStats>
               {captainStats[captainB] && (
-                <>{captainStats[captainB].win}승 · {captainStats[captainB].draw}무 {captainStats[captainB].lose}패</>
+                <>{captainStats[captainB].win}승 {captainStats[captainB].draw}무 {captainStats[captainB].lose}패</>
               )}
             </S.TeamStats>
           </S.TeamInfo>
@@ -440,9 +442,43 @@ const Live = () => {
           </S.CheerButton>
         </div>
         <S.CheerGauge>
-          <S.GaugeBar color={teamA.color} width={`${teamACheerPercentage}%`} />
-          <S.GaugeText>{teamACheerPercentage}% vs {teamBCheerPercentage}%</S.GaugeText>
-          <S.GaugeBar color={teamB.color} width={`${teamBCheerPercentage}%`} />
+          {/* 팀 A 응원 수: 팀 A 게이지 바의 오른쪽 경계에 동적으로 위치 */}
+          <S.GaugeText 
+            style={{ 
+              position: 'absolute', 
+               left: `calc(${teamACheerPercentage}% - 25px)`,
+    color: "#ffffff",
+    transition: 'left 0.5s ease-in-out',
+    paddingLeft: '1px',
+  }}
+          >
+            {teamACheerCount}
+          </S.GaugeText>
+          {/* 팀 A 게이지 바 */}
+          <S.GaugeBar 
+            color={teamA.color} 
+            width={`${teamACheerPercentage}%`} 
+            style={{ transition: 'width 0.5s ease-in-out' }} 
+          />
+          {/* 팀 B 게이지 바 */}
+          <S.GaugeBar 
+            color={teamB.color} 
+            width={`${teamBCheerPercentage}%`} 
+            style={{ transition: 'width 0.5s ease-in-out' }} 
+          />
+          {/* 팀 B 응원 수: 팀 B 게이지 바의 왼쪽 경계에 동적으로 위치 */}
+          <S.GaugeText 
+            style={{ 
+              position: 'absolute', 
+              left: `${100 - teamBCheerPercentage}%`, 
+              color: "#ffffff", 
+              transform: 'translateX(-100%)', 
+              transition: 'left 0.5s ease-in-out',
+              paddingRight: '5px'
+            }}
+          >
+            {teamBCheerCount}
+          </S.GaugeText>
         </S.CheerGauge>
       </S.CheerSection>
 

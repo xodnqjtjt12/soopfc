@@ -1,4 +1,5 @@
 import styled, { keyframes } from 'styled-components';
+import { Trophy } from 'react-feather'; // 트로피 아이콘 사용 (react-feather 패키지 필요)
 
 // 애니메이션 키프레임 정의
 export const fadeIn = keyframes`
@@ -43,23 +44,33 @@ export const Container = styled.div`
 `;
 
 export const Button = styled.button`
-  padding: 15px;
-  font-size: 18px;
-  color: white;
-  background-color: #0182ff;
-  border: none;
-  border-radius: 10px;
+  background-color: #ffffff; /* 배경색을 흰색으로 설정 */
+  border: 1px solid #e0e0e0; /* 테두리 추가로 버튼 경계 명확히 */
+  border-radius: 8px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: #2c5282;
-    transform: translateY(-2px);
+    background-color: #f5f5f5; /* 호버 시 약간 회색빛 배경 */
+    transform: translateY(-1px);
   }
 
-  @media (max-width: 640px) {
-    font-size: 16px;
-    padding: 12px;
+  &:active {
+    background-color: #e0e0e0;
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 100, 255, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    padding: 6px 10px;
   }
 `;
 
@@ -72,6 +83,91 @@ export const Header = styled.h2`
 
   @media (max-width: 640px) {
     font-size: 20px;
+  }
+`;
+
+// 수상 기록 섹션 컨테이너
+export const AwardsContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+`;
+
+// 연도별 수상 기록 카드
+export const YearlyAwardCard = styled.div`
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+  width: 200px;
+  flex-shrink: 0;
+  backdrop-filter: blur(5px);
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+// 수상 기록 제목 컴포넌트
+export const AwardSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+  
+  .trophy-icon {
+    margin-right: 6px;
+    color: #ffc107; /* 트로피는 금색으로 */
+    filter: drop-shadow(0 0 3px rgba(255, 193, 7, 0.3));
+  }
+  
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+`;
+
+// 수상 기록 아이템 컴포넌트
+export const AwardItem = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  
+  .award-icon {
+    margin-right: 6px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .award-text {
+    font-size: 14px;
+  }
+`;
+
+// 로딩 메시지 스타일
+export const LoadingMessage = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #ffffff;
+  font-style: italic;
+  
+  &::before {
+    content: "🏆";
+    margin-right: 8px;
+    animation: bounce 1s infinite alternate;
+  }
+  
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-5px); }
   }
 `;
 
@@ -166,6 +262,7 @@ export const Th = styled.th`
   font-size: 16px;
   font-weight: 600;
   text-align: left;
+
   border-bottom: 1px solid #3a3a3a;
 
   @media (max-width: 640px) {
@@ -255,50 +352,76 @@ export const HistoryTableCell = styled.td`
     }};
   }
 `;
+// 토스 스타일 변수
+const colors = {
+  background: '#F9FAFC',
+  cardBackground: '#FFFFFF',
+  primary: '#3182F6',
+  border: '#F2F4F6',
+  text: '#191F28',
+  subText: '#8B95A1',
+  axis: '#DFE2E6'
+};
 
+// 그래프 섹션 컴포넌트 - 페이지 내 영역 설정
 export const GraphSection = styled.div`
-  margin-top: 30px;
-  border-top: 1px solid #dee2e6;
-  padding-top: 20px;
-
+  margin: 40px 0;
+  padding: 0;
+  background-color: ${colors.background};
+  
   @media (max-width: 640px) {
-    margin-top: 20px;
-    padding-top: 15px;
+    margin: 24px 0;
   }
 `;
 
+// 그래프 컨테이너 - 카드 형태 디자인
 export const GraphContainer = styled.div`
-  margin-top: 30px;
-  margin-bottom: 40px;
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
-
+  margin: 24px 0;
+  background-color: ${colors.cardBackground};
+  border-radius: 18px;
+  padding: 24px 20px;
+  box-shadow: 0 1px 12px rgba(10, 30, 66, 0.08);
+  transition: all 0.2s ease;
+  
   @media (max-width: 640px) {
-    margin-top: 20px;
-    margin-bottom: 30px;
-    padding: 12px;
+    margin: 16px 0;
+    padding: 20px 16px;
+    border-radius: 14px;
   }
 `;
 
 export const GraphToggleButton = styled(Button)`
   margin-top: 20px;
-  background-color: #6c757d;
+  background-color: #2a2a2a;
+  color: #f8f9fa;
   width: 100%;
   justify-content: center;
   padding: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+  border: 1px solid #3d3d3d;
+  transition: all 0.2s ease-in-out;
   
   &:hover {
-    background-color: #5a6268;
+    background-color: #383838;
+    border-color: #4d4d4d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  &:active {
+    background-color: #222222;
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
   @media (max-width: 640px) {
     margin-top: 15px;
     padding: 10px;
+    font-size: 0.9rem;
   }
 `;
-
 export const StatSelector = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -428,9 +551,10 @@ export const RankingSummary = styled.div`
   padding: 8px;
   background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+//   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
   animation: ${fadeIn} 0.5s ease-out;
+  text-align: center;
 
   & > div {
     display: flex;
@@ -438,6 +562,7 @@ export const RankingSummary = styled.div`
     overflow-x: auto;
     gap: 10px;
     justify-content: flex-start;
+    justify-content: center;
   }
 
   .loading {
@@ -454,6 +579,7 @@ export const RankingSummary = styled.div`
     //   flex-direction: column;
       overflow-x: hidden;
       gap: 8px;
+      justify-content: center;  /* 모바일에서도 가운데 정렬 */
     }
     .loading {
       font-size: 14px;
@@ -463,7 +589,7 @@ export const RankingSummary = styled.div`
 `;
 
 export const SectionTitle = styled.h3`
-  text-align: left;
+//   text-align: left;
   margin-left: 10px;
   font-size: 20px;
   color: #1a1a1a;
@@ -538,4 +664,6 @@ export const PartnerCard = styled.div`
   @media (max-width: 640px) {
     padding: 10px;
   }
+    
 `;
+
