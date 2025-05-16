@@ -33,7 +33,7 @@ import {
   ModalButton,
   ErrorMessage,
   CapsLockWarning,
-  Badge // Badge를 VodAdminPageCss에서 임포트
+  Badge
 } from './VodAdminPageCss';
 
 // Icons
@@ -162,7 +162,8 @@ const initializeQuarter = (team1 = null, team2 = null, fixedPlayers = {}) => {
         players: team2?.players || getEmptyPlayers('4-3-3', fixedPlayers, team2?.name) 
       }
     ],
-    goalAssistPairs: [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }]
+    goalAssistPairs: [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }],
+    ownGoals: [] // 자책골 배열 초기화
   };
 };
 
@@ -215,12 +216,10 @@ function MatchAdminPage() {
   const [editingMatchId, setEditingMatchId] = useState(null);
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState('팀 A');
-  // 비밀번호 인증 상태
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
-  // 고정 선수 상태
   const [fixedPlayers, setFixedPlayers] = useState({});
 
   // 페이지 로드 시 비밀번호 입력 모달 표시
@@ -329,7 +328,13 @@ function MatchAdminPage() {
                     goal: { player: pair.goal?.player || '', team: pair.goal?.team || '' },
                     assist: { player: pair.assist?.player || '', team: pair.assist?.team || '' }
                   }))
-                : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }]
+                : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }],
+              ownGoals: Array.isArray(quarter.ownGoals) && quarter.ownGoals.length > 0 
+                ? quarter.ownGoals.map(og => ({
+                    player: og.player || '',
+                    team: og.team || ''
+                  }))
+                : []
             }))
           : initializeAllQuarters([], fixedPlayers);
         return { 
@@ -436,7 +441,6 @@ function MatchAdminPage() {
         const existingPlayers = updatedQuarters[quarterIndex].teams[teamIndex].players || [];
         const fixedTeamPlayers = fixedPlayers[teamName] || {};
 
-        // 새로운 포메이션의 포지션에 고정 선수 적용
         const newPlayers = formationData.map(pos => {
           const fixedPlayer = fixedTeamPlayers[pos.position];
           const existingPlayer = existingPlayers.find(p => p.position === pos.position);
@@ -476,7 +480,6 @@ function MatchAdminPage() {
         ]);
       }
 
-      // 고정 선수 업데이트
       if (teamName) {
         setFixedPlayers(prev => ({
           ...prev,
@@ -506,7 +509,6 @@ function MatchAdminPage() {
       return;
     }
   
-    // 고정 선수 정보 업데이트
     setFixedPlayers(prev => ({
       ...prev,
       [teamName]: {
@@ -515,7 +517,6 @@ function MatchAdminPage() {
       }
     }));
 
-    // 모든 쿼터에 고정 선수 적용
     updatedQuarters.forEach((quarter, idx) => {
       const teamIdx = quarter.teams.findIndex(team => team.name === teamName);
       if (teamIdx !== -1) {
@@ -524,14 +525,12 @@ function MatchAdminPage() {
         const playerIdx = quarter.teams[teamIdx].players.findIndex(p => p.position === position);
         
         if (playerIdx !== -1) {
-          // 포지션이 존재하면 선수 정보 업데이트
           updatedQuarters[idx].teams[teamIdx].players[playerIdx] = {
             ...quarter.teams[teamIdx].players[playerIdx],
             name: playerName,
             backNumber: backNumber || ''
           };
         } else if (formationData.some(p => p.position === position)) {
-          // 포지션이 포메이션에 존재하면 새로 추가
           const posData = formationData.find(p => p.position === position);
           updatedQuarters[idx].teams[teamIdx].players.push({
             position,
@@ -590,7 +589,6 @@ function MatchAdminPage() {
       const sourcePlayer = players[sourceIndex];
       const destPlayer = players[destIndex];
 
-      // 확인 창 표시
       const sourceName = sourcePlayer.name || '선수 없음';
       const destName = destPlayer.name || '선수 없음';
       const confirmMessage = `${sourcePlayer.position} ${sourceName}와 ${destPlayer.position} ${destName}를 바꾸시겠습니까?`;
@@ -599,7 +597,6 @@ function MatchAdminPage() {
         return;
       }
 
-      // 포지션 및 위치 정보 교체
       const tempPlayer = { ...sourcePlayer };
       updatedQuarters[quarterIndex].teams[teamIndex].players[sourceIndex] = {
         ...destPlayer,
@@ -614,7 +611,6 @@ function MatchAdminPage() {
         left: destPlayer.left
       };
 
-      // 고정 선수 업데이트
       const teamName = updatedQuarters[quarterIndex].teams[teamIndex].name;
       if (teamName) {
         setFixedPlayers(prev => ({
@@ -684,6 +680,39 @@ function MatchAdminPage() {
     setQuarters(updatedQuarters);
   };
 
+  // Handle own goal input changes for a specific quarter
+  const handleOwnGoalChange = (quarterIndex, ogIndex, field, value) => {
+    const updatedQuarters = [...quarters];
+    const updatedOwnGoals = [...updatedQuarters[quarterIndex].ownGoals];
+    if (field === 'player' && value) {
+      updatedOwnGoals[ogIndex][field] = value.value;
+    } else {
+      updatedOwnGoals[ogIndex][field] = value;
+    }
+    if (field === 'team') {
+      updatedOwnGoals[ogIndex].player = '';
+    }
+    updatedQuarters[quarterIndex].ownGoals = updatedOwnGoals;
+    setQuarters(updatedQuarters);
+  };
+
+  // Add new own goal for a specific quarter
+  const addOwnGoal = (quarterIndex) => {
+    const updatedQuarters = [...quarters];
+    updatedQuarters[quarterIndex].ownGoals.push({ 
+      player: '', 
+      team: '' 
+    });
+    setQuarters(updatedQuarters);
+  };
+
+  // Remove own goal for a specific quarter
+  const removeOwnGoal = (quarterIndex, ogIndex) => {
+    const updatedQuarters = [...quarters];
+    updatedQuarters[quarterIndex].ownGoals.splice(ogIndex, 1);
+    setQuarters(updatedQuarters);
+  };
+
   // Reset current quarter
   const resetCurrentQuarter = () => {
     if (window.confirm(`쿼터 ${activeQuarterIndex + 1}의 팀 설정을 초기화하시겠습니까?`)) {
@@ -708,7 +737,6 @@ function MatchAdminPage() {
       quarter.teams.forEach(team => {
         if (team.name && !matchTeams.some(t => t.id === team.id)) {
           matchTeams.push({ ...team });
-          // 고정 선수 추출
           newFixedPlayers[team.name] = newFixedPlayers[team.name] || {};
           team.players.forEach(player => {
             if (player.name) {
@@ -746,6 +774,12 @@ function MatchAdminPage() {
               assist: { player: pair.assist?.player || '', team: pair.assist?.team || '' }
             }))
           : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }];
+        updatedQuarters[idx].ownGoals = Array.isArray(quarter.ownGoals) && quarter.ownGoals.length > 0 
+          ? quarter.ownGoals.map(og => ({
+              player: og.player || '',
+              team: og.team || ''
+            }))
+          : [];
       }
     });
     
@@ -779,6 +813,9 @@ function MatchAdminPage() {
             : [],
           goalAssistPairs: validQuarterIndices.includes(idx)
             ? quarter.goalAssistPairs.filter(pair => pair.goal.player && pair.goal.team)
+            : [],
+          ownGoals: validQuarterIndices.includes(idx)
+            ? quarter.ownGoals.filter(og => og.player && og.team)
             : []
         })),
         createdAt: isEditing ? matches.find(m => m.id === editingMatchId)?.createdAt || new Date().toISOString() : new Date().toISOString()
@@ -1247,7 +1284,7 @@ function MatchAdminPage() {
                       options={getTeamPlayerOptions(activeQuarterIndex, pair.assist.team)}
                       value={pair.assist.player ? getTeamPlayerOptions(activeQuarterIndex, pair.assist.team).find(option => option.value === pair.assist.player) || null : null}
                       onChange={(selected) => handleGoalAssistPairChange(activeQuarterIndex, pairIndex, 'assist', 'player', selected || '')}
-                      placeholder={pair.assist.team ? "어시스트 선수 검색 (선택)" : "먼저 팀을 선택하세요"}
+                      placeholder={pair.assist.teamInvestigate ? "어시스트 선수 검색 (선택)" : "먼저 팀을 선택하세요"}
                       styles={customSelectStyles}
                       isClearable
                       isSearchable
@@ -1269,6 +1306,49 @@ function MatchAdminPage() {
                 style={{ marginBottom: '20px', width: 'auto' }}
               >
                 <PlusIcon /> 골-어시스트 추가
+              </Button>
+
+              <PanelSectionTitle>자책골 (쿼터 {activeQuarterIndex + 1})</PanelSectionTitle>
+              
+              {quarters[activeQuarterIndex].ownGoals.map((og, ogIndex) => (
+                <div key={ogIndex} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
+                    <Select
+                      value={og.team}
+                      onChange={(e) => handleOwnGoalChange(activeQuarterIndex, ogIndex, 'team', e.target.value)}
+                      style={{ flex: 0.5 }}
+                    >
+                      <option value="">팀 선택</option>
+                      {(quarters[activeQuarterIndex].teams || []).filter(team => team.name).map((team, idx) => (
+                        <option key={idx} value={team.name}>{team.name}</option>
+                      ))}
+                    </Select>
+                    <CreatableSelect
+                      options={getTeamPlayerOptions(activeQuarterIndex, og.team)}
+                      value={og.player ? getTeamPlayerOptions(activeQuarterIndex, og.team).find(option => option.value === og.player) || null : null}
+                      onChange={(selected) => handleOwnGoalChange(activeQuarterIndex, ogIndex, 'player', selected || '')}
+                      placeholder={og.team ? "자책골 선수 검색" : "먼저 팀을 선택하세요"}
+                      styles={customSelectStyles}
+                      isClearable
+                      isSearchable
+                      isDisabled={loading || !og.team}
+                      formatCreateLabel={(inputValue) => `새 선수 추가: ${inputValue}`}
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => removeOwnGoal(activeQuarterIndex, ogIndex)}
+                    style={{ width: 'auto', padding: '0 10px', backgroundColor: '#e74c3c' }}
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
+              ))}
+              
+              <Button 
+                onClick={() => addOwnGoal(activeQuarterIndex)}
+                style={{ marginBottom: '20px', width: 'auto' }}
+              >
+                <PlusIcon /> 자책골 추가
               </Button>
             </FieldContainer>
           </TeamManagementGrid>
@@ -1329,8 +1409,6 @@ function MatchAdminPage() {
                     ? match.quarters[0].teams.map(t => t.name || '이름 미정').join(' vs ')
                     : '경기 정보 없음'}
                 </div>
-                {/* Badge가 정의되지 않은 경우 임시로 span 태그로 대체 */}
-                {/* <span style={{ backgroundColor: '#3498db', color: '#fff', padding: '4px 8px', borderRadius: '4px' }}>{formatDate(match.date)}</span> */}
                 <Badge type="vod">{formatDate(match.date)}</Badge>
               </div>
               
@@ -1344,7 +1422,8 @@ function MatchAdminPage() {
                     </div>
                     <div style={{ fontSize: '12px', color: '#666' }}>
                       {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.goal.player).length) || 0} 골 / 
-                      {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.assist.player).length) || 0} 어시스트
+                      {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.assist.player).length) || 0} 어시스트 / 
+                      {(match.quarters[idx].ownGoals && match.quarters[idx].ownGoals.filter(og => og.player).length) || 0} 자책골
                     </div>
                     <div style={{ fontSize: '12px', color: '#999' }}>
                       포메이션: {match.quarters[idx].teams && match.quarters[idx].teams.length > 0 

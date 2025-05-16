@@ -830,3 +830,22 @@ export const HelpPanel = styled.div`
     }
   }
 `;
+
+// 자책골 체크박스 스타일
+export const OwnGoalCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3498db;
+`;
+
+// 자책골 레이블 스타일
+export const OwnGoalLabel = styled.label`
+  font-size: 14px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+`;

@@ -30,7 +30,7 @@ import {
   EmptyState,
   Badge,
   ScoreBox,
-    TossButton,
+  TossButton,
   TossSelect,
   FilterBarWrapper,
   PaginationWrapper,
@@ -98,7 +98,7 @@ const MIRROR_POSITION = {
 // Chevron Icon
 const ChevronIcon = ({ isOpen }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-       style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate h(0deg)', transition: 'transform 0.2s' }}>
+       style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
     <polyline points="6 9 12 15 18 9"></polyline>
   </svg>
 );
@@ -232,7 +232,7 @@ const getFormationPositions = (formation, isMobile) =>
   FORMATIONS[formation]?.[isMobile ? 'mobile' : 'desktop'] || FORMATIONS['4-3-3'][isMobile ? 'mobile' : 'desktop'];
 
 // Render formation
-const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highlightPlayer, side, goalAssistPairs, handlePlayerClick) => {
+const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highlightPlayer, side, goalAssistPairs, ownGoals = [], handlePlayerClick) => {
   if (!team?.players?.length) return (
     <div className="absolute inset-0 flex items-center justify-center text-white">
       {isHomeTeam ? '홈' : '어웨이'} 팀 선수 데이터 없음
@@ -335,6 +335,7 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
     const pos = positions.find(p => p.position === player.position) || positions[i % positions.length];
     const goals = goalAssistPairs?.filter(g => g.goal.player === player.name).length || 0;
     const assists = goalAssistPairs?.filter(a => a.assist.player === player.name).length || 0;
+    const ownGoalsCount = ownGoals?.filter(og => og.player === player.name).length || 0;
 
     return (
       <PlayerCard
@@ -342,7 +343,7 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         style={{ left: pos.left, top: pos.top, transform: pos.transform }}
         highlighted={highlightedPlayer?.name === player.name}
         highlightType={highlightedPlayer?.type}
-        onClick={(e) => handlePlayerClick(e, player, goalAssistPairs, pos)}
+        onClick={(e) => handlePlayerClick(e, player, goalAssistPairs, ownGoals, pos)}
       >
         <div className="avatar">
           {player.avatarUrl ? (
@@ -358,6 +359,7 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         <div className="stats">
           {goals > 0 && <span className="goal-icon">⚽{goals}</span>}
           {assists > 0 && <span className="assist-icon">👟{assists}</span>}
+          {ownGoalsCount > 0 && <span className="own-goal-icon">🥅{ownGoalsCount}</span>}
         </div>
       </PlayerCard>
     );
@@ -365,34 +367,34 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
 };
 
 // DesktopFormation
-const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, handlePlayerClick }) => {
+const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, ownGoals = [], handlePlayerClick }) => {
   if (!teams || teams.length < 2) {
     return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
   }
   return (
     <div className="w-full h-full grid grid-cols-2 relative">
       <div className="relative border-r border-white border-opacity-50">
-        {renderFormation(teams[0], true, false, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, handlePlayerClick)}
+        {renderFormation(teams[0], true, false, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, ownGoals, handlePlayerClick)}
       </div>
       <div className="relative">
-        {renderFormation(teams[1], false, false, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, handlePlayerClick)}
+        {renderFormation(teams[1], false, false, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, ownGoals, handlePlayerClick)}
       </div>
     </div>
   );
 };
 
 // MobileFormation
-const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, handlePlayerClick }) => {
+const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, ownGoals = [], handlePlayerClick }) => {
   if (!teams || teams.length < 2) {
     return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
   }
   return (
     <div className="w-full h-full flex flex-col">
       <div className="relative flex-1">
-        {renderFormation(teams[0], true, true, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, handlePlayerClick)}
+        {renderFormation(teams[0], true, true, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, ownGoals, handlePlayerClick)}
       </div>
       <div className="relative flex-1 border-t border-white border-opacity-50">
-        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, handlePlayerClick)}
+        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, ownGoals, handlePlayerClick)}
       </div>
     </div>
   );
@@ -410,14 +412,20 @@ const calculateTotalScores = (quarters) => {
   console.log('Scoring method:', isPointsBased ? 'Points-based' : 'Score-based');
 
   const teamStats = quarters.reduce((acc, q) => {
-    console.log(`Processing quarter ${q.quarterIndex}, goalAssistPairs:`, q.goalAssistPairs);
+    console.log(`Processing quarter ${q.quarterIndex}, goalAssistPairs:`, q.goalAssistPairs, `ownGoals:`, q.ownGoals || []);
     console.log(`Quarter ${q.quarterIndex}, Teams:`, q.teams.map(t => t.name), `Length: ${q.teams.length}`);
 
     const scores = q.teams.reduce((scoreAcc, team) => {
       const teamName = normalizeTeamName(team.name);
-      const goals = q.goalAssistPairs.filter(p => normalizeTeamName(p.goal.team) === teamName).length;
-      scoreAcc[team.name] = goals;
-      console.log(`Quarter ${q.quarterIndex}, Team ${team.name}, Normalized: ${teamName}, Goals: ${goals}`);
+      // Normal goals
+      const goals = q.goalAssistPairs?.filter(p => normalizeTeamName(p.goal.team) === teamName).length || 0;
+      // Own goals by opponent team
+      const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== teamName);
+      const ownGoals = opponentTeam && q.ownGoals
+        ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
+        : 0;
+      scoreAcc[team.name] = goals + ownGoals;
+      console.log(`Quarter ${q.quarterIndex}, Team ${team.name}, Normalized: ${teamName}, Goals: ${goals}, Own Goals: ${ownGoals}, Total: ${goals + ownGoals}`);
       return scoreAcc;
     }, {});
 
@@ -522,9 +530,19 @@ const calculateTotalScores = (quarters) => {
   return { teamStats, winner, isMultiTeam };
 };
 
-// Calculate scores
-const calculateScores = (pairs, teams) =>
-  teams.map(t => ({ name: t.name, goals: pairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(t.name)).length, points: 0 }));
+// Calculate scores for a single quarter
+const calculateScores = (pairs = [], ownGoals = [], teams) =>
+  teams.map(t => {
+    const teamName = normalizeTeamName(t.name);
+    // Normal goals
+    const goals = pairs.filter(p => normalizeTeamName(p.goal.team) === teamName).length;
+    // Own goals by opponent team
+    const opponentTeam = teams.find(team => normalizeTeamName(team.name) !== teamName);
+    const ownGoalsCount = opponentTeam
+      ? ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
+      : 0;
+    return { name: t.name, goals: goals + ownGoalsCount, points: 0 };
+  });
 
 function VodPage() {
   const [matches, setMatches] = useState([]);
@@ -614,6 +632,7 @@ function VodPage() {
                 position: p.position || 'GK',
                 goals: q.goalAssistPairs?.filter(g => g.goal.player === p.name).length || 0,
                 assists: q.goalAssistPairs?.filter(a => a.assist.player === p.name).length || 0,
+                ownGoals: q.ownGoals?.filter(og => og.player === p.name).length || 0,
               }));
               return {
                 name: t.name || `팀 ${String.fromCharCode(65 + ti)}`,
@@ -621,7 +640,12 @@ function VodPage() {
                 players
               };
             });
-            return { teams, goalAssistPairs: q.goalAssistPairs || [], quarterIndex: index + 1 };
+            return { 
+              teams, 
+              goalAssistPairs: q.goalAssistPairs || [], 
+              ownGoals: Array.isArray(q.ownGoals) ? q.ownGoals : [], 
+              quarterIndex: index + 1 
+            };
           })
         };
         console.log('Fetched match:', matchData);
@@ -644,16 +668,18 @@ function VodPage() {
 
   const highlightPlayer = (name, type) => setHighlightedPlayer({ name, type });
 
-  const handlePlayerClick = (event, player, goalAssistPairs, pos) => {
+  const handlePlayerClick = (event, player, goalAssistPairs, ownGoals = [], pos) => {
     event.stopPropagation();
     highlightPlayer(player.name, 'goal');
     const rect = event.currentTarget.getBoundingClientRect();
     const goalAssists = goalAssistPairs.filter(
       pair => pair.goal.player === player.name || pair.assist.player === player.name
     );
+    const ownGoalsList = ownGoals.filter(og => og.player === player.name);
     setPopup({
       player: player.name,
       goalAssists,
+      ownGoals: ownGoalsList,
       top: `${rect.top + window.scrollY + rect.height / 2}px`,
       left: `${rect.right + window.scrollX}px`,
     });
@@ -817,18 +843,28 @@ function VodPage() {
                   const isOpen = openQuarters[`${match.id}-${i}`];
                   const scores = isMultiTeam
                     ? q.teams.map(team => {
-                        const goals = q.goalAssistPairs.filter(
+                        const goals = q.goalAssistPairs?.filter(
                           p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
-                        ).length;
-                        return { name: team.name, goals, points: 0 };
+                        ).length || 0;
+                        const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== normalizeTeamName(team.name));
+                        const ownGoals = opponentTeam && q.ownGoals
+                          ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
+                          : 0;
+                        return { name: team.name, goals: goals + ownGoals, points: 0 };
                       })
-                    : calculateScores(q.goalAssistPairs, q.teams);
+                    : calculateScores(q.goalAssistPairs, q.ownGoals, q.teams);
 
                   if (isMultiTeam) {
                     const quarterScores = q.teams.reduce((acc, team) => {
-                      acc[team.name] = q.goalAssistPairs.filter(
-                        p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
-                      ).length;
+                      const teamName = normalizeTeamName(team.name);
+                      const goals = q.goalAssistPairs?.filter(
+                        p => normalizeTeamName(p.goal.team) === teamName
+                      ).length || 0;
+                      const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== teamName);
+                      const ownGoals = opponentTeam && q.ownGoals
+                        ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
+                        : 0;
+                      acc[team.name] = goals + ownGoals;
                       return acc;
                     }, {});
                     const pairs = [];
@@ -870,7 +906,7 @@ function VodPage() {
                             defensivePositions.includes(p.position)
                         );
                         if (isPlayerTeam) {
-                          q.goalAssistPairs.forEach(pair => {
+                          q.goalAssistPairs?.forEach(pair => {
                             if (pair.goal.player.toLowerCase() === nickname.toLowerCase()) {
                               acc.push({ type: 'goal', icon: '⚽', quarter: q.quarterIndex });
                             }
@@ -878,11 +914,18 @@ function VodPage() {
                               acc.push({ type: 'assist', icon: '👟', quarter: q.quarterIndex });
                             }
                           });
+                          q.ownGoals?.forEach(og => {
+                            if (og.player.toLowerCase() === nickname.toLowerCase()) {
+                              acc.push({ type: 'ownGoal', icon: '🥅', quarter: q.quarterIndex });
+                            }
+                          });
                           if (isDefender) {
                             const opponentTeam = q.teams.find(t => t.name !== team.name);
-                            const opponentGoals = q.goalAssistPairs.filter(
+                            const opponentGoals = (q.goalAssistPairs?.filter(
                               p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)
-                            ).length;
+                            ).length || 0) + (q.ownGoals?.filter(
+                              og => normalizeTeamName(og.team) === normalizeTeamName(team.name)
+                            ).length || 0);
                             if (opponentGoals === 0) {
                               acc.push({ type: 'cleanSheet', icon: '🧤', quarter: q.quarterIndex });
                             }
@@ -961,7 +1004,8 @@ function VodPage() {
                                 teams={q.teams}
                                 highlightedPlayer={highlightedPlayer}
                                 highlightPlayer={highlightPlayer}
-                                goalAssistPairs={q.goalAssistPairs}
+                                goalAssistPairs={q.goalAssistPairs || []}
+                                ownGoals={q.ownGoals || []}
                                 handlePlayerClick={handlePlayerClick}
                               />
                             ) : (
@@ -969,30 +1013,38 @@ function VodPage() {
                                 teams={q.teams}
                                 highlightedPlayer={highlightedPlayer}
                                 highlightPlayer={highlightPlayer}
-                                goalAssistPairs={q.goalAssistPairs}
+                                goalAssistPairs={q.goalAssistPairs || []}
+                                ownGoals={q.ownGoals || []}
                                 handlePlayerClick={handlePlayerClick}
                               />
                             )}
                             {popup && (
                               <PlayerPopup ref={popupRef} top={popup.top} left={popup.left}>
                                 <strong>{popup.player}</strong>
-                                {popup.goalAssists.length > 0 ? (
-                                  popup.goalAssists.map((pair, index) => (
-                                    <div key={index}>
-                                      {pair.goal.player === popup.player && (
-                                        <div>
-                                          골: {pair.goal.player} 어시: {pair.assist.player || '없음'}
-                                        </div>
-                                      )}
-                                      {pair.assist.player === popup.player && (
-                                        <div>
-                                          골: {pair.goal.player} 어시: {pair.assist.player}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))
+                                {popup.goalAssists.length > 0 || popup.ownGoals.length > 0 ? (
+                                  <>
+                                    {popup.goalAssists.map((pair, index) => (
+                                      <div key={`goal-${index}`}>
+                                        {pair.goal.player === popup.player && (
+                                          <div>
+                                            골: {pair.goal.player} 어시: {pair.assist.player || '없음'}
+                                          </div>
+                                        )}
+                                        {pair.assist.player === popup.player && (
+                                          <div>
+                                            골: {pair.goal.player} 어시: {pair.assist.player}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {popup.ownGoals.map((og, index) => (
+                                      <div key={`ownGoal-${index}`}>
+                                        자책골: {og.player}
+                                      </div>
+                                    ))}
+                                  </>
                                 ) : (
-                                  <div>골/어시 기록이 없습니다.</div>
+                                  <div>골/어시/자책골 기록이 없습니다.</div>
                                 )}
                               </PlayerPopup>
                             )}
@@ -1018,40 +1070,63 @@ function VodPage() {
                         <StatsList>
                           <StatTitle>공격 포인트</StatTitle>
                           {q.teams.map((team, ti) => {
-                            const teamGoalAssistPairs = q.goalAssistPairs.filter(
+                            const teamGoalAssistPairs = q.goalAssistPairs?.filter(
                               p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
-                            );
+                            ) || [];
+                            const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== normalizeTeamName(team.name));
+                            const teamOwnGoals = opponentTeam && q.ownGoals
+                              ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name))
+                              : [];
                             return (
                               <div key={ti} style={{ marginBottom: '20px' }}>
                                 <StatTitle>{team.name}</StatTitle>
-                                {teamGoalAssistPairs.length ? (
-                                  teamGoalAssistPairs.map((p, pi) => (
-                                    <StatItem
-                                      key={pi}
-                                      onClick={() => highlightPlayer(p.goal.player, 'goal')}
-                                    >
-                                      <StatValue>
-                                        <div>
-                                          <span>골: {p.goal.player}</span>
-                                          <span className="goal-icon">⚽</span>
-                                        </div>
-                                        <div>
-                                          <span>어시: {p.assist.player || '없음'}</span>
-                                          {p.assist.player && (
-                                            <span
-                                              className="assist-icon"
-                                              onClick={e => {
-                                                e.stopPropagation();
-                                                highlightPlayer(p.assist.player, 'assist');
-                                              }}
-                                            >
-                                              👟
-                                            </span>
-                                          )}
-                                        </div>
-                                      </StatValue>
-                                    </StatItem>
-                                  ))
+                                {teamGoalAssistPairs.length || teamOwnGoals.length ? (
+                                  <>
+                                    {teamGoalAssistPairs.map((p, pi) => (
+                                      <StatItem
+                                        key={`goal-${pi}`}
+                                        onClick={() => highlightPlayer(p.goal.player, 'goal')}
+                                      >
+                                        <StatValue>
+                                          <div>
+                                            <span>골: {p.goal.player}</span>
+                                            <span className="goal-icon">⚽</span>
+                                          </div>
+                                          <div>
+                                            <span>어시: {p.assist.player || '없음'}</span>
+                                            {p.assist.player && (
+                                              <span
+                                                className="assist-icon"
+                                                onClick={e => {
+                                                  e.stopPropagation();
+                                                  highlightPlayer(p.assist.player, 'assist');
+                                                }}
+                                              >
+                                                👟
+                                              </span>
+                                            )}
+                                          </div>
+                                        </StatValue>
+                                      </StatItem>
+                                    ))}
+                                    {teamOwnGoals.map((og, oi) => (
+                                      <StatItem
+                                        key={`ownGoal-${oi}`}
+                                        className="own-goal"
+                                        onClick={() => highlightPlayer(og.player, 'ownGoal')}
+                                      >
+                                        <StatValue>
+                                          <div>
+                                            <span>골: {og.player} (자책골)</span>
+                                            <span className="own-goal-icon">🥅</span>
+                                          </div>
+                                          <div>
+                                            <span>어시: 없음</span>
+                                          </div>
+                                        </StatValue>
+                                      </StatItem>
+                                    ))}
+                                  </>
                                 ) : (
                                   <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
                                 )}

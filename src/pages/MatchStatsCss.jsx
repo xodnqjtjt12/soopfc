@@ -733,6 +733,11 @@ export const GoalPost = styled.div`
 `;
 
 export const PlayerCard = styled.div`
+  // .own-goal-icon {
+  //   margin-left: 4px;
+  //   font-size: 12px;
+  //   // color: #ffffff;
+  // }
   position: absolute;
   width: 64px;
   height: 80px;
@@ -838,7 +843,7 @@ export const PlayerCard = styled.div`
     gap: 4px;
     margin-top: 2px;
     font-size: 12px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    // text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     flex-wrap: wrap;
   }
 

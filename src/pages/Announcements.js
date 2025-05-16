@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../App';
 import * as S from './AnnouncementsCss';
@@ -422,6 +423,9 @@ const PlayerVoting = () => {
           </svg>
           {error}
         </S.ErrorMessage>
+        <Link to="/vod">
+          <S.CenteredTossButton>경기 기록 보기</S.CenteredTossButton>
+        </Link>
       </S.Container>
     );
   }
@@ -439,6 +443,9 @@ const PlayerVoting = () => {
           <h3 className="font-bold text-lg mb-2">투표가 종료되었습니다</h3>
           <p>아쉽겠지만 오늘의 MOM 투표가 마감되었습니다. 다른페이지에서 본인에 스탯을 확인 해 보세요 </p>
         </S.VoteEndedMessage>
+        <Link to="/vod">
+          <S.CenteredTossButton>경기 기록 보기</S.CenteredTossButton>
+        </Link>
       </S.Container>
     );
   }
@@ -450,6 +457,9 @@ const PlayerVoting = () => {
           <h2>오늘의 MOM 투표</h2>
         </S.Header>
         <S.NoData>오늘의 라인업 데이터가 없습니다.</S.NoData>
+        <Link to="/vod">
+          <S.CenteredTossButton>경기 기록 보기</S.CenteredTossButton>
+        </Link>
       </S.Container>
     );
   }
@@ -467,6 +477,9 @@ const PlayerVoting = () => {
           </svg>
           <h3 className="font-bold text-lg mb-2">투표 완료되었습니다!</h3>
           <p>다른 페이지도 둘러보세요.</p>
+          <Link to="/vod">
+            <S.CenteredTossButton>경기 기록 보기</S.CenteredTossButton>
+          </Link>
         </S.SuccessMessage>
       ) : (
         <>
@@ -491,6 +504,9 @@ const PlayerVoting = () => {
           >
             {submitting ? '제출 중...' : '투표하기'}
           </S.SubmitButton>
+          <Link to="/vod">
+            <S.CenteredTossButton>경기 기록 보기</S.CenteredTossButton>
+          </Link>
           <TeamList
             lineups={lineups}
             onSelectPlayer={handleSelectPlayer}

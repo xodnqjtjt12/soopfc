@@ -183,6 +183,62 @@ export const VoteRow = styled.tr`
     }
   `}
 `;
+export const CenteredTossButton = styled.button`
+  padding: 12px 20px;
+  background-color: #3182f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 100, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  max-width: 220px;
+  width: 100%;
+  text-align: center;
+
+  /* 텍스트 밑줄 제거 */
+  text-decoration: none;
+
+  /* 버튼 가운데 정렬 */
+  margin-left: auto;
+  margin-right: auto;
+
+  &:hover {
+    background-color: #0052cc;
+    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    background-color: #004099;
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
+  }
+
+  &:disabled {
+    background-color: #b3d4ff;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 120px;
+    max-width: 180px;
+  }
+`;
 
 export const VoteCell = styled.td`
   padding: ${SPACING.SMALL};
