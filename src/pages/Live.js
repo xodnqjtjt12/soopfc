@@ -12,7 +12,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 // 포지션 한글 매핑
 const POSITIONS = {
   GK: '골키퍼',
-  CB: '중앙 수비수',
+  CB: '수비수',
   MF: '미드필더',
   FW: '공격수'
 };
@@ -56,7 +56,7 @@ const Live = () => {
       // 라인업 공개 시간 계산
       const matchDate = lineups[0]?.date ? new Date(lineups[0].date) : null;
       if (matchDate && !isNaN(matchDate.getTime())) {
-        const revealTime = subHours(matchDate, 4); // 경기 시간 4시간 전
+        const revealTime = subHours(matchDate, 5); // 경기 시간 4시간 전
         setLineupRevealTime(revealTime);
         console.log('라인업 공개 시간:', formatTime(revealTime), '현재 시간:', formatTime(new Date()));
       } else {
@@ -444,13 +444,13 @@ const Live = () => {
         <S.CheerGauge>
           {/* 팀 A 응원 수: 팀 A 게이지 바의 오른쪽 경계에 동적으로 위치 */}
           <S.GaugeText 
-            style={{ 
-              position: 'absolute', 
-               left: `calc(${teamACheerPercentage}% - 25px)`,
-    color: "#ffffff",
-    transition: 'left 0.5s ease-in-out',
-    paddingLeft: '1px',
-  }}
+      style={{
+  position: 'absolute',
+  left: `calc(${teamACheerPercentage}% - 32px)`,  // 25px → 40px 로 늘려서 더 왼쪽으로
+  color: "#ffffff",
+  transition: 'left 0.5s ease-in-out',
+  paddingLeft: '1px',
+}}
           >
             {teamACheerCount}
           </S.GaugeText>

@@ -1,212 +1,505 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { collection, getDocs, query, orderBy, doc, updateDoc, increment } from 'firebase/firestore';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../App';
+import * as S from './AnnouncementsCss';
 
-const AnnouncementsPreview = () => {
-  const [announcements, setAnnouncements] = useState([]);
+// 포지션 한글 매핑
+const POSITIONS = {
+  GK: '골키퍼',
+  CB: '수비수',
+  MF: '미드필더',
+  FW: '공격수'
+};
+
+// 날짜 포맷팅 함수
+const formatDate = (date) => {
+  const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const year = kstDate.getFullYear();
+  const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+  const day = String(kstDate.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+};
+
+const formatDisplayDate = (date) => {
+  const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const year = kstDate.getFullYear();
+  const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+  const day = String(kstDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// 컴포넌트 분리
+const SearchBar = React.memo(({ searchTerm, setSearchTerm, filteredPlayers, onSelectPlayer, isDisabled, alreadyVoted }) => (
+  <S.SearchContainer>
+    <S.SearchInput
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      placeholder="선수 이름을 입력하세요"
+      disabled={isDisabled}
+    />
+    {alreadyVoted && (
+      <S.AlertMessage style={{ color: 'red' }}>
+        위에 투표하셨습니다
+      </S.AlertMessage>
+    )}
+    {filteredPlayers.length > 0 && (
+      <S.SearchDropdown>
+        {filteredPlayers.map(player => (
+          <S.SearchItem key={player.id} onClick={() => onSelectPlayer(player)}>
+            <div className="font-medium">{player.nick}</div>
+            <div className="text-gray-500 text-xs">{player.teamName} · {POSITIONS[player.position]}</div>
+          </S.SearchItem>
+        ))}
+      </S.SearchDropdown>
+    )}
+  </S.SearchContainer>
+));
+
+const SelectedPlayers = React.memo(({ selectedPlayers, onRemovePlayer, comment, setComment }) => (
+  <>
+    <S.VoteTable>
+      <table>
+        <thead>
+          <tr>
+            <S.VoteHeader>순번</S.VoteHeader>
+            <S.VoteHeader>선수 이름</S.VoteHeader>
+            <S.VoteHeader>팀</S.VoteHeader>
+            <S.VoteHeader>포지션</S.VoteHeader>
+            <S.VoteHeader>작업</S.VoteHeader>
+          </tr>
+        </thead>
+        <tbody>
+          {[...selectedPlayers, ...Array(3 - selectedPlayers.length).fill(null)].map((player, index) => (
+            <S.VoteRow key={index}>
+              <S.VoteCell>{index + 1}</S.VoteCell>
+              <S.VoteCell>{player ? player.nick : '-'}</S.VoteCell>
+              <S.VoteCell>{player ? player.teamName : '-'}</S.VoteCell>
+              <S.VoteCell>{player ? POSITIONS[player.position] : '-'}</S.VoteCell>
+              <S.SelectedPlayerCell>
+                {player ? (
+                  <S.RemoveButton onClick={() => onRemovePlayer(player.id)}>×</S.RemoveButton>
+                ) : '-'}
+              </S.SelectedPlayerCell>
+            </S.VoteRow>
+          ))}
+        </tbody>
+      </table>
+    </S.VoteTable>
+    {selectedPlayers.length === 3 && (
+      <S.CommentSection>
+        <S.CommentLabel>운영진에게 하고 싶은 말을 입력해주세요</S.CommentLabel>
+        <S.CommentTextArea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="운영진에게 하고 싶은 말을 입력하세요 철저히 익명입니다"
+          rows={4}
+        />
+      </S.CommentSection>
+    )}
+  </>
+));
+
+const TeamList = React.memo(({ lineups, onSelectPlayer }) => (
+  <div>
+    <S.TeamListTitle>최고의 플레이어를 선택해주세요</S.TeamListTitle>
+    {lineups.map(team => (
+      <S.TeamCard key={team.teamName}>
+        <S.TeamHeader>
+          <div className="flex items-center">
+            <S.TeamColorDot style={{ backgroundColor: team.color }} />
+            <S.TeamName>{team.teamName}</S.TeamName>
+          </div>
+          <S.PlayerCount>{team.players.length}명</S.PlayerCount>
+        </S.TeamHeader>
+        <S.TableContainer>
+          <table style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <S.VoteHeader>선수 이름</S.VoteHeader>
+                <S.VoteHeader>포지션</S.VoteHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {team.players.map(player => (
+                <S.TeamPlayerRow
+                  key={player.id}
+                  onClick={() => {
+                    const confirmVote = window.confirm(`${player.nick}을(를) 투표하시겠습니까?`);
+                    if (confirmVote) {
+                      onSelectPlayer(player);
+                    }
+                  }}
+                  title="클릭하면 투표가 됩니다"
+                >
+                  <S.PlayerNameCell>
+                    {player.nick}
+                    {player.nick === team.captain && <S.CaptainTag>(주장)</S.CaptainTag>}
+                  </S.PlayerNameCell>
+                  <S.PositionCell>{POSITIONS[player.position]}</S.PositionCell>
+                </S.TeamPlayerRow>
+              ))}
+            </tbody>
+          </table>
+        </S.TableContainer>
+      </S.TeamCard>
+    ))}
+  </div>
+));
+
+const PlayerVoting = () => {
+  const [lineups, setLineups] = useState([]);
+  const [allPlayers, setAllPlayers] = useState([]);
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredPlayers, setFilteredPlayers] = useState([]);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [voteEnabled, setVoteEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const [alertMessage, setAlertMessage] = useState('');
+  const [comment, setComment] = useState('');
+  const [alreadyVoted, setAlreadyVoted] = useState(false);
 
-  // 스타일 정의 (기존 그대로)
-  const styles = {
-    container: {
-      maxWidth: '1000px',
-      margin: '0 auto',
-      padding: '20px',
-      fontFamily: 'Roboto, Noto Sans KR, sans-serif'
-    },
-    header: {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '30px',
-      borderBottom: '3px solid #3182f6',
-      paddingBottom: '10px',
-      position: 'relative'
-    },
-    title: {
-      fontSize: '28px',
-      fontWeight: '700',
-      color: '#222',
-      margin: '0'
-    },
-    list: {
-      listStyle: 'none',
-      padding: '0',
-      margin: '0',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-      borderRadius: '8px',
-      overflow: 'hidden'
-    },
-    item: {
-      padding: '20px',
-      borderBottom: '1px solid #eaeaea',
-      background: 'white',
-      transition: 'all 0.2s ease',
-      position: 'relative'
-    },
-    itemHighlight: {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      bottom: '0',
-      width: '4px',
-      backgroundColor: '#3182f6'
-    },
-    announcementTitle: {
-      margin: '0 0 10px 0',
-      fontSize: '18px',
-      fontWeight: '600',
-      color: '#222',
-      display: 'flex',
-      alignItems: 'center'
-    },
-    date: {
-      fontSize: '14px',
-      color: '#777',
-      marginBottom: '15px',
-      display: 'flex',
-      alignItems: 'center'
-    },
-    content: {
-      fontSize: '15px',
-      lineHeight: '1.6',
-      color: '#444',
-      whiteSpace: 'pre-line',
-      padding: '10px',
-      backgroundColor: '#f9f9f9',
-      borderRadius: '6px',
-      borderLeft: '3px solid #e0e0e0'
-    },
-    badge: {
-      backgroundColor: '#ff4757',
-      color: 'white',
-      fontSize: '12px',
-      fontWeight: '600',
-      padding: '3px 8px',
-      borderRadius: '12px',
-      marginLeft: '10px',
-      textTransform: 'uppercase'
-    },
-    loadingText: {
-      textAlign: 'center',
-      padding: '20px',
-      color: '#666',
-      fontSize: '16px'
-    },
-    noDataText: {
-      textAlign: 'center',
-      padding: '30px',
-      color: '#666',
-      fontSize: '16px',
-      backgroundColor: '#f9f9f9',
-      borderRadius: '8px'
-    }
-  };
+  const today = formatDate(new Date());
 
-  // 조회수 증가 함수
-  const incrementViews = async (announcementId) => {
-    try {
-      const announcementRef = doc(db, 'announcements', announcementId);
-      await updateDoc(announcementRef, {
-        views: increment(1)
-      });
-      console.log(`Announcement ${announcementId} views incremented`);
-    } catch (error) {
-      console.error('Error incrementing views:', error);
-    }
-  };
-
-  // Firebase에서 공지사항 데이터 가져오기
+  // Firestore 초기화 확인
   useEffect(() => {
-    const fetchAnnouncements = async () => {
+    console.log('Firestore DB 초기화 확인:', db ? '성공' : '실패');
+  }, []);
+
+  // 메모이제이션
+  const computedFilteredPlayers = useMemo(() => {
+    if (searchTerm.trim() === '') {
+      setAlreadyVoted(false);
+      return [];
+    }
+    const isVoted = selectedPlayers.some(player => 
+      player.nick.toLowerCase() === searchTerm.trim().toLowerCase()
+    );
+    setAlreadyVoted(isVoted);
+    return allPlayers.filter(
+      player => {
+        const searchChars = searchTerm.toLowerCase().split('');
+        let nameIndex = 0;
+        return searchChars.every(char => {
+          nameIndex = player.nick.toLowerCase().indexOf(char, nameIndex);
+          return nameIndex !== -1;
+        }) && !selectedPlayers.some(selected => selected.id === player.id);
+      }
+    );
+  }, [searchTerm, allPlayers, selectedPlayers]);
+
+  useEffect(() => {
+    setFilteredPlayers(computedFilteredPlayers);
+  }, [computedFilteredPlayers]);
+
+  useEffect(() => {
+    const initialize = async () => {
       try {
         setLoading(true);
-        const announcementsRef = collection(db, 'announcements');
-        const q = query(announcementsRef, orderBy('date', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        const announcementsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().date ? new Date(doc.data().date) : new Date()
-        }));
-        
-        setAnnouncements(announcementsData);
-      } catch (error) {
-        console.error("공지사항을 불러오는 중 오류가 발생했습니다:", error);
+        // userId 설정 후 초기화
+        const storedUserId = localStorage.getItem('footballVoteUserId');
+        let currentUserId = storedUserId;
+        if (!storedUserId) {
+          currentUserId = `user_${Math.random().toString(36).substr(2, 9)}`;
+          localStorage.setItem('footballVoteUserId', currentUserId);
+        }
+        setUserId(currentUserId);
+        console.log('현재 userId:', currentUserId);
+        await Promise.all([fetchVoteStatus(), fetchLineups(), checkIfVoted(currentUserId)]);
+      } catch (err) {
+        console.error('초기화 오류:', err.message);
+        setError('페이지를 불러오는 중 오류가 발생했습니다.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnnouncements();
+    initialize();
+  }, [today]);
+
+  const fetchVoteStatus = async () => {
+    const voteStatusRef = doc(db, 'voteStatus', today);
+    const voteStatusDoc = await getDoc(voteStatusRef);
+    console.log('투표 상태 조회:', voteStatusDoc.exists() ? voteStatusDoc.data() : '없음');
+    if (voteStatusDoc.exists()) {
+      setVoteEnabled(voteStatusDoc.data().isEnabled);
+    } else {
+      setVoteEnabled(true);
+    }
+  };
+
+  const checkIfVoted = async (currentUserId) => {
+    if (!currentUserId) {
+      console.warn('userId가 설정되지 않음');
+      return;
+    }
+    const voteRef = doc(db, 'votes', `vote_${today}`);
+    const voteDoc = await getDoc(voteRef);
+    console.log('투표 확인:', voteDoc.exists() ? voteDoc.data() : '없음');
+    if (voteDoc.exists()) {
+      const voteData = voteDoc.data();
+      if (voteData.voters && voteData.voters.includes(currentUserId)) {
+        setSubmitted(true);
+        if (voteData.comments && voteData.comments[currentUserId]) {
+          setComment(voteData.comments[currentUserId]);
+          console.log('기존 댓글 로드:', voteData.comments[currentUserId]);
+        }
+      }
+    }
+  };
+
+  const fetchLineups = async () => {
+    try {
+      const q = query(collection(db, 'live'), orderBy('date', 'desc'));
+      const teamsSnap = await getDocs(q);
+      const lineupsData = [];
+      const players = [];
+      
+      for (const teamDoc of teamsSnap.docs) {
+        const playersSnap = await getDocs(collection(db, 'live', teamDoc.id, 'players'));
+        const teamPlayers = playersSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          teamName: teamDoc.id,
+          teamColor: teamDoc.data().color || '#000000'
+        }));
+        
+        lineupsData.push({
+          teamName: teamDoc.id,
+          captain: teamDoc.data().captain || '',
+          color: teamDoc.data().color || '#000000',
+          date: teamDoc.data().date || '',
+          players: teamPlayers
+        });
+        
+        players.push(...teamPlayers);
+      }
+      
+      setLineups(lineupsData.slice(0, 2));
+      setAllPlayers(players);
+      console.log('라인업 데이터:', lineupsData);
+    } catch (err) {
+      console.error('라인업 가져오기 오류:', err.message);
+      setError('선수 목록을 불러오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  const showAlert = useCallback((message) => {
+    setAlertMessage(message);
+    setTimeout(() => setAlertMessage(''), 3000);
   }, []);
 
-  // 쿼리 파라미터에서 공지사항 ID 읽고 조회수 증가
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const announcementId = params.get('id');
-    if (announcementId) {
-      incrementViews(announcementId);
+  const handleSelectPlayer = useCallback((player) => {
+    if (selectedPlayers.length >= 3) {
+      showAlert('3명 모두 선택되었습니다!');
+      return;
     }
-  }, [location.search]);
-
-  // 최신 공지 여부 확인 (7일 이내)
-  const isNew = (date) => {
-    const now = new Date();
-    const announcementDate = new Date(date);
-    const diffTime = Math.abs(now - announcementDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 7;
-  };
-
-  // 포맷된 날짜 반환
-  const formatDate = (date) => {
-    if (!date || !(date instanceof Date) || isNaN(date)) {
-      return '날짜 정보 없음';
+    if (selectedPlayers.some(p => p.id === player.id)) {
+      showAlert('이미 선택된 선수입니다.');
+      return;
     }
-    
-    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-    return date.toLocaleDateString('ko-KR', options);
-  };
+    setSelectedPlayers(prev => [...prev, player]);
+    setSearchTerm('');
+    setFilteredPlayers([]);
+    setAlreadyVoted(false);
+  }, [selectedPlayers, showAlert]);
+
+  const handleRemovePlayer = useCallback((playerId) => {
+    setSelectedPlayers(prev => prev.filter(player => player.id !== playerId));
+    setAlreadyVoted(false);
+  }, []);
+
+  const handleSubmitVote = useCallback(async () => {
+    if (selectedPlayers.length !== 3) {
+      showAlert('최고의 선수 3명을 모두 선택해주세요!');
+      return;
+    }
+    if (!userId) {
+      showAlert('사용자 ID가 설정되지 않았습니다. 페이지를 새로고침해주세요.');
+      console.error('userId 누락');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const voteRef = doc(db, 'votes', `vote_${today}`);
+      const voteDoc = await getDoc(voteRef);
+      
+      let voteData = {};
+      
+      if (voteDoc.exists()) {
+        voteData = voteDoc.data();
+        console.log('기존 투표 데이터:', voteData);
+      } else {
+        voteData = {
+          date: formatDisplayDate(new Date()),
+          playerVotes: {},
+          voters: [],
+          comments: {}
+        };
+        console.log('새 투표 데이터 초기화:', voteData);
+      }
+      
+      selectedPlayers.forEach((player, index) => {
+        const rank = index + 1;
+        if (!voteData.playerVotes[player.id]) {
+          voteData.playerVotes[player.id] = {
+            name: player.nick,
+            team: player.teamName,
+            position: player.position,
+            votes: {
+              rank1: 0,
+              rank2: 0,
+              rank3: 0,
+              total: 0
+            }
+          };
+        }
+        
+        voteData.playerVotes[player.id].votes[`rank${rank}`] += 1;
+        voteData.playerVotes[player.id].votes.total += 1;
+      });
+      
+      if (!voteData.voters.includes(userId)) {
+        voteData.voters.push(userId);
+      }
+      
+      // 댓글 저장
+      if (comment.trim()) {
+        if (!voteData.comments) {
+          voteData.comments = {};
+        }
+        voteData.comments[userId] = comment.trim();
+        console.log('저장할 댓글:', { [userId]: comment.trim() });
+      }
+      
+      console.log('투표 데이터 저장 시도:', JSON.stringify(voteData, null, 2));
+      await setDoc(voteRef, voteData);
+      console.log('투표 데이터 저장 성공: vote_', today);
+      setSubmitted(true);
+      showAlert('투표가 성공적으로 제출되었습니다!');
+    } catch (err) {
+      console.error('투표 제출 중 오류:', err.message);
+      setError(`투표 제출 중 오류가 발생했습니다: ${err.message}`);
+      showAlert(`투표 제출에 실패했습니다: ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [selectedPlayers, userId, today, comment, showAlert]);
+
+  const handleSearchClick = useCallback(() => {
+    if (selectedPlayers.length >= 3) {
+      showAlert('3명 모두 선택되었습니다!');
+    }
+  }, [selectedPlayers, showAlert]);
+
+  if (loading) {
+    return (
+      <S.Container>
+        <S.Header>
+          <h2>오늘의 MOM 투표</h2>
+        </S.Header>
+        <S.Loading>
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          데이터를 불러오는 중입니다...
+        </S.Loading>
+      </S.Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <S.Container>
+        <S.Header>
+          <h2>오늘의 MOM 투표</h2>
+        </S.Header>
+        <S.ErrorMessage>
+          <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          {error}
+        </S.ErrorMessage>
+      </S.Container>
+    );
+  }
+
+  if (!voteEnabled) {
+    return (
+      <S.Container>
+        <S.Header>
+          <h2>오늘의 MOM 투표</h2>
+        </S.Header>
+        <S.VoteEndedMessage>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          <h3 className="font-bold text-lg mb-2">투표가 종료되었습니다</h3>
+          <p>아쉽겠지만 오늘의 MOM 투표가 마감되었습니다. 다른페이지에서 본인에 스탯을 확인 해 보세요 </p>
+        </S.VoteEndedMessage>
+      </S.Container>
+    );
+  }
+
+  if (lineups.length === 0) {
+    return (
+      <S.Container>
+        <S.Header>
+          <h2>오늘의 MOM 투표</h2>
+        </S.Header>
+        <S.NoData>오늘의 라인업 데이터가 없습니다.</S.NoData>
+      </S.Container>
+    );
+  }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <span style={{ fontSize: '24px', marginRight: '10px' }}>⚽</span>
-        <h2 style={styles.title}>공지사항</h2>
-      </div>
-      
-      {loading ? (
-        <div style={styles.loadingText}>공지사항을 불러오는 중...</div>
-      ) : announcements.length > 0 ? (
-        <div style={styles.list}>
-          {announcements.map((note, index) => (
-            <div key={note.id} style={{
-              ...styles.item,
-              borderBottom: index === announcements.length - 1 ? 'none' : '1px solid #eaeaea'
-            }}>
-              <div style={styles.itemHighlight}></div>
-              <div style={styles.announcementTitle}>
-                {note.title}
-                {isNew(note.date) && <span style={styles.badge}>NEW</span>}
-              </div>
-              <div style={styles.date}>
-                <span style={{ marginRight: '6px' }}>📅</span>
-                {formatDate(note.date)}
-              </div>
-              <div style={styles.content}>{note.content}</div>
-            </div>
-          ))}
-        </div>
+    <S.Container>
+      <S.Header>
+        <h2>오늘의 MOM 투표</h2>
+        <p>경기 후 가장 인상적이었던 선수 TOP 3를 선택해주세요</p>
+      </S.Header>
+      {submitted ? (
+        <S.SuccessMessage>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <h3 className="font-bold text-lg mb-2">투표 완료되었습니다!</h3>
+          <p>다른 페이지도 둘러보세요.</p>
+        </S.SuccessMessage>
       ) : (
-        <div style={styles.noDataText}>
-          등록된 공지사항이 없습니다.
-        </div>
+        <>
+          <SelectedPlayers
+            selectedPlayers={selectedPlayers}
+            onRemovePlayer={handleRemovePlayer}
+            comment={comment}
+            setComment={setComment}
+          />
+          <SearchBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filteredPlayers={filteredPlayers}
+            onSelectPlayer={handleSelectPlayer}
+            isDisabled={selectedPlayers.length >= 3}
+            alreadyVoted={alreadyVoted}
+            onClick={handleSearchClick}
+          />
+          <S.SubmitButton
+            onClick={handleSubmitVote}
+            disabled={selectedPlayers.length !== 3 || submitting}
+          >
+            {submitting ? '제출 중...' : '투표하기'}
+          </S.SubmitButton>
+          <TeamList
+            lineups={lineups}
+            onSelectPlayer={handleSelectPlayer}
+          />
+        </>
       )}
-    </div>
+      {alertMessage && <S.AlertMessage>{alertMessage}</S.AlertMessage>}
+    </S.Container>
   );
 };
 
-export default AnnouncementsPreview;
+export default PlayerVoting;

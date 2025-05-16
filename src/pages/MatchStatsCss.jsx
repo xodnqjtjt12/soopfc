@@ -735,7 +735,7 @@ export const GoalPost = styled.div`
 export const PlayerCard = styled.div`
   position: absolute;
   width: 64px;
-  height: 72px;
+  height: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -756,21 +756,19 @@ export const PlayerCard = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #ffffff; /* 기본 배경색 */
+    background: #ffffff;
     width: 48px;
     height: 48px;
     padding: 0;
-    border-radius: 50%; /* 원형으로 변경 */
+    border-radius: 50%;
     border: 2px solid #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     flex-shrink: 0;
 
-    /* 축구 유니폼 느낌의 스트라이프 추가 */
     &::before {
       content: "";
       position: absolute;
-      // top: 0;
       left: 0;
       right: 0;
       bottom: 0;
@@ -791,7 +789,7 @@ export const PlayerCard = styled.div`
     object-fit: cover;
     position: relative;
     z-index: 2;
-    border-radius: 50%; /* 이미지도 원형으로 */
+    border-radius: 50%;
   }
 
   .avatar-placeholder {
@@ -806,33 +804,56 @@ export const PlayerCard = styled.div`
     z-index: 2;
   }
 
-  .number {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #dc3545;
-    color: #fff;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
+  .playerInfo {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #fff;
-    z-index: 3;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    gap: 2px;
+    width: 100%;
+    margin-top: 4px;
+    flex-wrap: wrap; /* 데스크톱: 줄바꿈 허용 */
   }
 
-  .name {
+  .playerInfo .name {
     font-size: 12px;
-    text-align: center;
-    width: 100%;
-    // margin-top: 6px;
-    text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.8);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    white-space: normal;
+    text-overflow: unset;
+    line-height: 1.2;
+    max-width: 80%;
+    word-break: break-word;
+  }
+
+  .playerInfo .number {
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    flex-shrink: 0;
+    max-width: 20px;
+  }
+
+  .stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    flex-wrap: wrap;
+  }
+
+  .stats .goal-icon {
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .stats .assist-icon {
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 2px;
   }
 
   &:hover {
@@ -844,26 +865,9 @@ export const PlayerCard = styled.div`
     }
   }
 
-  // /* 포지션별 색상 변경을 위한 클래스 (나중에 활용 가능) */
-  // &.goalkeeper .avatar {
-  //   background: #fd7e14; /* 골키퍼는 주황색 */
-  // }
-
-  // &.defender .avatar {
-  //   background: #007bff; /* 수비수는 파란색 */
-  // }
-
-  // &.midfielder .avatar {
-  //   background: #28a745; /* 미드필더는 초록색 */
-  // }
-
-  // &.forward .avatar {
-  //   background: #dc3545; /* 공격수는 빨간색 */
-  // }
-
   @media (max-width: 768px) {
     width: 48px;
-    height: 60px;
+    height: 64px;
 
     .avatar {
       width: 36px;
@@ -874,17 +878,29 @@ export const PlayerCard = styled.div`
       font-size: 10px;
     }
 
-    .number {
-      width: 16px;
-      height: 16px;
-      font-size: 10px;
-      top: -4px;
-      right: -4px;
+    .playerInfo {
+      margin-top: 3px;
+      gap: 2px;
+      flex-wrap: nowrap; /* 모바일: 줄바꿈 방지 */
     }
 
-    .name {
+    .playerInfo .name {
       font-size: 10px;
-      margin-top: 4px;
+      max-width: 65%; /* 등번호 공간 확보 */
+      line-height: 1.2;
+      white-space: nowrap; /* 한 줄 강제 */
+      text-overflow: ellipsis; /* 긴 이름 잘림 */
+    }
+
+    .playerInfo .number {
+      font-size: 10px;
+      max-width: 16px;
+    }
+
+    .stats {
+      font-size: 10px;
+      gap: 3px;
+      margin-top: 2px;
     }
   }
 `;
@@ -1134,5 +1150,169 @@ export const Footer = styled.div`
     gap: 8px;
     text-align: center;
     font-size: 12px;
+  }
+`;
+
+// Toss-inspired button
+export const TossButton = styled.button`
+  padding: 12px 20px;
+  background-color: #3182f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 100, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  max-width: 220px;
+  width: 100%;
+  text-align: center;
+
+  &:hover {
+    background-color: #0052cc;
+    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    background-color: #004099;
+    transform: translateY(0);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
+  }
+
+  &:disabled {
+    background-color: #b3d4ff;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 120px;
+    max-width: 180px;
+  }
+`;
+
+// Toss-inspired select dropdown
+export const TossSelect = styled.select`
+  padding: 12px 16px;
+  background-color: #ffffff;
+  color: #222222;
+  border: 2px solid #e6e6e6;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 140px;
+  max-width: 220px;
+  width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+
+  &:hover {
+    border-color: #0064ff;
+    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.2);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #0064ff;
+    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 14px;
+    font-size: 14px;
+    min-width: 120px;
+    max-width: 180px;
+    background-size: 14px;
+  }
+`;
+
+// FilterBar wrapper
+export const FilterBarWrapper = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 0;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+    flex-direction: column;
+    align-items: center;
+  }
+`;
+
+// Pagination wrapper
+export const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+`;
+
+export const PaginationButton = styled.button`
+  padding: 8px 12px;
+  background-color: ${(props) => (props.active ? "#3182f6" : "#ffffff")};
+  color: ${(props) => (props.active ? "#ffffff" : "#222222")};
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 40px;
+  text-align: center;
+
+  &:hover:not(:disabled) {
+    background-color: ${(props) => (props.active ? "#0052cc" : "#f5f5f5")};
+  }
+
+  &:disabled {
+    background-color: #f5f5f5;
+    color: #999999;
+    cursor: not-allowed;
+  }
+`;
+
+// PlayerPopup
+export const PlayerPopup = styled.div`
+  position: absolute;
+  background-color: white;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  width: 200px;
+  font-size: 14px;
+  color: #333;
+  top: ${(props) => props.top || "0"};
+  left: ${(props) => props.left || "0"};
+  transform: translate(10px, -50%);
+
+  @media (max-width: 768px) {
+    width: 150px;
+    font-size: 12px;
+    padding: 8px;
   }
 `;

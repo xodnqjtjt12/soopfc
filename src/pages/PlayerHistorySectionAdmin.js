@@ -18,7 +18,8 @@ const PlayerHistorySectionAdmin = () => {
   const [historyData, setHistoryData] = useState([]);
   const [playerData, setPlayerData] = useState({
     name: '', goals: '', assists: '', cleanSheets: '', matches: '',
-    win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: ''
+    win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: '',
+    momTop3Count: '', momTop8Count: ''
   });
   const [file, setFile] = useState(null);
   const [uploadMessage, setUploadMessage] = useState('');
@@ -27,7 +28,8 @@ const PlayerHistorySectionAdmin = () => {
   const [editingId, setEditingId] = useState(null);
   const [editingData, setEditingData] = useState({
     goals: '', assists: '', cleanSheets: '', matches: '',
-    win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: ''
+    win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: '',
+    momTop3Count: '', momTop8Count: ''
   });
 
   // 로그 추가 헬퍼
@@ -111,10 +113,11 @@ const PlayerHistorySectionAdmin = () => {
   // 선수 데이터 추가/업데이트
   const handleSubmitPlayerData = async (e) => {
     e.preventDefault();
-    const { name, goals, assists, cleanSheets, matches, win, draw, lose, personalPoints, momScore, winRate } = playerData;
+    const { name, goals, assists, cleanSheets, matches, win, draw, lose, personalPoints, momScore, winRate, momTop3Count, momTop8Count } = playerData;
 
     if (!name || !selectedYear || isNaN(goals) || isNaN(assists) || isNaN(cleanSheets) || isNaN(matches) ||
-        isNaN(win) || isNaN(draw) || isNaN(lose) || isNaN(personalPoints) || isNaN(momScore) || isNaN(winRate)) {
+        isNaN(win) || isNaN(draw) || isNaN(lose) || isNaN(personalPoints) || isNaN(momScore) || isNaN(winRate) ||
+        isNaN(momTop3Count) || isNaN(momTop8Count)) {
       return alert('모든 필드를 올바르게 입력해주세요.');
     }
 
@@ -133,13 +136,16 @@ const PlayerHistorySectionAdmin = () => {
         personalPoints: Number(personalPoints),
         momScore: Number(momScore),
         winRate: Number(winRate),
+        momTop3Count: Number(momTop3Count),
+        momTop8Count: Number(momTop8Count),
         updatedAt: serverTimestamp()
       });
       alert(historyDoc.exists() ? '선수 기록이 업데이트되었습니다.' : '선수 기록이 추가되었습니다.');
       addLog(`선수 기록 ${historyDoc.exists() ? '업데이트' : '추가'}: ${name} (${selectedYear}년)`);
       setPlayerData({
         name: '', goals: '', assists: '', cleanSheets: '', matches: '',
-        win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: ''
+        win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: '',
+        momTop3Count: '', momTop8Count: ''
       });
       fetchHistory(selectedYear);
     } catch (err) {
@@ -179,6 +185,8 @@ const PlayerHistorySectionAdmin = () => {
             personalPoints: Number(row.personalPoints) || 0,
             momScore: Number(row.momScore) || 0,
             winRate: Number(row.winRate) || 0,
+            momTop3Count: Number(row.top3) || 0,
+            momTop8Count: Number(row.top8) || 0,
             updatedAt: serverTimestamp()
           });
           addLog(`엑셀 처리: ${row.name} (${selectedYear}년)`);
@@ -211,11 +219,13 @@ const PlayerHistorySectionAdmin = () => {
     const ws = XLSX.utils.json_to_sheet([
       {
         name: 'Player1', goals: 5, assists: 3, cleanSheets: 0, matches: 10,
-        win: 6, draw: 2, lose: 2, personalPoints: 20, momScore: 800, winRate: 60
+        win: 6, draw: 2, lose: 2, personalPoints: 20, momScore: 800, winRate: 60,
+        top3: 2, top8: 5
       },
       {
         name: 'Player2', goals: 2, assists: 1, cleanSheets: 5, matches: 8,
-        win: 4, draw: 3, lose: 1, personalPoints: 15, momScore: 700, winRate: 50
+        win: 4, draw: 3, lose: 1, personalPoints: 15, momScore: 700, winRate: 50,
+        top3: 1, top8: 3
       }
     ]);
     const wb = XLSX.utils.book_new();
@@ -237,7 +247,9 @@ const PlayerHistorySectionAdmin = () => {
       lose: record.lose,
       personalPoints: record.personalPoints,
       momScore: record.momScore,
-      winRate: record.winRate
+      winRate: record.winRate,
+      momTop3Count: record.momTop3Count,
+      momTop8Count: record.momTop8Count
     });
     addLog(`편집 모드: ${record.name} (${selectedYear}년)`);
   };
@@ -261,12 +273,15 @@ const PlayerHistorySectionAdmin = () => {
         personalPoints: Number(editingData.personalPoints),
         momScore: Number(editingData.momScore),
         winRate: Number(editingData.winRate),
+        momTop3Count: Number(editingData.momTop3Count),
+        momTop8Count: Number(editingData.momTop8Count),
         updatedAt: serverTimestamp()
       });
       setEditingId(null);
       setEditingData({
         goals: '', assists: '', cleanSheets: '', matches: '',
-        win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: ''
+        win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: '',
+        momTop3Count: '', momTop8Count: ''
       });
       fetchHistory(selectedYear);
       addLog(`수정 저장: ${id} (${selectedYear}년)`);
@@ -281,7 +296,8 @@ const PlayerHistorySectionAdmin = () => {
     setEditingId(null);
     setEditingData({
       goals: '', assists: '', cleanSheets: '', matches: '',
-      win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: ''
+      win: '', draw: '', lose: '', personalPoints: '', momScore: '', winRate: '',
+      momTop3Count: '', momTop8Count: ''
     });
     addLog('편집 취소');
   };
@@ -368,6 +384,8 @@ const PlayerHistorySectionAdmin = () => {
                       <PHS.Th>승률</PHS.Th>
                       <PHS.Th>개인승점</PHS.Th>
                       <PHS.Th>MOM점수</PHS.Th>
+                      <PHS.Th>top3</PHS.Th>
+                      <PHS.Th>top8</PHS.Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -384,6 +402,8 @@ const PlayerHistorySectionAdmin = () => {
                         <PHS.Td>{r.winRate}</PHS.Td>
                         <PHS.Td>{r.personalPoints}</PHS.Td>
                         <PHS.Td>{r.momScore}</PHS.Td>
+                        <PHS.Td>{r.top3}</PHS.Td>
+                        <PHS.Td>{r.top8}</PHS.Td>
                       </tr>
                     ))}
                   </tbody>
@@ -407,6 +427,8 @@ const PlayerHistorySectionAdmin = () => {
               <PHS.Input type="number" name="winRate" value={playerData.winRate} onChange={handleInputChange} placeholder="승률" />
               <PHS.Input type="number" name="personalPoints" value={playerData.personalPoints} onChange={handleInputChange} placeholder="개인승점" />
               <PHS.Input type="number" name="momScore" value={playerData.momScore} onChange={handleInputChange} placeholder="MOM점수" />
+              <PHS.Input type="number" name="momTop3Count" value={playerData.momTop3Count} onChange={handleInputChange} placeholder="MOM TOP 3 횟수" />
+              <PHS.Input type="number" name="momTop8Count" value={playerData.momTop8Count} onChange={handleInputChange} placeholder="MOM TOP 8 횟수" />
               <PHS.Button type="submit">저장</PHS.Button>
             </PHS.Form>
 
@@ -432,6 +454,8 @@ const PlayerHistorySectionAdmin = () => {
                   <PHS.Th>승률</PHS.Th>
                   <PHS.Th>개인승점</PHS.Th>
                   <PHS.Th>MOM점수</PHS.Th>
+                  <PHS.Th>MOM TOP 3 횟수</PHS.Th>
+                  <PHS.Th>MOM TOP 8 횟수</PHS.Th>
                   <PHS.Th>액션</PHS.Th>
                 </tr>
               </thead>
@@ -557,6 +581,30 @@ const PlayerHistorySectionAdmin = () => {
                         />
                       ) : (
                         record.momScore
+                      )}
+                    </PHS.Td>
+                    <PHS.Td>
+                      {editingId === record.id ? (
+                        <PHS.SmallInput
+                          type="number"
+                          name="momTop3Count"
+                          value={editingData.momTop3Count}
+                          onChange={handleEditingDataChange}
+                        />
+                      ) : (
+                        record.momTop3Count || 0
+                      )}
+                    </PHS.Td>
+                    <PHS.Td>
+                      {editingId === record.id ? (
+                        <PHS.SmallInput
+                          type="number"
+                          name="momTop8Count"
+                          value={editingData.momTop8Count}
+                          onChange={handleEditingDataChange}
+                        />
+                      ) : (
+                        record.momTop8Count || 0
                       )}
                     </PHS.Td>
                     <PHS.Td>

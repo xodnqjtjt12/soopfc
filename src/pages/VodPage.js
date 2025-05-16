@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../App';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import styled from 'styled-components';
 import {
   Container,
   MainContent,
@@ -31,117 +30,15 @@ import {
   EmptyState,
   Badge,
   ScoreBox,
+    TossButton,
+  TossSelect,
+  FilterBarWrapper,
+  PaginationWrapper,
+  PaginationButton,
+  PlayerPopup,
 } from './MatchStatsCss';
 
-// Toss-inspired button
-const TossButton = styled.button`
-  padding: 12px 20px;
-  background-color: #3182f6; /* Toss의 시그니처 블루 */
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 100, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 140px;
-  max-width: 220px;
-  width: 100%;
-  text-align: center;
-
-  &:hover {
-    background-color: #0052cc; /* 호버 시 더 어두운 블루 */
-    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.3);
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    background-color: #004099;
-    transform: translateY(0);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
-  }
-
-  &:disabled {
-    background-color: #b3d4ff;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  @media (max-width: 768px) {
-    padding: 10px 16px;
-    font-size: 14px;
-    min-width: 120px;
-    max-width: 180px;
-  }
-`;
-
-// Toss-inspired select dropdown
-const TossSelect = styled.select`
-  padding: 12px 16px;
-  background-color: #ffffff;
-  color: #222222;
-  border: 2px solid #e6e6e6; /* 밝은 회색 테두리 */
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-width: 140px;
-  max-width: 220px;
-  width: 100%;
-  appearance: none; /* 기본 드롭다운 화살표 제거 */
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-
-  &:hover {
-    border-color: #0064ff;
-    box-shadow: 0 4px 12px rgba(0, 100, 255, 0.2);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: #0064ff;
-    box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.3);
-  }
-
-  @media (max-width: 768px) {
-    padding: 10px 14px;
-    font-size: 14px;
-    min-width: 120px;
-    max-width: 180px;
-    background-size: 14px;
-  }
-`;
-
-// FilterBar wrapper
-const FilterBarWrapper = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 16px 0;
-
-  @media (max-width: 768px) {
-    gap: 8px;
-    flex-direction: column;
-    align-items: center;
-  }
-`;
-
-// Modal styles (unchanged)
+// Modal styles
 const modalStyles = {
   overlay: {
     position: 'fixed',
@@ -164,7 +61,6 @@ const modalStyles = {
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
   },
   input: {
-    // width: '100%',
     padding: '8px',
     marginBottom: '10px',
     border: '1px solid #ccc',
@@ -191,29 +87,7 @@ const modalStyles = {
   },
 };
 
-// PlayerPopup (unchanged)
-const PlayerPopup = styled.div`
-  position: absolute;
-  background-color: white;
-  padding: 10px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  z-index: 100;
-  width: 200px;
-  font-size: 14px;
-  color: #333;
-  top: ${props => props.top || '0'};
-  left: ${props => props.left || '0'};
-  transform: translate(10px, -50%);
-
-  @media (max-width: 768px) {
-    width: 150px;
-    font-size: 12px;
-    padding: 8px;
-  }
-`;
-
-// Position mirror map (unchanged)
+// Position mirror map
 const MIRROR_POSITION = {
   LB: 'RB', RB: 'LB',
   LW: 'RW', RW: 'LW',
@@ -221,15 +95,15 @@ const MIRROR_POSITION = {
   LM: 'RM', RM: 'LM'
 };
 
-// Chevron Icon (unchanged)
+// Chevron Icon
 const ChevronIcon = ({ isOpen }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-       style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+       style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate h(0deg)', transition: 'transform 0.2s' }}>
     <polyline points="6 9 12 15 18 9"></polyline>
   </svg>
 );
 
-// Format date (unchanged)
+// Format date
 const formatDate = dateString => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -237,7 +111,7 @@ const formatDate = dateString => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} (${['일', '월', '화', '수', '목', '금', '토'][date.getDay()]})`;
 };
 
-// Formation positions (unchanged)
+// Formation positions
 const FORMATIONS = {
   '4-3-3': {
     desktop: [
@@ -353,11 +227,11 @@ const FORMATIONS = {
   },
 };
 
-// Get formation positions (unchanged)
+// Get formation positions
 const getFormationPositions = (formation, isMobile) =>
   FORMATIONS[formation]?.[isMobile ? 'mobile' : 'desktop'] || FORMATIONS['4-3-3'][isMobile ? 'mobile' : 'desktop'];
 
-// Render formation (unchanged)
+// Render formation
 const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highlightPlayer, side, goalAssistPairs, handlePlayerClick) => {
   if (!team?.players?.length) return (
     <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -477,18 +351,20 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
             <div className="avatar-placeholder">{player.position}</div>
           )}
         </div>
-        <div className="number">{player.backNumber}</div>
-        <div className="name">
-          {player.name}
-          {goals > 0 && <span className="goal-icon" style={{ marginLeft: '4px' }}>⚽{goals}</span>}
-          {assists > 0 && <span className="assist-icon" style={{ marginLeft: '4px' }}>👟{assists}</span>}
+        <div className="playerInfo">
+          <span className="number">{player.backNumber}</span>
+          <span className="name" title={player.name}>{player.name}</span>
+        </div>
+        <div className="stats">
+          {goals > 0 && <span className="goal-icon">⚽{goals}</span>}
+          {assists > 0 && <span className="assist-icon">👟{assists}</span>}
         </div>
       </PlayerCard>
     );
   });
 };
 
-// DesktopFormation (unchanged)
+// DesktopFormation
 const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, handlePlayerClick }) => {
   if (!teams || teams.length < 2) {
     return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
@@ -505,7 +381,7 @@ const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssis
   );
 };
 
-// MobileFormation (unchanged)
+// MobileFormation
 const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, handlePlayerClick }) => {
   if (!teams || teams.length < 2) {
     return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
@@ -522,12 +398,12 @@ const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssist
   );
 };
 
-// Normalize team name (unchanged)
+// Normalize team name
 const normalizeTeamName = (name) => {
   return name ? name.trim().toLowerCase() : '';
 };
 
-// Calculate total scores (unchanged)
+// Calculate total scores
 const calculateTotalScores = (quarters) => {
   console.log('Total quarters:', quarters.length);
   const isPointsBased = quarters.length > 4;
@@ -646,7 +522,7 @@ const calculateTotalScores = (quarters) => {
   return { teamStats, winner, isMultiTeam };
 };
 
-// Calculate scores (unchanged)
+// Calculate scores
 const calculateScores = (pairs, teams) =>
   teams.map(t => ({ name: t.name, goals: pairs.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(t.name)).length, points: 0 }));
 
@@ -662,6 +538,8 @@ function VodPage() {
   const [highlightedPlayer, setHighlightedPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [popup, setPopup] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const datesPerPage = 5;
   const popupRef = useRef(null);
 
   useEffect(() => {
@@ -695,9 +573,17 @@ function VodPage() {
       console.log(`Filtered matches for ${nickname}:`, filtered);
       setFilteredMatches(filtered);
     } else {
-      setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
+      // Apply pagination filtering
+      const startIndex = (currentPage - 1) * datesPerPage;
+      const endIndex = startIndex + datesPerPage;
+      const paginatedDates = dates.slice(startIndex, endIndex);
+      setFilteredMatches(
+        filterDate === 'all'
+          ? matches.filter(m => paginatedDates.includes(m.date))
+          : matches.filter(m => m.date === filterDate)
+      );
     }
-  }, [filterDate, matches, nickname]);
+  }, [filterDate, matches, nickname, currentPage, dates]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -776,18 +662,68 @@ function VodPage() {
   const handleSearch = () => {
     console.log(`Searching for nickname: ${nickname}`);
     setShowModal(false);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleCancel = () => {
     setNickname('');
     setShowModal(false);
     setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
+    setCurrentPage(1); // Reset to first page when cancelling search
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && nickname.trim()) {
       handleSearch();
     }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    setFilterDate('all'); // Reset date filter when changing pages
+  };
+
+  const totalPages = Math.ceil(dates.length / datesPerPage);
+
+  const getPaginationButtons = () => {
+    const buttons = [];
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <PaginationButton
+          key={i}
+          active={i === currentPage}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </PaginationButton>
+      );
+    }
+
+    return (
+      <>
+        <PaginationButton
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+        >
+          이전
+        </PaginationButton>
+        {buttons}
+        <PaginationButton
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+        >
+          다음
+        </PaginationButton>
+      </>
+    );
   };
 
   return (
@@ -797,11 +733,13 @@ function VodPage() {
         <FilterBarWrapper>
           <TossSelect value={filterDate} onChange={e => setFilterDate(e.target.value)}>
             <option value="all">모든 날짜</option>
-            {dates.map(d => (
-              <option key={d} value={d}>
-                {formatDate(d)}
-              </option>
-            ))}
+            {dates
+              .slice((currentPage - 1) * datesPerPage, currentPage * datesPerPage)
+              .map(d => (
+                <option key={d} value={d}>
+                  {formatDate(d)}
+                </option>
+              ))}
           </TossSelect>
           <TossButton onClick={() => setShowModal(true)}>
             내 경기 기록 보기
@@ -1132,6 +1070,11 @@ function VodPage() {
           <EmptyState>
             {nickname ? `${nickname} 님이 참여한 경기가 없습니다.` : '등록된 경기가 없습니다.'}
           </EmptyState>
+        )}
+        {totalPages > 1 && (
+          <PaginationWrapper>
+            {getPaginationButtons()}
+          </PaginationWrapper>
         )}
       </MainContent>
     </Container>

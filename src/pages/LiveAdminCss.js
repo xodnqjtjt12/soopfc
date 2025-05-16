@@ -272,3 +272,76 @@ export const SavedLineupPlayers = styled.ul`
     margin: 5px 0;
   }
 `;
+
+export const MatchCheerSection = styled.div`
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: #fefcbf;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+  }
+`;
+
+// PlayerHistorySectionAdmin 스타일 추가
+export const Header = styled.h2`
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+`;
+
+export const TogglePasswordVisibility = styled.img`
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  margin-left: 10px;
+`;
+
+export const ErrorMessage = styled.p`
+  color: #ff4d4f;
+  font-size: 14px;
+  margin-top: 5px;
+`;
+
+export const Button = styled.button`
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+
+  &:hover {
+    background-color: #40a9ff;
+  }
+
+  &:disabled {
+    background-color: #d9d9d9;
+    cursor: not-allowed;
+  }
+`;
+
+export const LogsContainer = styled.div`
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+export const LogItem = styled.p`
+  font-size: 12px;
+  color: #333;
+  margin: 5px 0;
+`;

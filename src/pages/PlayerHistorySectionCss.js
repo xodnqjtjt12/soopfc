@@ -286,18 +286,20 @@ export const Td = styled.td`
 
 export const HistoryTable = styled.table`
   width: 100%;
-  min-width: 360px;
-  max-width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
   background-color: #1a1a1a;
   border-radius: 10px;
-  overflow-x: auto;
+  overflow-x: auto;      /* 기본: 스크롤 허용 */
   display: block;
   animation: ${fadeIn} 0.5s ease-out;
 
-  @media (min-width: 641px) {
-    min-width: 840px;
+  @media (max-width: 640px) {
+    /* 모바일: 컨테이너 폭만큼 축소, 필요 시 스크롤 */
+    min-width: 0;         /* 고정 최소 너비 제거 */
+    overflow-x: auto;     /* 스크롤 허용 */
+    table-layout: auto;   /* 유동 레이아웃 */
+    display: block;
   }
 `;
 
@@ -354,7 +356,7 @@ export const HistoryTableCell = styled.td`
 `;
 // 토스 스타일 변수
 const colors = {
-  background: '#F9FAFC',
+  // background: '#F9FAFC',
   cardBackground: '#FFFFFF',
   primary: '#3182F6',
   border: '#F2F4F6',
@@ -607,32 +609,42 @@ export const SectionTitle = styled.h3`
 export const SummaryCardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-top: 16px;
+  gap: 16px;
+  margin-top: 20px;
 
-  @media (max-width: 640px) {
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-top: 12px;
+    gap: 12px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(1, 1fr);
+    max-width: 320px;
+    margin: 16px auto 0;
   }
 `;
 
+// 선수 통계 카드
 export const SummaryCard = styled.div`
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 12px;
-  width: 160px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  text-align: center;
-  transition: transform 0.2s ease;
+  background: ${colors.cardBackground};
+  border-radius: 14px;
+  padding: 20px 2px;
+  width: 100%;
+  box-shadow: ${colors.shadow};
+  text-align: left;
+  transition: all 0.2s ease;
+  border: 1px solid ${colors.border};
+  display: flex;
+  flex-direction: column;
+  margin-right: 24px;  // 오른쪽 여백 추가
 
   &:hover {
     transform: translateY(-2px);
-  }
-
-  @media (max-width: 640px) {
-    width: 140px;
-    padding: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 `;
 

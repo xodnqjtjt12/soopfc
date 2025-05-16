@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../App';
-import { format, startOfDay, addHours, isWithinInterval } from 'date-fns';
+import { format, startOfDay, addDays, isWithinInterval } from 'date-fns';
 import moment from 'moment';
 import styled from 'styled-components';
 import * as S from './Homecss';
@@ -24,57 +24,25 @@ function useLocalStorage(key, initialValue) {
   return [stored, setValue];
 }
 
-// 검정색 배경 컨테이너
-const BannerContainer = styled.div`
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 20px;
-  position: relative;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-`;
-
-// 버튼 스타일 (SoccerAnnounceBanner와 색상 통일)
-const CloseButton = styled.button`
-  background: linear-gradient(to right, #1a472a, #2d8659);
-  border: 2px solid #ffffff;
-  border-radius: 8px;
-  color: white;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-  &:hover {
-    background: linear-gradient(to right, #153b24, #267a50);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  }
-`;
-
 // 경기 상세 버튼 (PrimaryButton 스타일 상속)
-const MatchButton = styled(S.PrimaryButton).attrs({
+export const MatchButton = styled.a.attrs({
   as: Link,
 })`
-  text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #3182f6; /* 세미콜론 추가함 */
-  color: white;
+  padding: 16px 32px;
+  font-size: 18px;
   font-weight: 600;
-  padding: 10px 16px;
-  border-radius: 6px;
+  color: white;
+  background-color: #3182f6;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(49, 130, 246, 0.2);
   transition: all 0.2s ease;
-  border: 1px solid #2671e2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  margin-left: 10px;
-  position: relative; /* 애니메이션 위치 기준점 */
-  animation: float 3s ease-in-out infinite; /* 둥둥 떠다니는 애니메이션 */
-  
+  margin: 0;
+  animation: float 3s ease-in-out infinite;
+
   /* 둥둥 떠다니는 애니메이션 정의 */
   @keyframes float {
     0% {
@@ -87,38 +55,36 @@ const MatchButton = styled(S.PrimaryButton).attrs({
       transform: translateY(0px);
     }
   }
-  
+
   /* 아이콘이 있을 경우 간격 추가 */
   svg {
     margin-right: 6px;
     font-size: 18px;
   }
-  
+
   &:hover {
-    background-color: #1b6ef3;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    animation-play-state: paused; /* 호버 시 애니메이션 일시정지 */
-    transform: translateY(-2px); /* 호버 시 고정된 위치 */
+    background-color: #1c6fef;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(49, 130, 246, 0.3);
+    animation-play-state: paused;
   }
-  
+
   &:active {
     background-color: #0f5ad7;
     transform: translateY(1px);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    animation-play-state: paused; /* 클릭 시 애니메이션 일시정지 */
+    animation-play-state: paused;
   }
-  
+
   /* PC 환경 */
   @media (min-width: 768px) {
-    padding: 12px 20px;
-    font-size: 16px;
-    
-    /* 아이콘 크기 */
+    padding: 16px 32px;
+    font-size: 18px;
+
     svg {
       font-size: 20px;
     }
-    
-    /* PC에서는 좀 더 큰 움직임 */
+
     @keyframes float {
       0% {
         transform: translateY(0px);
@@ -131,21 +97,16 @@ const MatchButton = styled(S.PrimaryButton).attrs({
       }
     }
   }
-  
+
   /* 모바일 환경 */
   @media (max-width: 767px) {
-    padding: 8px 14px;
-    font-size: 14px;
-    margin-left: 6px;
-    
-    /* 모바일에서는 버튼을 더 눈에 띄게 */
-    width: auto;
-    white-space: nowrap;
-    
-    /* 작은 화면에서 텍스트 축소 방지 */
-    min-width: fit-content;
-    
-    /* 모바일에서는 더 작은 움직임 */
+    padding: 12px 24px;
+    font-size: 16px;
+
+    svg {
+      font-size: 16px;
+    }
+
     @keyframes float {
       0% {
         transform: translateY(0px);
@@ -158,11 +119,15 @@ const MatchButton = styled(S.PrimaryButton).attrs({
       }
     }
   }
-  
+
   /* 매우 작은 화면 */
   @media (max-width: 360px) {
-    padding: 6px 10px;
-    font-size: 13px;
+    padding: 10px 20px;
+    font-size: 14px;
+
+    svg {
+      font-size: 14px;
+    }
   }
 `;
 
@@ -201,32 +166,51 @@ const Home = () => {
   const [holidays, setHolidays] = useState([]);
   const [anniversaries, setAnniversaries] = useState([]);
 
-  // live 컬렉션에서 경기 데이터 가져오기
+  // live 및 votingStatus 컬렉션에서 경기 데이터 가져오기
   useEffect(() => {
     const fetchLiveMatches = async () => {
       try {
-        const snap = await getDocs(collection(db, 'live'));
-        const matches = snap.docs.map(doc => ({
+        // live 컬렉션
+        const liveSnap = await getDocs(collection(db, 'live'));
+        const matches = liveSnap.docs.map(doc => ({
           id: doc.id,
           date: doc.data().date
         }));
+
+        // votingStatus 컬렉션
+        const votingSnap = await getDocs(collection(db, 'votingStatus'));
+        const votingStatuses = votingSnap.docs.map(doc => ({
+          matchId: doc.data().matchId,
+          date: doc.data().date,
+          isVotingClosed: doc.data().isVotingClosed
+        }));
+
         // 날짜별로 그룹화 (중복 제거)
         const uniqueDates = [];
         const seenDates = new Set();
         matches.forEach(match => {
-          const date = match.date instanceof Timestamp
-            ? new Date(match.date.seconds * 1000)
-            : new Date(match.date);
+          let date;
+          if (match.date instanceof Timestamp) {
+            date = new Date(match.date.seconds * 1000);
+          } else {
+            date = new Date(match.date);
+          }
+          if (isNaN(date.getTime())) {
+            console.warn(`Invalid date for match ${match.id}:`, match.date);
+            return;
+          }
           const dateStr = format(date, 'yyyy-MM-dd');
-          if (!seenDates.has(dateStr) && !isNaN(date.getTime())) {
+          if (!seenDates.has(dateStr)) {
             seenDates.add(dateStr);
-            uniqueDates.push({ date, dateStr });
+            const votingStatus = votingStatuses.find(v => v.matchId === match.id) || { isVotingClosed: false };
+            uniqueDates.push({ date, dateStr, matchId: match.id, isVotingClosed: votingStatus.isVotingClosed });
           }
         });
+
         setLiveMatches(uniqueDates);
         console.log('가져온 경기 날짜:', uniqueDates);
       } catch (e) {
-        console.error('live 컬렉션 fetch 에러:', e);
+        console.error('live 또는 votingStatus 컬렉션 fetch 에러:', e);
       }
     };
     fetchLiveMatches();
@@ -427,38 +411,66 @@ const Home = () => {
     setHideToday(todayStr);
   };
 
-  // 버튼 표시 여부 확인
-  const isMatchButtonVisible = (matchDate) => {
-    if (!matchDate || isNaN(matchDate.getTime())) return false;
-    const start = startOfDay(matchDate); // 경기일 00:00
-    const end = addHours(start, 48); // 48시간 후
+  // 버튼 표시 여부 및 상태 확인
+  const getButtonState = (matchDate, isVotingClosed) => {
+    if (!matchDate || isNaN(matchDate.getTime())) {
+      console.warn('Invalid match date:', matchDate);
+      return { visible: false, type: null, to: null, text: '' };
+    }
+
     const now = new Date();
-    return isWithinInterval(now, { start, end });
+    let matchDayStart, matchDayEnd, nextDayStart, nextDayEnd, afterNextDayStart;
+
+    try {
+      matchDayStart = startOfDay(matchDate); // 경기일 00:00
+      matchDayEnd = addDays(matchDayStart, 1); // 경기일 +1 00:00
+      nextDayStart = matchDayEnd; // 다음 날 00:00
+      nextDayEnd = addDays(nextDayStart, 1); // 다음 날 +1 00:00
+      afterNextDayStart = nextDayEnd; // 그 다음 날 00:00
+
+      console.log(`Match ${format(matchDate, 'yyyy-MM-dd')}:`, {
+        now: now.toISOString(),
+        matchDayStart: matchDayStart.toISOString(),
+        matchDayEnd: matchDayEnd.toISOString(),
+        nextDayStart: nextDayStart.toISOString(),
+        nextDayEnd: nextDayEnd.toISOString(),
+        isVotingClosed
+      });
+
+      // 경기일: D일 00:00 ~ D+1 00:00
+      if (isWithinInterval(now, { start: matchDayStart, end: matchDayEnd })) {
+        return {
+          visible: true,
+          type: 'lineup',
+          to: '/live',
+          text: `${format(matchDate, 'M월 d일')} 라인업`,
+        };
+      }
+      // 다음 날: D+1 00:00 ~ D+2 00:00
+      else if (isWithinInterval(now, { start: nextDayStart, end: nextDayEnd })) {
+        return {
+          visible: true,
+          type: 'mom',
+          to: '/announcements',
+          text: `${format(matchDate, 'M월 d일')} MOM 투표`,
+        };
+      }
+      // 그 이후 (D+2 00:00 ~): 투표 종료 여부에 따라 숨김
+      else if (now >= afterNextDayStart && isVotingClosed) {
+        return { visible: false, type: null, to: null, text: '' };
+      }
+    } catch (e) {
+      console.error('Error in getButtonState:', e, { matchDate, isVotingClosed });
+      return { visible: false, type: null, to: null, text: '' };
+    }
+
+    // 기본: 버튼 숨김
+    return { visible: false, type: null, to: null, text: '' };
   };
 
   return (
     <S.HomeContainer>
       <S.ContentWrapper>
-        {/* 공지사항 배너 */}
-        {hideToday !== todayStr && announces.map(n => (
-          visibleIds.includes(n.id) && (
-            <BannerContainer key={n.id}>
-              <Link to="/announcements" style={{ textDecoration: 'none' }}>
-                <S.SoccerAnnounceBanner>
-                  {n.title}
-                  <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>
-                    {countdowns[n.id] > 0 ? `${countdowns[n.id]}s` : ''}
-                  </span>
-                </S.SoccerAnnounceBanner>
-              </Link>
-              <CloseButton onClick={handleHideToday}>
-                오늘 하루 보지 않기
-              </CloseButton>
-            </BannerContainer>
-          )
-        ))}
-
-        {/* Hero Section */}
         <S.HeroSection>
           <S.HeroContent>
             <S.HeroTitle>더 쉽게<br />더 즐겁게<br />축구하세요</S.HeroTitle>
@@ -467,13 +479,14 @@ const Home = () => {
             </S.HeroSubtitle>
             <S.ButtonGroup>
               <S.PrimaryButton href="/total">내 스탯 보기</S.PrimaryButton>
-              {liveMatches.map(match => (
-                isMatchButtonVisible(match.date) && (
-                  <MatchButton key={match.dateStr} to="/live">
-                    {format(match.date, 'M월 d일')} 라인업
+              {liveMatches.map(match => {
+                const { visible, type, to, text } = getButtonState(match.date, match.isVotingClosed);
+                return visible && (
+                  <MatchButton key={match.dateStr} to={to}>
+                    {text}
                   </MatchButton>
-                )
-              ))}
+                );
+              })}
             </S.ButtonGroup>
           </S.HeroContent>
           <S.HeroImageContainer>
