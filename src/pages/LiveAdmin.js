@@ -33,25 +33,19 @@ const LiveAdmin = () => {
   const [editingLineupId, setEditingLineupId] = useState(null);
   const [originalTeamName, setOriginalTeamName] = useState(null);
   const [editingCheerCount, setEditingCheerCount] = useState({});
-  const [matchCheers, setMatchCheers] = useState({
-    teamA: { name: '', cheers: 0 },
-    teamB: { name: '', cheers: 0 }
-  });
+  const [matchCheers, setMatchCheers] = useState([]); // 동적 배열로 변경
   const [isEditingMatchCheers, setIsEditingMatchCheers] = useState(false);
-  // 비밀번호 인증 상태
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [logs, setLogs] = useState([]);
 
-  // 로그 추가 헬퍼
   const addLog = (msg) => {
     const ts = new Date().toLocaleString();
     setLogs((prev) => [...prev, `[${ts}] ${msg}`]);
   };
 
-  // 비밀번호 입력/확인
   const handlePasswordChange = (e) => setPassword(e.target.value);
   const handlePasswordKeyEvent = (e) => setCapsLockOn(e.getModifierState('CapsLock'));
   const handlePasswordSubmit = (e) => {
@@ -66,7 +60,6 @@ const LiveAdmin = () => {
   };
   const toggleShowPassword = () => setShowPassword((prev) => !prev);
 
-  // 저장된 라인업 및 매치 응원 데이터 불러오기
   useEffect(() => {
     if (isAuthenticated) {
       fetchLineups();
@@ -75,7 +68,6 @@ const LiveAdmin = () => {
 
   const fetchLineups = async () => {
     try {
-      // 팀 라인업 조회
       const teamsSnap = await getDocs(collection(db, 'live'));
       const lineups = [];
       for (const teamDoc of teamsSnap.docs) {
@@ -84,8 +76,8 @@ const LiveAdmin = () => {
         const playersSnap = await getDocs(collection(db, 'live', teamId, 'players'));
         let cheerCount = 0;
         try {
-          const cheerRef = doc(db, 'live', teamId, 'cheers');
-          console.log(`Fetching team cheers document: live/${teamId}/cheers`);
+          const cheerRef = doc(db, 'live', teamId, 'cheers', 'count');
+          console.log(`Fetching team cheers document: live/${teamId}/cheers/count`);
           const cheerDoc = await getDoc(cheerRef);
           cheerCount = cheerDoc.exists() ? cheerDoc.data().cheerCount : 0;
           console.log(`Fetched team cheers for ${teamId}: ${cheerCount}`);
@@ -107,30 +99,32 @@ const LiveAdmin = () => {
       console.log('Fetched lineups:', lineups);
       addLog(`라인업 데이터 조회 (${lineups.length}개 팀)`);
 
-      // 매치 응원 데이터 조회
       const matchId = `match_${format(new Date(), 'yyyyMMdd')}`;
       try {
         const cheerRef = doc(db, 'cheers', matchId);
         console.log(`Fetching match cheers document: cheers/${matchId}`);
         const cheerDoc = await getDoc(cheerRef);
         if (cheerDoc.exists()) {
-          setMatchCheers(cheerDoc.data());
-          console.log(`Fetched match cheers for ${matchId}:`, cheerDoc.data());
+          const data = cheerDoc.data();
+          setMatchCheers(data.teams || []);
+          console.log(`Fetched match cheers for ${matchId}:`, data);
           addLog(`매치 응원 데이터 조회: ${matchId}`);
         } else {
-          setMatchCheers({
-            teamA: { name: lineups[0]?.teamName || 'TeamA', cheers: 0 },
-            teamB: { name: lineups[1]?.teamName || 'TeamB', cheers: 0 }
-          });
-          console.log(`No match cheers found for ${matchId}, initialized default`);
+          const defaultCheers = lineups.map(team => ({
+            name: team.teamName,
+            cheers: 0
+          }));
+          setMatchCheers(defaultCheers);
+          console.log(`No match cheers found for ${matchId}, initialized default:`, defaultCheers);
           addLog(`매치 응원 데이터 없음, 기본값 설정: ${matchId}`);
         }
       } catch (cheerError) {
         console.error(`Error fetching match cheers for ${matchId}:`, cheerError.message);
-        setMatchCheers({
-          teamA: { name: lineups[0]?.teamName || 'TeamA', cheers: 0 },
-          teamB: { name: lineups[1]?.teamName || 'TeamB', cheers: 0 }
-        });
+        const defaultCheers = lineups.map(team => ({
+          name: team.teamName,
+          cheers: 0
+        }));
+        setMatchCheers(defaultCheers);
         addLog(`매치 응원 조회 오류: ${cheerError.message}`);
       }
     } catch (err) {
@@ -184,15 +178,15 @@ const LiveAdmin = () => {
 
   const handleTeamCountChange = (count) => {
     setTeamCount(count);
-    setTeams(
-      Array(count).fill().map((_, i) => ({
-        name: '',
-        captain: '',
-        color: i % 2 === 0 ? '#000000' : '#00b7eb',
-        players: [createEmptyPlayer()],
-        cheerCount: 0
-      }))
-    );
+    const newTeams = Array(count).fill().map((_, i) => ({
+      name: '',
+      captain: '',
+      color: i % 3 === 0 ? '#000000' : (i % 3 === 1 ? '#00b7eb' : '#FFA500'),
+      players: [createEmptyPlayer()],
+      cheerCount: 0
+    }));
+    setTeams(newTeams);
+    setMatchCheers(newTeams.map(team => ({ name: team.name, cheers: 0 })));
     console.log('Changed team count to', count);
     addLog(`팀 수 변경: ${count}개`);
   };
@@ -212,7 +206,6 @@ const LiveAdmin = () => {
     setMessage('');
     setError('');
 
-    // 유효성 검사
     if (!dateTime) {
       setError('경기 날짜와 시간을 입력해주세요.');
       addLog('라인업 저장 실패: 경기 날짜 미입력');
@@ -260,7 +253,6 @@ const LiveAdmin = () => {
       console.log('Submitting teams:', teams);
       addLog(`라인업 저장 시작: ${teams.length}개 팀`);
 
-      // 중복 팀 이름 확인
       const existingTeams = await getDocs(collection(db, 'live'));
       const teamNames = teams.map(t => t.name);
       for (const teamName of teamNames) {
@@ -272,21 +264,21 @@ const LiveAdmin = () => {
         }
       }
 
-      // 매치 응원 데이터 준비
       const matchId = `match_${format(new Date(dateISO), 'yyyyMMdd')}`;
       const cheerDocRef = doc(db, 'cheers', matchId);
       const cheerData = {
-        teamA: { name: teams[0].name, cheers: Number(matchCheers.teamA.cheers) || 0 },
-        teamB: { name: teams[1].name, cheers: Number(matchCheers.teamB.cheers) || 0 }
+        teams: teams.map((team, index) => ({
+          name: team.name,
+          cheers: Number(matchCheers[index]?.cheers) || 0
+        }))
       };
 
       for (const [index, team] of teams.entries()) {
         const teamDocRef = doc(db, 'live', team.name);
-        const teamCheerDocRef = doc(db, 'live', team.name, 'cheers');
+        const teamCheerDocRef = doc(db, 'live', team.name, 'cheers', 'count');
         console.log(`Processing team: ${team.name}`);
         addLog(`팀 처리: ${team.name}`);
 
-        // 편집 모드: 기존 선수 데이터 삭제
         if (editingLineupId && originalTeamName === team.name) {
           const playersSnap = await getDocs(collection(db, 'live', team.name, 'players'));
           for (const playerDoc of playersSnap.docs) {
@@ -296,7 +288,6 @@ const LiveAdmin = () => {
           }
         }
 
-        // 선수 데이터 저장
         for (const [playerIndex, player] of team.players.entries()) {
           const playerData = {
             id: playerIndex + 1,
@@ -309,7 +300,6 @@ const LiveAdmin = () => {
           addLog(`선수 추가: ${team.name}, ${player.nick}`);
         }
 
-        // 팀 메타데이터 저장
         console.log(`Saving team metadata for ${team.name}`);
         await setDoc(teamDocRef, {
           captain: team.captain,
@@ -318,7 +308,6 @@ const LiveAdmin = () => {
         }, { merge: true });
         addLog(`팀 메타데이터 저장: ${team.name}`);
 
-        // 팀 응원 데이터 저장
         console.log(`Saving team cheers for ${team.name}: ${team.cheerCount}`);
         await setDoc(teamCheerDocRef, {
           cheerCount: Number(team.cheerCount) || 0,
@@ -328,13 +317,11 @@ const LiveAdmin = () => {
         addLog(`팀 응원 데이터 저장: ${team.name}, ${team.cheerCount}`);
       }
 
-      // 매치 응원 데이터 저장
       console.log(`Saving match cheers for ${matchId}:`, cheerData);
       await setDoc(cheerDocRef, cheerData);
       console.log(`Updated match cheers for ${matchId}:`, cheerData);
       addLog(`매치 응원 데이터 저장: ${matchId}, ${JSON.stringify(cheerData)}`);
 
-      // 편집 모드: 원래 팀 이름 변경 시 기존 문서 삭제
       if (editingLineupId && originalTeamName && originalTeamName !== teams[0].name) {
         console.log(`Deleting original team: ${originalTeamName}`);
         const oldPlayersSnap = await getDocs(collection(db, 'live', originalTeamName, 'players'));
@@ -343,20 +330,19 @@ const LiveAdmin = () => {
           addLog(`기존 선수 삭제: ${originalTeamName}, ${playerDoc.id}`);
         }
         await deleteDoc(doc(db, 'live', originalTeamName));
-        await deleteDoc(doc(db, 'live', originalTeamName, 'cheers'));
+        await deleteDoc(doc(db, 'live', originalTeamName, 'cheers', 'count'));
         console.log(`Deleted team cheers for ${originalTeamName}`);
         addLog(`기존 팀 삭제: ${originalTeamName}`);
       }
 
       setMessage(editingLineupId ? '라인업이 성공적으로 수정되었습니다.' : '라인업이 성공적으로 저장되었습니다.');
       addLog(`라인업 저장 완료: ${editingLineupId ? '수정' : '추가'}`);
-      // 폼 초기화
       setDateTime('');
       setTeams(
         Array(teamCount).fill().map((_, i) => ({
           name: '',
           captain: '',
-          color: i % 2 === 0 ? '#000000' : '#00b7eb',
+          color: i % 3 === 0 ? '#000000' : (i % 3 === 1 ? '#00b7eb' : '#FFA500'),
           players: [createEmptyPlayer()],
           cheerCount: 0
         }))
@@ -364,10 +350,7 @@ const LiveAdmin = () => {
       setEditingLineupId(null);
       setOriginalTeamName(null);
       setEditingCheerCount({});
-      setMatchCheers({
-        teamA: { name: '', cheers: 0 },
-        teamB: { name: '', cheers: 0 }
-      });
+      setMatchCheers([]);
       setIsEditingMatchCheers(false);
       fetchLineups();
     } catch (err) {
@@ -411,10 +394,7 @@ const LiveAdmin = () => {
       { name: '', captain: '', color: '#00b7eb', players: [createEmptyPlayer()], cheerCount: 0 }
     ]);
     setEditingCheerCount({});
-    setMatchCheers({
-      teamA: { name: '', cheers: 0 },
-      teamB: { name: '', cheers: 0 }
-    });
+    setMatchCheers([]);
     setIsEditingMatchCheers(false);
     console.log('Cancelled editing');
     addLog('라인업 편집 취소');
@@ -431,9 +411,22 @@ const LiveAdmin = () => {
           addLog(`선수 삭제: ${teamName}, ${playerDoc.id}`);
         }
         await deleteDoc(doc(db, 'live', teamName));
-        await deleteDoc(doc(db, 'live', teamName, 'cheers'));
+        await deleteDoc(doc(db, 'live', teamName, 'cheers', 'count'));
         console.log(`Deleted team cheers for ${teamName}`);
         addLog(`팀 삭제: ${teamName}`);
+
+        // 매치 응원 데이터에서도 해당 팀 제거
+        const matchId = `match_${format(new Date(), 'yyyyMMdd')}`;
+        const cheerDocRef = doc(db, 'cheers', matchId);
+        const cheerDoc = await getDoc(cheerDocRef);
+        if (cheerDoc.exists()) {
+          const cheerData = cheerDoc.data();
+          const updatedTeams = (cheerData.teams || []).filter(team => team.name !== teamName);
+          await setDoc(cheerDocRef, { teams: updatedTeams });
+          console.log(`Removed ${teamName} from match cheers for ${matchId}`);
+          addLog(`매치 응원 데이터에서 팀 삭제: ${teamName}, ${matchId}`);
+        }
+
         setMessage('라인업이 삭제되었습니다.');
         fetchLineups();
       } catch (err) {
@@ -447,7 +440,7 @@ const LiveAdmin = () => {
   const handleResetCheers = async (teamName) => {
     if (window.confirm(`"${teamName}" 팀의 응원 데이터를 초기화하시겠습니까?`)) {
       try {
-        const cheerDocRef = doc(db, 'live', teamName, 'cheers');
+        const cheerDocRef = doc(db, 'live', teamName, 'cheers', 'count');
         await setDoc(cheerDocRef, {
           cheerCount: 0,
           updatedAt: new Date().toISOString()
@@ -470,14 +463,13 @@ const LiveAdmin = () => {
         const matchId = `match_${format(new Date(), 'yyyyMMdd')}`;
         const cheerDocRef = doc(db, 'cheers', matchId);
         const resetData = {
-          teamA: { name: matchCheers.teamA.name || savedLineups[0]?.teamName || 'TeamA', cheers: 0 },
-          teamB: { name: matchCheers.teamB.name || savedLineups[1]?.teamName || 'TeamB', cheers: 0 }
+          teams: matchCheers.map(team => ({ name: team.name, cheers: 0 }))
         };
         await setDoc(cheerDocRef, resetData);
         console.log(`Reset match cheers for ${matchId}`);
         addLog(`매치 응원 초기화: ${matchId}`);
         setMessage('매치 응원 데이터가 초기화되었습니다.');
-        setMatchCheers(resetData);
+        setMatchCheers(resetData.teams);
         setIsEditingMatchCheers(false);
         fetchLineups();
       } catch (err) {
@@ -501,8 +493,10 @@ const LiveAdmin = () => {
       const matchId = `match_${format(new Date(), 'yyyyMMdd')}`;
       const cheerDocRef = doc(db, 'cheers', matchId);
       const cheerData = {
-        teamA: { name: matchCheers.teamA.name || savedLineups[0]?.teamName || 'TeamA', cheers: Number(matchCheers.teamA.cheers) || 0 },
-        teamB: { name: matchCheers.teamB.name || savedLineups[1]?.teamName || 'TeamB', cheers: Number(matchCheers.teamB.cheers) || 0 }
+        teams: matchCheers.map(team => ({
+          name: team.name,
+          cheers: Number(team.cheers) || 0
+        }))
       };
       await setDoc(cheerDocRef, cheerData);
       console.log(`Saved match cheers for ${matchId}:`, cheerData);
@@ -517,13 +511,12 @@ const LiveAdmin = () => {
     }
   };
 
-  const handleMatchCheerChange = (team, value) => {
-    setMatchCheers(prev => ({
-      ...prev,
-      [team]: { ...prev[team], cheers: value }
-    }));
-    console.log(`Updated match cheer count for ${team}: ${value}`);
-    addLog(`매치 응원 업데이트: ${team}, ${value}`);
+  const handleMatchCheerChange = (index, value) => {
+    const newMatchCheers = [...matchCheers];
+    newMatchCheers[index] = { ...newMatchCheers[index], cheers: value };
+    setMatchCheers(newMatchCheers);
+    console.log(`Updated match cheer count for team ${index}: ${value}`);
+    addLog(`매치 응원 업데이트: 팀 ${index + 1}, ${value}`);
   };
 
   const handleCheerCountChange = (teamName, value) => {
@@ -564,7 +557,6 @@ const LiveAdmin = () => {
           </div>
           {capsLockOn && <S.ErrorMessage>Caps Lock이 켜져 있습니다.</S.ErrorMessage>}
           <S.Button type="submit">확인</S.Button>
-          {/* 로그 표시 */}
           {logs.length > 0 && (
             <S.LogsContainer>
               <S.Header>로그</S.Header>
@@ -576,7 +568,7 @@ const LiveAdmin = () => {
         </form>
       ) : (
         <>
-          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (라인업은 설정한 시간에서 5시간전에나옴)</S.SectionTitle>
+          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (라인업은 설정한 시간에서 5시간 전에 나옴)</S.SectionTitle>
           
           <S.FormContainer onSubmit={handleSubmit}>
             <S.Input
@@ -686,20 +678,16 @@ const LiveAdmin = () => {
             {teamCount >= 2 && (
               <S.TeamSection>
                 <S.TeamTitle>매치 응원 데이터</S.TeamTitle>
-                <S.Input
-                  type="number"
-                  value={matchCheers.teamA.cheers}
-                  onChange={(e) => handleMatchCheerChange('teamA', e.target.value)}
-                  placeholder={`${matchCheers.teamA.name || 'TeamA'} 응원 수`}
-                  min="0"
-                />
-                <S.Input
-                  type="number"
-                  value={matchCheers.teamB.cheers}
-                  onChange={(e) => handleMatchCheerChange('teamB', e.target.value)}
-                  placeholder={`${matchCheers.teamB.name || 'TeamB'} 응원 수`}
-                  min="0"
-                />
+                {teams.map((team, index) => (
+                  <S.Input
+                    key={index}
+                    type="number"
+                    value={matchCheers[index]?.cheers || 0}
+                    onChange={(e) => handleMatchCheerChange(index, e.target.value)}
+                    placeholder={`${team.name || `Team${index + 1}`} 응원 수`}
+                    min="0"
+                  />
+                ))}
               </S.TeamSection>
             )}
 
@@ -727,26 +715,26 @@ const LiveAdmin = () => {
                   <S.SavedLineupTitle>
                     매치 응원:{' '}
                     {isEditingMatchCheers ? (
-                      <>
-                        <S.Input
-                          type="number"
-                          value={matchCheers.teamA.cheers}
-                          onChange={(e) => handleMatchCheerChange('teamA', e.target.value)}
-                          style={{ width: '80px', marginLeft: '5px' }}
-                          min="0"
-                        />
-                        {' 회, '}
-                        <S.Input
-                          type="number"
-                          value={matchCheers.teamB.cheers}
-                          onChange={(e) => handleMatchCheerChange('teamB', e.target.value)}
-                          style={{ width: '80px', marginLeft: '5px' }}
-                          min="0"
-                        />
-                        {' 회'}
-                      </>
+                      matchCheers.map((team, index) => (
+                        <span key={index}>
+                          <S.Input
+                            type="number"
+                            value={team.cheers}
+                            onChange={(e) => handleMatchCheerChange(index, e.target.value)}
+                            style={{ width: '80px', marginLeft: '5px' }}
+                            min="0"
+                          />
+                          {' 회'}
+                          {index < matchCheers.length - 1 && ', '}
+                        </span>
+                      ))
                     ) : (
-                      `${matchCheers.teamA.name || 'TeamA'} ${matchCheers.teamA.cheers}회, ${matchCheers.teamB.name || 'TeamB'} ${matchCheers.teamB.cheers}회`
+                      matchCheers.map((team, index) => (
+                        <span key={index}>
+                          {team.name || `Team${index + 1}`} {team.cheers}회
+                          {index < matchCheers.length - 1 && ', '}
+                        </span>
+                      ))
                     )}
                   </S.SavedLineupTitle>
                   <S.SavedLineupActions>
@@ -802,7 +790,6 @@ const LiveAdmin = () => {
               </>
             )}
           </S.SavedLineupsContainer>
-          {/* 로그 표시 */}
           {logs.length > 0 && (
             <S.LogsContainer>
               <S.Header>로그</S.Header>

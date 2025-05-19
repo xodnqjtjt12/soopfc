@@ -116,3 +116,31 @@ export const PreviewContainer = styled.div`
   border-radius: 6px;
   margin-bottom: 10px;
 `;
+
+export const Select = styled.select`
+  padding: 15px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 14px;
+    padding: 12px;
+  }
+`;
+
+
+export const ErrorMessage = styled.p`
+  color: #f44336;
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
+`;

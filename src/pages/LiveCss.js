@@ -89,7 +89,7 @@ export const MatchHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(90deg, #00295f, #004aad); /* Gradient for stadium feel */
+  background: linear-gradient(90deg, #00295f, #004aad);
   color: white;
   padding: 15px 0;
   position: relative;
@@ -110,30 +110,36 @@ export const MatchHeader = styled.div`
 
 export const MatchVS = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   background-color: white;
-  padding: 20px 0;
+  padding: 20px;
   border-bottom: 1px solid #e5e5e5;
   border-radius: 8px;
   animation: ${zoomIn} 0.7s ease-out;
+  gap: 20px;
 
   @media (max-width: 768px) {
-    padding: 15px 0;
+    padding: 15px;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
   }
 `;
 
 export const TeamContainer = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
 
   @media (max-width: 768px) {
+    min-width: 150px;
     max-width: 100%;
-    gap: 10px;
+    text-align: center;
   }
 `;
 
@@ -141,7 +147,6 @@ export const TeamInfo = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
   animation: ${zoomIn} 0.9s ease-out;
 `;
 
@@ -175,10 +180,10 @@ export const VSIndicator = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 30px;
+  margin: 0 20px;
 
   @media (max-width: 768px) {
-    margin: 0 15px;
+    margin: 10px 0;
   }
 `;
 
@@ -201,9 +206,13 @@ export const MatchDate = styled.div`
   margin-top: 5px;
   opacity: 0;
   animation: ${fadeInUp} 1s ease-out 0.7s forwards;
+  white-space: nowrap;
 
   @media (max-width: 768px) {
     font-size: 12px;
+    margin-top: 10px;
+    width: auto;
+    word-break: break-word;
   }
 `;
 
@@ -304,7 +313,7 @@ export const PlayerItem = styled.li`
   border-bottom: 1px solid #f5f5f5;
   opacity: 0;
   animation: ${slideInLeft} 0.5s ease-out forwards;
-  animation-delay: ${props => props.index * 0.1}s; /* Staggered animation */
+  animation-delay: ${props => props.index * 0.1}s;
   
   &:last-child {
     border-bottom: none;
@@ -576,12 +585,16 @@ export const GaugeBar = styled.div`
   background-color: ${props => props.color || '#3182f6'};
   width: ${props => props.width || '50%'};
   transition: width 0.5s ease-in-out;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 export const GaugeText = styled.div`
-    position: absolute;
-//  top: 50%;           /* ← 이 줄의 주석(//)을 지우고 활성화 */
-  left: 42%;          /* ← 35% → 50% 로 수정 */
+  position: absolute;
+  // top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
   font-size: 14px;
   font-weight: 600;
@@ -590,12 +603,30 @@ export const GaugeText = styled.div`
   padding: 2px 8px;
   border-radius: 4px;
   animation: ${pulse} 2s infinite;
+  white-space: nowrap;
 
   @media (max-width: 768px) {
     font-size: 12px;
-    left: 35%;          /* ← 35% → 50% 로 수정 */
   }
 `;
+
+export const MatchDateBelow = styled.div`
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  margin-top: 10px;
+  opacity: 0;
+  animation: ${fadeInUp} 1s ease-out 0.7s forwards;
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+    margin-top: 10px;
+    width: auto;
+    word-break: break-word;
+  }
+`;
+
 
 export const HeadToHead = styled.div`
   margin-bottom: 20px;
@@ -603,7 +634,7 @@ export const HeadToHead = styled.div`
   animation: ${fadeInUp} 0.7s ease-out;
 
   @media (max-width: 768px) {
-    display: none; /* 모바일에서 전적 숨김 */
+    display: none;
   }
 `;
 
@@ -650,204 +681,5 @@ export const LineupMessage = styled.div`
     font-size: 14px;
     padding: 12px;
     margin: 8px;
-  }
-`;
-
-// Unused components remain unchanged
-export const TeamsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const TeamCard = styled.div`
-  background: #f9fafb;
-  border: 2px solid ${props => props.color || '#e5e7eb'};
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 15px;
-  }
-`;
-
-export const TeamHeader = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
-  background: ${props => props.color || '#e5e7eb'};
-  border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 15px;
-
-  @media (max-width: 768px) {
-    font-size: 18px;
-  }
-`;
-
-export const CaptainInfo = styled.p`
-  font-size: 16px;
-  font-weight: 500;
-  color: #1a1a1a;
-  margin-bottom: 10px;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
-`;
-
-export const StatsContainer = styled.div`
-  margin-top: 40px;
-
-  @media (max-width: 768px) {
-    margin-top: 30px;
-  }
-`;
-
-export const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
-`;
-
-export const StatValue = styled.span`
-  font-size: 16px;
-  color: #4b5563;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
-`;
-
-export const GraphContainer = styled.div`
-  margin-top: 20px;
-  padding: 20px;
-  background: #f9fafb;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 15px;
-  }
-`;
-
-export const GraphWrapper = styled.div`
-  height: 400px;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  animation: ${growIn} 0.8s ease-out;
-
-  @media (max-width: 768px) {
-    height: 300px;
-  }
-`;
-
-export const ChatSection = styled.div`
-  position: fixed;
-  right: 20px;
-  top: 20px;
-  width: 300px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  padding: 15px;
-  max-height: 80vh;
-  overflow-y: auto;
-  animation: ${slideInRight} 0.6s ease-out;
-
-  @media (max-width: 768px) {
-    width: 90%;
-    right: 5%;
-    top: 10px;
-  }
-`;
-
-export const ChatTitle = styled.h3`
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
-`;
-
-export const ChatMessages = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0 0 10px 0;
-  max-height: 60vh;
-  overflow-y: auto;
-`;
-
-export const ChatMessage = styled.li`
-  padding: 8px;
-  border-bottom: 1px solid #f5f5f5;
-  font-size: 14px;
-  color: #333;
-  opacity: 0;
-  animation: ${fadeInUp} 0.5s ease-out forwards;
-  animation-delay: ${props => props.index * 0.1}s;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 13px;
-  }
-`;
-
-export const ChatInputContainer = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
-export const ChatInput = styled.input`
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
-
-  &:focus {
-    border-color: #3182f6;
-    outline: none;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 13px;
-  }
-`;
-
-export const ChatButton = styled.button`
-  background-color: #3182f6;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    background-color: #2563eb;
-    transform: scale(1.05);
-  }
-
-  @media (max-width: 768px) {
-    padding: 6px 12px;
-    font-size: 13px;
   }
 `;

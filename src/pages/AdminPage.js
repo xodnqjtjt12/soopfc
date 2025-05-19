@@ -1,4 +1,3 @@
-// src/pages/AdminPage.js
 import React, { useState, useEffect } from 'react';
 import {
   collection, doc, getDoc, getDocs,
@@ -21,7 +20,8 @@ const AdminPage = () => {
   const [logs, setLogs] = useState([]);
   const [playerData, setPlayerData] = useState({
     backNumber: '', name: '', team: '', matches: '', goals: '', assists: '',
-    cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: ''
+    cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: '',
+    momTop3Count: '', momTop8Count: ''
   });
   const [previewExcelChanges, setPreviewExcelChanges] = useState(null);
   const [file, setFile] = useState(null);
@@ -32,13 +32,29 @@ const AdminPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [editingData, setEditingData] = useState({
     backNumber: '', team: '', matches: '', goals: '', assists: '',
-    cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: ''
+    cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: '',
+    momTop3Count: '', momTop8Count: ''
   });
+  const [selectedYear, setSelectedYear] = useState('2025');
+  const [years, setYears] = useState(['2022', '2023', '2024', '2025']);
 
   // --- 로그 추가 헬퍼 ---
   const addLog = (msg) => {
     const ts = new Date().toLocaleString();
     setLogs((prev) => [...prev, `[${ts}] ${msg}`]);
+  };
+
+  // --- 연도 추가 핸들러 ---
+  const handleAddYear = () => {
+    const latestYear = Math.max(...years.map(Number));
+    const newYear = (latestYear + 1).toString();
+    if (years.includes(newYear)) {
+      alert('이미 존재하는 연도입니다.');
+      return;
+    }
+    setYears((prev) => [...prev, newYear].sort((a, b) => a - b));
+    setSelectedYear(newYear);
+    addLog(`연도 추가: ${newYear}`);
   };
 
   // --- 비밀번호 입력/확인 ---
@@ -70,7 +86,7 @@ const AdminPage = () => {
 
     const fields = [
       'backNumber', 'team', 'matches', 'goals', 'assists', 'cleanSheets',
-      'win', 'draw', 'lose', 'winRate', 'personalPoints', 'momScore'
+      'win', 'draw', 'lose', 'winRate', 'personalPoints', 'momScore', 'momTop3Count', 'momTop8Count'
     ];
     const changes = {};
     fields.forEach((field) => {
@@ -91,19 +107,20 @@ const AdminPage = () => {
     const wa = m > 0 ? +(a / m).toFixed(2) : 0; // 경기당 도움
     const war = m > 0 ? +((g + a + (cs * 0.5)) / m).toFixed(2) : 0; // 클린시트 포함한 WAR
     return { attackPoints, xg, wa, war };
-};
+  };
 
   // --- 선수 데이터 추가/업데이트 ---
   const handleSubmitPlayerData = async (e) => {
     e.preventDefault();
     const {
       backNumber, name, team, matches, goals, assists, cleanSheets,
-      win, draw, lose, winRate, personalPoints, momScore
+      win, draw, lose, winRate, personalPoints, momScore, momTop3Count, momTop8Count
     } = playerData;
     if (
       !name || !team || isNaN(matches) || isNaN(goals) || isNaN(assists) ||
       isNaN(cleanSheets) || isNaN(win) || isNaN(draw) || isNaN(lose) ||
-      isNaN(winRate) || isNaN(personalPoints) || isNaN(momScore)
+      isNaN(winRate) || isNaN(personalPoints) || isNaN(momScore) ||
+      isNaN(momTop3Count) || isNaN(momTop8Count)
     ) {
       return alert('모든 필드를 올바르게 입력해주세요.');
     }
@@ -128,16 +145,19 @@ const AdminPage = () => {
         winRate: Math.round(Number(winRate)),
         personalPoints: Number(personalPoints),
         momScore: Number(momScore),
+        momTop3Count: Number(momTop3Count) || 0,
+        momTop8Count: Number(momTop8Count) || 0,
         xg: adv.xg,
         wa: adv.wa,
         war: adv.war,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
       alert(playerDoc.exists() ? '선수 데이터가 업데이트되었습니다.' : '선수 데이터가 추가되었습니다.');
-      addLog(`선수 데이터 ${playerDoc.exists() ? '업데이트' : '추가'}: ${name}`);
+      addLog(`선수 데이터 ${playerDoc.exists() ? '업데이트' : '추가'}: ${name} (${selectedYear}년)`);
       setPlayerData({
         backNumber: '', name: '', team: '', matches: '', goals: '', assists: '',
-        cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: ''
+        cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: '',
+        momTop3Count: '', momTop8Count: ''
       });
       setPreviewExcelChanges(null);
       fetchPlayers();
@@ -162,7 +182,7 @@ const AdminPage = () => {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(ws);
       setPreviewData(json);
-  
+
       try {
         for (const row of json) {
           if (!row.name || !row.team) continue;
@@ -184,15 +204,17 @@ const AdminPage = () => {
             win: Number(row.win || 0),
             draw: Number(row.draw || 0),
             lose: Number(row.lose || 0),
-            winRate: Number(row.winRate || 0), // 반올림 제거, 입력값 그대로 저장
+            winRate: Number(row.winRate || 0),
             personalPoints: Number(row.personalPoints || 0),
             momScore: Number(row.momScore || 0),
+            momTop3Count: Number(row.momTop3Count) || 0,
+            momTop8Count: Number(row.momTop8Count) || 0,
             xg: adv.xg,
             wa: adv.wa,
             war: adv.war,
             updatedAt: serverTimestamp()
-          });
-          addLog(`엑셀 처리: ${row.name}`);
+          }, { merge: true });
+          addLog(`엑셀 처리: ${row.name} (${selectedYear}년)`);
         }
         setUploadMessage('엑셀 파일 업로드 완료');
         fetchPlayers();
@@ -204,6 +226,7 @@ const AdminPage = () => {
     };
     reader.readAsBinaryString(file);
   };
+
   const handlePreviewExcel = () => {
     if (!file) return alert('파일을 선택해주세요.');
     const reader = new FileReader();
@@ -221,18 +244,20 @@ const AdminPage = () => {
       {
         backNumber: 10, name: '빅루트', team: 'soopfc', matches: 7, goals: 1, assists: 3,
         attackPoints: 4, cleanSheets: 0, war: 0.5, xg: 0.1, wa: 0.4,
-        win: 3, draw: 1, lose: 3, winRate: 43, personalPoints: 10, momScore: 850
+        win: 3, draw: 1, lose: 3, winRate: 43, personalPoints: 10, momScore: 850,
+        momTop3Count: 2, momTop8Count: 5
       },
       {
         backNumber: 18, name: '허니베어', team: 'soopfc', matches: 7, goals: 0, assists: 1,
         attackPoints: 1, cleanSheets: 8, war: 0.1, xg: 0, wa: 0.1,
-        win: 2, draw: 1, lose: 4, winRate: 29, personalPoints: 7, momScore: 790
+        win: 2, draw: 1, lose: 4, winRate: 29, personalPoints: 7, momScore: 790,
+        momTop3Count: 1, momTop8Count: 3
       }
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-    XLSX.writeFile(wb, 'template.xlsx');
-    addLog('엑셀 양식 다운로드');
+    XLSX.writeFile(wb, `template_${selectedYear}.xlsx`);
+    addLog(`엑셀 양식 다운로드 (${selectedYear}년)`);
   };
 
   // --- DB에서 선수 목록 조회 ---
@@ -264,7 +289,9 @@ const AdminPage = () => {
       lose: pl.lose,
       winRate: pl.winRate,
       personalPoints: pl.personalPoints,
-      momScore: pl.momScore
+      momScore: pl.momScore,
+      momTop3Count: pl.momTop3Count || 0,
+      momTop8Count: pl.momTop8Count || 0
     });
     addLog(`편집 모드: ${pl.name}`);
   };
@@ -291,6 +318,8 @@ const AdminPage = () => {
         winRate: Number(editingData.winRate),
         personalPoints: Number(editingData.personalPoints),
         momScore: Number(editingData.momScore),
+        momTop3Count: Number(editingData.momTop3Count) || 0,
+        momTop8Count: Number(editingData.momTop8Count) || 0,
         xg: adv.xg,
         wa: adv.wa,
         war: adv.war,
@@ -299,7 +328,8 @@ const AdminPage = () => {
       setEditingId(null);
       setEditingData({
         backNumber: '', team: '', matches: '', goals: '', assists: '',
-        cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: ''
+        cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: '',
+        momTop3Count: '', momTop8Count: ''
       });
       fetchPlayers();
       addLog(`수정 저장: ${id}`);
@@ -314,7 +344,8 @@ const AdminPage = () => {
     setEditingId(null);
     setEditingData({
       backNumber: '', team: '', matches: '', goals: '', assists: '',
-      cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: ''
+      cleanSheets: '', win: '', draw: '', lose: '', winRate: '', personalPoints: '', momScore: '',
+      momTop3Count: '', momTop8Count: ''
     });
     addLog('편집 취소');
   };
@@ -358,12 +389,24 @@ const AdminPage = () => {
               onClick={toggleShowPassword}
             />
           </div>
+          {capsLockOn && <S.ErrorMessage>Caps Lock이 켜져 있습니다.</S.ErrorMessage>}
           <S.Button type="submit">확인</S.Button>
         </form>
       ) : (
         <S.AdminContent>
           <S.MainArea>
             <S.Header>관리자 페이지</S.Header>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <S.Select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>{year}년</option>
+                ))}
+              </S.Select>
+              <S.Button onClick={handleAddYear}>연도 추가</S.Button>
+            </div>
             <div style={{ textAlign: 'right', fontSize: '14px', color: '#4e5968', marginBottom: '16px' }}>
               {players[0]?.updatedAt
                 ? `최근 업데이트: ${new Date(players[0].updatedAt.seconds * 1000).toLocaleString('ko-KR')}`
@@ -371,7 +414,7 @@ const AdminPage = () => {
             </div>
 
             {/* 엑셀 업로드 */}
-            <h3>엑셀 파일 업로드</h3>
+            <h3>엑셀 파일 업로드 ({selectedYear}년)</h3>
             <S.Input type="file" onChange={handleFileChange} />
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <S.Button onClick={handleFileUpload}>업로드</S.Button>
@@ -380,7 +423,7 @@ const AdminPage = () => {
             {uploadMessage && <S.UploadMessage success={uploadMessage.includes('완료')}>{uploadMessage}</S.UploadMessage>}
             {showExcelPreview && previewData.length > 0 && (
               <S.PreviewContainer>
-                <p><strong>엑셀 미리보기</strong></p>
+                <p><strong>엑셀 미리보기 ({selectedYear}년)</strong></p>
                 <S.Table>
                   <thead>
                     <tr>
@@ -389,6 +432,7 @@ const AdminPage = () => {
                       <S.Th>경기당 공격포인트</S.Th><S.Th>경기당 득점</S.Th><S.Th>경기당 도움</S.Th>
                       <S.Th>승</S.Th><S.Th>무</S.Th><S.Th>패</S.Th><S.Th>승률</S.Th>
                       <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th>
+                      <S.Th>MOM TOP 3 횟수</S.Th><S.Th>MOM TOP 8 횟수</S.Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -399,6 +443,7 @@ const AdminPage = () => {
                         <S.Td>{r.war}</S.Td><S.Td>{r.xg}</S.Td><S.Td>{r.wa}</S.Td>
                         <S.Td>{r.win}</S.Td><S.Td>{r.draw}</S.Td><S.Td>{r.lose}</S.Td><S.Td>{r.winRate}</S.Td>
                         <S.Td>{r.personalPoints}</S.Td><S.Td>{r.momScore}</S.Td>
+                        <S.Td>{r.momTop3Count}</S.Td><S.Td>{r.momTop8Count}</S.Td>
                       </tr>
                     ))}
                   </tbody>
@@ -410,7 +455,7 @@ const AdminPage = () => {
 
             {/* 개별 입력 폼 */}
             <S.Form onSubmit={handleSubmitPlayerData}>
-              <h3>선수 데이터 추가/수정</h3>
+              <h3>선수 데이터 추가/수정 ({selectedYear}년)</h3>
               {previewExcelChanges && (
                 <S.PreviewContainer>
                   <p><strong>업데이트 미리보기</strong></p>
@@ -426,6 +471,8 @@ const AdminPage = () => {
                   <p>승률: {previewExcelChanges.winRate}</p>
                   <p>개인승점: {previewExcelChanges.personalPoints}</p>
                   <p>MOM점수: {previewExcelChanges.momScore}</p>
+                  <p>MOM TOP 3 횟수: {previewExcelChanges.momTop3Count}</p>
+                  <p>MOM TOP 8 횟수: {previewExcelChanges.momTop8Count}</p>
                 </S.PreviewContainer>
               )}
               <S.Input type="number" name="backNumber" value={playerData.backNumber} onChange={handleInputChange} placeholder="등번호" />
@@ -441,6 +488,8 @@ const AdminPage = () => {
               <S.Input type="number" name="winRate" value={playerData.winRate} onChange={handleInputChange} placeholder="승률" />
               <S.Input type="number" name="personalPoints" value={playerData.personalPoints} onChange={handleInputChange} placeholder="개인승점" />
               <S.Input type="number" name="momScore" value={playerData.momScore} onChange={handleInputChange} placeholder="MOM점수" />
+              <S.Input type="number" name="momTop3Count" value={playerData.momTop3Count} onChange={handleInputChange} placeholder="MOM TOP 3 횟수" />
+              <S.Input type="number" name="momTop8Count" value={playerData.momTop8Count} onChange={handleInputChange} placeholder="MOM TOP 8 횟수" />
               <S.Button type="submit">저장</S.Button>
             </S.Form>
 
@@ -451,7 +500,7 @@ const AdminPage = () => {
             <hr />
 
             {/* 선수 목록 */}
-            <S.Header>저장된 선수 목록 (총 {players.length}명)</S.Header>
+            <S.Header>저장된 선수 목록 (총 {players.length}명, {selectedYear}년)</S.Header>
             <S.Table>
               <thead>
                 <tr>
@@ -459,7 +508,7 @@ const AdminPage = () => {
                   <S.Th>득점</S.Th><S.Th>도움</S.Th><S.Th>공격포인트</S.Th><S.Th>클린시트</S.Th>
                   <S.Th>경기당 공격포인트</S.Th><S.Th>경기당 득점</S.Th><S.Th>경기당 도움</S.Th>
                   <S.Th>승</S.Th><S.Th>무</S.Th><S.Th>패</S.Th><S.Th>승률</S.Th>
-                  <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th><S.Th>액션</S.Th>
+                  <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th><S.Th>MOM TOP 3 횟수</S.Th><S.Th>MOM TOP 8 횟수</S.Th><S.Th>액션</S.Th>
                 </tr>
               </thead>
               <tbody>
@@ -583,7 +632,7 @@ const AdminPage = () => {
                         <S.SmallInput
                           type="number"
                           name="winRate"
-                          value={editingData.winRate }
+                          value={editingData.winRate}
                           onChange={handleEditingDataChange}
                         />
                       ) : (
@@ -612,6 +661,30 @@ const AdminPage = () => {
                         />
                       ) : (
                         pl.momScore
+                      )}
+                    </S.Td>
+                    <S.Td>
+                      {editingId === pl.id ? (
+                        <S.SmallInput
+                          type="number"
+                          name="momTop3Count"
+                          value={editingData.momTop3Count}
+                          onChange={handleEditingDataChange}
+                        />
+                      ) : (
+                        pl.momTop3Count || 0
+                      )}
+                    </S.Td>
+                    <S.Td>
+                      {editingId === pl.id ? (
+                        <S.SmallInput
+                          type="number"
+                          name="momTop8Count"
+                          value={editingData.momTop8Count}
+                          onChange={handleEditingDataChange}
+                        />
+                      ) : (
+                        pl.momTop8Count || 0
                       )}
                     </S.Td>
                     <S.Td>
