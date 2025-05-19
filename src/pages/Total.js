@@ -141,6 +141,10 @@ const unifyPosition = (position) => {
     'CB2': 'CB',
     'CDM1': 'CDM',
     'CDM2': 'CDM',
+    'CM1': 'CM',
+    'CM2': 'CM',
+    
+    
   };
   return positionMap[position] || position;
 };
