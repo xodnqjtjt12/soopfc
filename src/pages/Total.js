@@ -9,7 +9,7 @@ import {
   StatsGrid, StatRow, StatHeader, StatLabel, StatValue, StatBarContainer, StatBar,
   AdvancedStatsSection, AdvancedStatsTitle, AdvancedStatsGrid, AdvancedStatCard,
   AdvancedStatValue, AdvancedStatLabel, LevelUpMessage, TitleContainer, Title,
-  getRankColor, getRatingColor, ToggleHistoryButton // 추가
+  getRankColor, getRatingColor, ToggleHistoryButton
 } from './TotalCss';
 
 // 선수 Rating 계산 (FIFA 스타일)
@@ -134,11 +134,55 @@ const getLevelUpMessage = (value, thresholds, titles, unit) => {
   return null;
 };
 
+// 포메이션 통일 함수 (CB1, CB2만 통일)
+const unifyPosition = (position) => {
+  const positionMap = {
+    'CB1': 'CB',
+    'CB2': 'CB',
+    'CDM1': 'CDM',
+    'CDM2': 'CDM',
+  };
+  return positionMap[position] || position;
+};
+
+// 가장 많이 사용한 포메이션 계산
+const calculateMostFrequentFormation = async (playerName) => {
+  const quartersQuery = query(collection(db, 'matches'));
+  const quartersSnapshot = await getDocs(quartersQuery);
+  const playerPositions = {};
+
+  quartersSnapshot.forEach((matchDoc) => {
+    const quarters = matchDoc.data().quarters || [];
+    quarters.forEach((quarter) => {
+      quarter.teams.forEach((team) => {
+        team.players.forEach((player) => {
+          if (player.name === playerName) {
+            const unifiedPos = unifyPosition(player.position);
+            playerPositions[unifiedPos] = (playerPositions[unifiedPos] || 0) + 1;
+          }
+        });
+      });
+    });
+  });
+
+  const positionCounts = Object.entries(playerPositions);
+  if (positionCounts.length === 0) return 'N/A';
+
+  const sortedPositions = positionCounts.sort((a, b) => b[1] - a[1]);
+  const maxCount = sortedPositions[0][1];
+  const mostFrequent = sortedPositions
+    .filter(([_, count]) => count === maxCount)
+    .map(([pos]) => pos);
+
+  return mostFrequent.join(', ');
+};
+
 const Total = () => {
   const [playerName, setPlayerName] = useState('');
   const [playerInfo, setPlayerInfo] = useState(null);
   const [playerRankings, setPlayerRankings] = useState(null);
   const [error, setError] = useState('');
+  const [mostFrequentFormation, setMostFrequentFormation] = useState('N/A');
 
   useEffect(() => {
     const fetchRankings = async () => {
@@ -147,7 +191,6 @@ const Total = () => {
         const playersSnapshot = await getDocs(playersQuery);
         let playersData = playersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-        // xG 계산
         playersData = playersData.map((player) => {
           const matches = player.matches || 1;
           const normalizedGoals = (player.goals || 0) / matches;
@@ -166,14 +209,12 @@ const Total = () => {
           return { ...player, xG };
         });
 
-        // xG 스케일링
         const maxXG = Math.max(...playersData.map((p) => p.xG), 1);
         playersData = playersData.map((player) => ({
           ...player,
           xG: Math.min((player.xG / maxXG), 1.0),
         }));
 
-        // 순위 계산
         const rankedByGoals = computeRankings(playersSnapshot.docs, 'goals', 'goalsRank');
         const rankedByAssists = computeRankings(playersSnapshot.docs, 'assists', 'assistsRank');
         const rankedByCleanSheets = computeRankings(playersSnapshot.docs, 'cleanSheets', 'cleanSheetsRank');
@@ -222,16 +263,11 @@ const Total = () => {
         const playerData = playerDoc.data();
         const matches = playerData.matches || 1;
 
-        // xG: rankings에서 가져옴
         const playerInRankings = playerRankings.playersData.find(p => p.id === playerDoc.id);
         const xG = playerInRankings ? playerInRankings.xG.toFixed(3) : '0.000';
-
-        // xA: 경기당 어시스트
         const xA = isNaN((playerData.assists || 0) / matches)
           ? '0.000'
           : ((playerData.assists || 0) / matches).toFixed(3);
-
-        // war: 경기당 골
         const war = isNaN((playerData.goals || 0) / matches)
           ? '0.000'
           : ((playerData.goals || 0) / matches).toFixed(3);
@@ -243,6 +279,9 @@ const Total = () => {
         const playerInPointsRank = playerRankings.rankedByPoints.find(p => p.id === playerDoc.id);
         const playerInMomRank = playerRankings.rankedByMom.find(p => p.id === playerDoc.id);
         const playerInWinRateRank = playerRankings.rankedByWinRate.find(p => p.id === playerDoc.id);
+
+        const formation = await calculateMostFrequentFormation(playerName);
+        setMostFrequentFormation(formation);
 
         setPlayerInfo({
           ...playerData,
@@ -273,7 +312,6 @@ const Total = () => {
     return Math.min((value / max) * 100, 100);
   };
 
-  // 순위 배너 메시지 렌더링
   const renderRankBanner = () => {
     if (!playerInfo) return null;
     const messages = [];
@@ -329,38 +367,6 @@ const Total = () => {
     );
   };
 
-  // 선수 포지션 결정
-  const determinePosition = (playerInfo) => {
-    if (!playerInfo) return 'FW';
-
-    const backNumber = playerInfo.backNumber || 0;
-    const goals = playerInfo.goals || 0;
-    const assists = playerInfo.assists || 0;
-    const cleanSheets = playerInfo.cleanSheets || 0;
-
-    if (backNumber === 1) return 'GK';
-
-    if (cleanSheets > goals && cleanSheets > assists) {
-      if (assists < 2) return 'CB';
-      return 'LWB,RWB';
-    }
-
-    if (assists > goals && assists > cleanSheets) {
-      if (goals > 3) return 'CAM';
-      if (cleanSheets > 2) return 'CDM';
-      return 'CM';
-    }
-
-    if (goals > assists && goals > cleanSheets) {
-      if (assists > 3) return 'SS';
-      return 'FW';
-    }
-
-    if (goals >= 3 && assists >= 3) return 'WF';
-
-    return 'MF';
-  };
-
   return (
     <OuterWrapper>
       <Container>
@@ -387,7 +393,7 @@ const Total = () => {
               </PlayerRating>
               <PlayerName>{playerInfo.name}</PlayerName>
               <PlayerPosition>
-                {determinePosition(playerInfo).toUpperCase()}
+                {mostFrequentFormation.toUpperCase()}
                 <div style={{ marginLeft: '10px' }}>
                   {playerInfo.team && (
                     <PositionBadge>

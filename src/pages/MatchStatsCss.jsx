@@ -843,7 +843,7 @@ export const PlayerCard = styled.div`
     gap: 4px;
     margin-top: 2px;
     font-size: 12px;
-    // text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     flex-wrap: wrap;
   }
 
@@ -1319,5 +1319,94 @@ export const PlayerPopup = styled.div`
     width: 150px;
     font-size: 12px;
     padding: 8px;
+  }
+`;
+
+export const PopupOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+export const PopupContent = styled.div`
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+`;
+
+export const PopupHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+export const PopupTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+`;
+
+export const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+export const PopupBody = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+export const PopupStat = styled.div`
+  font-size: 15px;
+  color: #444;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+export const PopupFooter = styled.div`
+  margin-top: 20px;
+  text-align: right;
+`;
+
+export const GradeButton = styled.button`
+  padding: 10px 20px;
+  background-color: #ff4d4d;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e04343;
   }
 `;

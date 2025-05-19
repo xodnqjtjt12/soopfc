@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../App';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import {
@@ -35,7 +35,15 @@ import {
   FilterBarWrapper,
   PaginationWrapper,
   PaginationButton,
-  PlayerPopup,
+  PopupOverlay,
+  PopupContent,
+  PopupHeader,
+  PopupTitle,
+  CloseButton,
+  PopupBody,
+  PopupStat,
+  PopupFooter,
+  GradeButton,
 } from './MatchStatsCss';
 
 // Modal styles
@@ -343,7 +351,7 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         style={{ left: pos.left, top: pos.top, transform: pos.transform }}
         highlighted={highlightedPlayer?.name === player.name}
         highlightType={highlightedPlayer?.type}
-        onClick={(e) => handlePlayerClick(e, player, goalAssistPairs, ownGoals, pos)}
+        onClick={() => handlePlayerClick(player, goalAssistPairs, ownGoals)}
       >
         <div className="avatar">
           {player.avatarUrl ? (
@@ -417,9 +425,7 @@ const calculateTotalScores = (quarters) => {
 
     const scores = q.teams.reduce((scoreAcc, team) => {
       const teamName = normalizeTeamName(team.name);
-      // Normal goals
       const goals = q.goalAssistPairs?.filter(p => normalizeTeamName(p.goal.team) === teamName).length || 0;
-      // Own goals by opponent team
       const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== teamName);
       const ownGoals = opponentTeam && q.ownGoals
         ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
@@ -534,9 +540,7 @@ const calculateTotalScores = (quarters) => {
 const calculateScores = (pairs = [], ownGoals = [], teams) =>
   teams.map(t => {
     const teamName = normalizeTeamName(t.name);
-    // Normal goals
     const goals = pairs.filter(p => normalizeTeamName(p.goal.team) === teamName).length;
-    // Own goals by opponent team
     const opponentTeam = teams.find(team => normalizeTeamName(team.name) !== teamName);
     const ownGoalsCount = opponentTeam
       ? ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
@@ -555,10 +559,10 @@ function VodPage() {
   const [openQuarters, setOpenQuarters] = useState({});
   const [highlightedPlayer, setHighlightedPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [popup, setPopup] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedQuarter, setSelectedQuarter] = useState(null);
   const datesPerPage = 5;
-  const popupRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -591,7 +595,6 @@ function VodPage() {
       console.log(`Filtered matches for ${nickname}:`, filtered);
       setFilteredMatches(filtered);
     } else {
-      // Apply pagination filtering
       const startIndex = (currentPage - 1) * datesPerPage;
       const endIndex = startIndex + datesPerPage;
       const paginatedDates = dates.slice(startIndex, endIndex);
@@ -602,18 +605,6 @@ function VodPage() {
       );
     }
   }, [filterDate, matches, nickname, currentPage, dates]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (popupRef.current && !popupRef.current.contains(event.target)) {
-        setPopup(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -663,39 +654,39 @@ function VodPage() {
   const toggleQuarter = (matchId, idx) => {
     setOpenQuarters(prev => ({ ...prev, [`${matchId}-${idx}`]: !prev[`${matchId}-${idx}`] }));
     setHighlightedPlayer(null);
-    setPopup(null);
+    setSelectedPlayer(null);
+    setSelectedQuarter(null);
   };
 
   const highlightPlayer = (name, type) => setHighlightedPlayer({ name, type });
 
-  const handlePlayerClick = (event, player, goalAssistPairs, ownGoals = [], pos) => {
-    event.stopPropagation();
+  const handlePlayerClick = (player, goalAssistPairs, ownGoals) => {
     highlightPlayer(player.name, 'goal');
-    const rect = event.currentTarget.getBoundingClientRect();
-    const goalAssists = goalAssistPairs.filter(
-      pair => pair.goal.player === player.name || pair.assist.player === player.name
-    );
-    const ownGoalsList = ownGoals.filter(og => og.player === player.name);
-    setPopup({
-      player: player.name,
-      goalAssists,
-      ownGoals: ownGoalsList,
-      top: `${rect.top + window.scrollY + rect.height / 2}px`,
-      left: `${rect.right + window.scrollX}px`,
+    setSelectedPlayer({
+      ...player,
+      goalAssistPairs,
+      ownGoals,
     });
+    setSelectedQuarter({ goalAssistPairs, ownGoals });
+  };
+
+  const closePopup = () => {
+    setSelectedPlayer(null);
+    setHighlightedPlayer(null);
+    setSelectedQuarter(null);
   };
 
   const handleSearch = () => {
     console.log(`Searching for nickname: ${nickname}`);
     setShowModal(false);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const handleCancel = () => {
     setNickname('');
     setShowModal(false);
     setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
-    setCurrentPage(1); // Reset to first page when cancelling search
+    setCurrentPage(1);
   };
 
   const handleKeyDown = (e) => {
@@ -706,7 +697,7 @@ function VodPage() {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    setFilterDate('all'); // Reset date filter when changing pages
+    setFilterDate('all');
   };
 
   const totalPages = Math.ceil(dates.length / datesPerPage);
@@ -1018,36 +1009,6 @@ function VodPage() {
                                 handlePlayerClick={handlePlayerClick}
                               />
                             )}
-                            {popup && (
-                              <PlayerPopup ref={popupRef} top={popup.top} left={popup.left}>
-                                <strong>{popup.player}</strong>
-                                {popup.goalAssists.length > 0 || popup.ownGoals.length > 0 ? (
-                                  <>
-                                    {popup.goalAssists.map((pair, index) => (
-                                      <div key={`goal-${index}`}>
-                                        {pair.goal.player === popup.player && (
-                                          <div>
-                                            골: {pair.goal.player} 어시: {pair.assist.player || '없음'}
-                                          </div>
-                                        )}
-                                        {pair.assist.player === popup.player && (
-                                          <div>
-                                            골: {pair.goal.player} 어시: {pair.assist.player}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                    {popup.ownGoals.map((og, index) => (
-                                      <div key={`ownGoal-${index}`}>
-                                        자책골: {og.player}
-                                      </div>
-                                    ))}
-                                  </>
-                                ) : (
-                                  <div>골/어시/자책골 기록이 없습니다.</div>
-                                )}
-                              </PlayerPopup>
-                            )}
                           </FieldView>
                         </FieldContainer>
                         <TeamsContainer>
@@ -1150,6 +1111,43 @@ function VodPage() {
           <PaginationWrapper>
             {getPaginationButtons()}
           </PaginationWrapper>
+        )}
+        {selectedPlayer && selectedQuarter && (
+          <PopupOverlay onClick={closePopup}>
+            <PopupContent onClick={(e) => e.stopPropagation()}>
+              <PopupHeader>
+                <PopupTitle>{selectedPlayer.name}</PopupTitle>
+                <CloseButton onClick={closePopup}>X</CloseButton>
+              </PopupHeader>
+              <PopupBody>
+                <PopupStat>등번호: {selectedPlayer.backNumber || '없음'}</PopupStat>
+                <PopupStat>포지션: {selectedPlayer.position || 'N/A'}</PopupStat>
+                <PopupStat>득점: {selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name).length || 0}</PopupStat>
+                <PopupStat>도움: {selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name).length || 0}</PopupStat>
+                <PopupStat>
+                  득점 파트너: {
+                    (() => {
+                      const assists = selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name) || [];
+                      const assistPlayers = assists.map(a => a.assist.player).filter(Boolean);
+                      return assistPlayers.length > 0 ? assistPlayers.join(', ') : '없음';
+                    })()
+                  }
+                </PopupStat>
+                <PopupStat>
+                  어시스트 파트너: {
+                    (() => {
+                      const goals = selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name) || [];
+                      const goalPlayers = goals.map(g => g.goal.player).filter(Boolean);
+                      return goalPlayers.length > 0 ? goalPlayers.join(', ') : '없음';
+                    })()
+                  }
+                </PopupStat>
+              </PopupBody>
+              <PopupFooter>
+                <GradeButton onClick={closePopup}>기록 닫기</GradeButton>
+              </PopupFooter>
+            </PopupContent>
+          </PopupOverlay>
         )}
       </MainContent>
     </Container>

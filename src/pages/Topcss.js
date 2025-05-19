@@ -1,19 +1,16 @@
-// src/Topcss.js
 import styled from 'styled-components';
 
 export const Container = styled.div`
   padding: 20px;
   max-width: 900px;
-  margin: 24px auto 0 auto; /* TopGoalScorer.js의 상단 마진 24px 반영 */
+  margin: 24px auto 0 auto;
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 
-@media (max-width:640px){
-  margin: -100px auto 0 auto;
-}
-
-
+  @media (max-width: 640px) {
+    margin: -100px auto 0 auto;
+  }
 `;
 
 export const Header = styled.h2`
@@ -34,7 +31,7 @@ export const PlayerListContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 24px 24px; /* TopGoalScorer.js의 마진 반영 */
+  margin: 24px 24px;
   background-color: #ffffff;
 `;
 
@@ -84,7 +81,7 @@ export const RankContainer = styled.div`
   width: 40px;
   height: 40px;
   background-color: ${(props) => {
-    if (props.isSearchResult) return '#FF8A3D'; // TopGoalScorer.js의 검색 색상
+    if (props.isSearchResult) return '#FF8A3D';
     return props.isTopThree ? props.rankColor : '#f0f0f0';
   }};
   color: ${(props) => (props.isTopThree || props.isSearchResult ? 'white' : '#666')};
@@ -112,7 +109,7 @@ export const StatValue = styled.div`
   font-size: ${(props) => (props.isTopThree || props.isSearchResult ? '20px' : '18px')};
   font-weight: ${(props) => (props.isTopThree || props.isSearchResult ? '700' : '600')};
   color: ${(props) => {
-    if (props.isSearchResult) return '#FF8A3D'; // TopGoalScorer.js의 검색 색상
+    if (props.isSearchResult) return '#FF8A3D';
     return props.isTopThree ? props.rankColor : '#333';
   }};
   margin-left: 8px;
@@ -140,7 +137,7 @@ export const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: #3182f6;
-    box-shadow: 0 0 0 2px rgba(255, 138, 61, 0.2); // TopGoalScorer.js의 포커스 색상
+    box-shadow: 0 0 0 2px rgba(255, 138, 61, 0.2);
   }
 `;
 
@@ -154,9 +151,9 @@ export const SearchButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;           /* 텍스트가 줄바꿈되지 않도록 */
-  writing-mode: horizontal-tb;    /* 가로 쓰기 모드 강제 */
-  display: inline-block;         /* 가로로 배치 유지 */
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+  display: inline-block;
 
   &:hover {
     background-color: #3182f6;
@@ -167,13 +164,12 @@ export const SearchButton = styled.button`
     transform: translateY(0);
   }
 
-  /* 모바일 화면에서도 가로로 보이도록 */
   @media (max-width: 640px) {
-    width: auto;                 /* 버튼 너비를 콘텐츠에 맞춤 */
-    padding: 12px 20px;          /* 모바일에서는 약간 좁게 */
-    font-size: 14px;             /* 폰트 크기도 약간 줄여서 */
-    white-space: nowrap;         /* 줄바꿈 방지 */
-    writing-mode: horizontal-tb;  /* 가로 쓰기 모드 */
+    width: auto;
+    padding: 12px 20px;
+    font-size: 14px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
   }
 `;
 
@@ -189,4 +185,93 @@ export const SearchResultLabel = styled.div`
   color: #666;
   margin-bottom: 10px;
   font-weight: 500;
+`;
+
+export const PopupOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+export const PopupContent = styled.div`
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+`;
+
+export const PopupHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+export const PopupTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+`;
+
+export const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+export const PopupBody = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+export const PopupStat = styled.div`
+  font-size: 15px;
+  color: #444;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+export const PopupFooter = styled.div`
+  margin-top: 20px;
+  text-align: right;
+`;
+
+export const GradeButton = styled.button`
+  padding: 10px 20px;
+  background-color: #ff4d4d;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e04343;
+  }
 `;

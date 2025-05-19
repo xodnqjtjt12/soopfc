@@ -1059,7 +1059,7 @@ const PlayerHistorySection = () => {
                 </PHS.GraphContainer>
 
                 <PHS.GraphContainer>
-                  <h3>내 최고의 파트너 (2025)</h3>
+                  <h3>{playerId} 최고의 파트너 (2025)</h3>
                   <PHS.PartnerContainer>
                     <PHS.PartnerCard>
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#82ca9d' }}>
