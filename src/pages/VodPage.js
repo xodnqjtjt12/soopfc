@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../App';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   MainContent,
@@ -563,6 +564,7 @@ function VodPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedQuarter, setSelectedQuarter] = useState(null);
   const datesPerPage = 5;
+  const navigate = useNavigate(); // useNavigate 훅 추가
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -1112,43 +1114,49 @@ function VodPage() {
             {getPaginationButtons()}
           </PaginationWrapper>
         )}
-        {selectedPlayer && selectedQuarter && (
-          <PopupOverlay onClick={closePopup}>
-            <PopupContent onClick={(e) => e.stopPropagation()}>
-              <PopupHeader>
-                <PopupTitle>{selectedPlayer.name}</PopupTitle>
-                <CloseButton onClick={closePopup}>X</CloseButton>
-              </PopupHeader>
-              <PopupBody>
-                <PopupStat>등번호: {selectedPlayer.backNumber || '없음'}</PopupStat>
-                <PopupStat>포지션: {selectedPlayer.position || 'N/A'}</PopupStat>
-                <PopupStat>득점: {selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name).length || 0}</PopupStat>
-                <PopupStat>도움: {selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name).length || 0}</PopupStat>
-                <PopupStat>
-                  득점 파트너: {
-                    (() => {
-                      const assists = selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name) || [];
-                      const assistPlayers = assists.map(a => a.assist.player).filter(Boolean);
-                      return assistPlayers.length > 0 ? assistPlayers.join(', ') : '없음';
-                    })()
-                  }
-                </PopupStat>
-                <PopupStat>
-                  어시스트 파트너: {
-                    (() => {
-                      const goals = selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name) || [];
-                      const goalPlayers = goals.map(g => g.goal.player).filter(Boolean);
-                      return goalPlayers.length > 0 ? goalPlayers.join(', ') : '없음';
-                    })()
-                  }
-                </PopupStat>
-              </PopupBody>
-              <PopupFooter>
-                <GradeButton onClick={closePopup}>기록 닫기</GradeButton>
-              </PopupFooter>
-            </PopupContent>
-          </PopupOverlay>
-        )}
+    {selectedPlayer && selectedQuarter && (
+  <PopupOverlay onClick={closePopup}>
+    <PopupContent onClick={(e) => e.stopPropagation()}>
+      <PopupHeader>
+        <PopupTitle>{selectedPlayer.name}</PopupTitle>
+        <CloseButton onClick={closePopup}>X</CloseButton>
+      </PopupHeader>
+      <PopupBody>
+        <PopupStat>등번호: {selectedPlayer.backNumber || '없음'}</PopupStat>
+        <PopupStat>포지션: {selectedPlayer.position || 'N/A'}</PopupStat>
+        <PopupStat>득점: {selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name).length || 0}</PopupStat>
+        <PopupStat>도움: {selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name).length || 0}</PopupStat>
+        <PopupStat>
+          득점 파트너: {
+            (() => {
+              const assists = selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name) || [];
+              const assistPlayers = assists.map(a => a.assist.player).filter(Boolean);
+              return assistPlayers.length > 0 ? assistPlayers.join(', ') : '없음';
+            })()
+          }
+        </PopupStat>
+        <PopupStat>
+          어시스트 파트너: {
+            (() => {
+              const goals = selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name) || [];
+              const goalPlayers = goals.map(g => g.goal.player).filter(Boolean);
+              return goalPlayers.length > 0 ? goalPlayers.join(', ') : '없음';
+            })()
+          }
+        </PopupStat>
+      </PopupBody>
+      <PopupFooter>
+        <GradeButton onClick={closePopup}>기록 닫기</GradeButton>
+        <GradeButton 
+          onClick={() => navigate(`/player-history/${encodeURIComponent(selectedPlayer.name)}`)} // 경로 수정 및 인코딩
+          style={{ marginLeft: '10px', backgroundColor: '#3182f6' }}
+        >
+          선수 기록 더보기
+        </GradeButton>
+      </PopupFooter>
+    </PopupContent>
+  </PopupOverlay>
+)}
       </MainContent>
     </Container>
   );
