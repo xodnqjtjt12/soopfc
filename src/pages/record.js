@@ -53,18 +53,18 @@ const calculateMostFrequentPosition = async (playerName) => {
 const fetchPlayerData = async () => {
   const years = ['2022', '2023', '2024', '2025'];
   const playerStats = {};
+  const yearlyStats = {}; // 연도별 통계 저장
   const statsToRank = ['goals', 'assists', 'cleanSheets', 'matches', 'momScore', 'personalPoints'];
 
   // 연도별 데이터 수집
   for (const year of years) {
-    const yearlyStats = {};
-
+    yearlyStats[year] = {};
     if (year === '2025') {
       const playersRef = collection(db, 'players');
       const playersSnapshot = await getDocs(playersRef);
       playersSnapshot.forEach(docSnap => {
         const data = docSnap.data();
-        yearlyStats[docSnap.id] = {
+        yearlyStats[year][docSnap.id] = {
           goals: data.goals || 0,
           assists: data.assists || 0,
           cleanSheets: data.cleanSheets || 0,
@@ -83,7 +83,7 @@ const fetchPlayerData = async () => {
         const pos = playerDoc.data().position || 'N/A';
         if (historyDoc.exists()) {
           const d = historyDoc.data();
-          yearlyStats[playerDoc.id] = {
+          yearlyStats[year][playerDoc.id] = {
             goals: d.goals || 0,
             assists: d.assists || 0,
             cleanSheets: d.cleanSheets || 0,
@@ -93,7 +93,7 @@ const fetchPlayerData = async () => {
             position: pos
           };
         } else {
-          yearlyStats[playerDoc.id] = {
+          yearlyStats[year][playerDoc.id] = {
             goals: 0,
             assists: 0,
             cleanSheets: 0,
@@ -109,7 +109,7 @@ const fetchPlayerData = async () => {
     // 연도별 랭킹 계산 (최대 10명)
     playerStats[year] = {};
     statsToRank.forEach(stat => {
-      const rankings = Object.entries(yearlyStats)
+      const rankings = Object.entries(yearlyStats[year])
         .map(([id, stats]) => ({
           player: id,
           position: stats.position,
@@ -117,9 +117,8 @@ const fetchPlayerData = async () => {
           count: stats[stat]
         }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // 최대 10명
+        .slice(0, 10);
 
-      // 공동 순위 처리
       let currentRank = 1;
       let previousCount = null;
       rankings.forEach((item, index) => {
@@ -187,7 +186,6 @@ const fetchPlayerData = async () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // 공동 순위 처리
     let currentRank = 1;
     let previousCount = null;
     rankings.forEach((item, index) => {
@@ -212,13 +210,9 @@ const fetchPlayerData = async () => {
       allSeasonStats = allSeasonStats.concat(yearStats);
     });
 
-    // count 기준 내림차순 정렬
     allSeasonStats.sort((a, b) => b.count - a.count);
-
-    // 최소 10개 보장
     const topStats = allSeasonStats.slice(0, 10);
 
-    // 공동 순위 처리
     let currentRank = 1;
     let previousCount = null;
     topStats.forEach((item, index) => {
@@ -234,7 +228,7 @@ const fetchPlayerData = async () => {
     seasonRankings[stat] = topStats;
   });
 
-  // 기타 기록 생성 (n년 연속 득점/출장만)
+  // 기타 기록 생성 (명예의 전당)
   const otherRecords = [];
   const topByYear = {};
   years.forEach(y => {
@@ -259,7 +253,6 @@ const fetchPlayerData = async () => {
           period: `${y1}~${y2}`
         });
       }
-      // 3년 연속 체크
       if (i < years.length - 2) {
         const y3 = years[i + 2];
         if (
@@ -279,32 +272,15 @@ const fetchPlayerData = async () => {
   });
 
   return {
-    goals: {
-      season: seasonRankings.goals,
-      career: careerRankings.goals
-    },
-    assists: {
-      season: seasonRankings.assists,
-      career: careerRankings.assists
-    },
-    cleanSheets: {
-      season: seasonRankings.cleanSheets,
-      career: careerRankings.cleanSheets
-    },
-    matches: {
-      season: seasonRankings.matches,
-      career: careerRankings.matches
-    },
-    momScore: {
-      season: seasonRankings.momScore,
-      career: careerRankings.momScore
-    },
-    personalPoints: {
-      season: seasonRankings.personalPoints,
-      career: careerRankings.personalPoints
-    },
+    goals: { season: seasonRankings.goals, career: careerRankings.goals },
+    assists: { season: seasonRankings.assists, career: careerRankings.assists },
+    cleanSheets: { season: seasonRankings.cleanSheets, career: careerRankings.cleanSheets },
+    matches: { season: seasonRankings.matches, career: careerRankings.matches },
+    momScore: { season: seasonRankings.momScore, career: careerRankings.momScore },
+    personalPoints: { season: seasonRankings.personalPoints, career: careerRankings.personalPoints },
     other: otherRecords,
-    careerStats // 선수별 통산 데이터 추가
+    careerStats,
+    yearlyStats // 연도별 통계 추가
   };
 };
 
@@ -317,7 +293,7 @@ const fetchPlayerRecords = (playerName, recordData) => {
     other: []
   };
 
-  // 통산 기록 (Top 10 외 포함)
+  // 통산 기록
   statsToRank.forEach(stat => {
     const allCareerStats = Object.entries(recordData.careerStats)
       .map(([id, st]) => ({
@@ -328,7 +304,6 @@ const fetchPlayerRecords = (playerName, recordData) => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // 순위 계산
     let currentRank = 1;
     let previousCount = null;
     allCareerStats.forEach((item, index) => {
@@ -352,16 +327,39 @@ const fetchPlayerRecords = (playerName, recordData) => {
     }
   });
 
-  // 단일 시즌 기록
+  // 단일 시즌 기록 (Top 10 외 포함)
   statsToRank.forEach(stat => {
-    const seasonRecords = recordData[stat].season.filter(record => record.player.toLowerCase() === playerName.toLowerCase());
-    seasonRecords.forEach(record => {
-      playerRecords.season.push({
-        stat,
-        rank: record.rank,
-        count: record.count,
-        season: record.season
+    Object.keys(recordData.yearlyStats).forEach(year => {
+      const allSeasonStats = Object.entries(recordData.yearlyStats[year])
+        .map(([id, stats]) => ({
+          player: id,
+          position: stats.position,
+          season: year,
+          count: stats[stat]
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      let currentRank = 1;
+      let previousCount = null;
+      allSeasonStats.forEach((item, index) => {
+        if (index > 0 && item.count === previousCount) {
+          item.rank = currentRank;
+        } else {
+          currentRank = index + 1;
+          item.rank = currentRank;
+        }
+        previousCount = item.count;
       });
+
+      const seasonRecord = allSeasonStats.find(record => record.player.toLowerCase() === playerName.toLowerCase());
+      if (seasonRecord && seasonRecord.count > 0) {
+        playerRecords.season.push({
+          stat,
+          rank: seasonRecord.rank,
+          count: seasonRecord.count,
+          season: seasonRecord.season
+        });
+      }
     });
   });
 
@@ -375,7 +373,7 @@ const Record = () => {
   const [activeTab, setActiveTab] = useState('goals');
   const [searchQuery, setSearchQuery] = useState('');
   const [modalData, setModalData] = useState(null);
-  const [modalType, setModalType] = useState(null); // 'career', 'season', 'player', 'search'
+  const [modalType, setModalType] = useState(null);
   const [recordData, setRecordData] = useState({
     goals: { season: [], career: [] },
     assists: { season: [], career: [] },
@@ -391,7 +389,6 @@ const Record = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      // 퍼센트 애니메이션
       const interval = setInterval(() => {
         setLoadingPercent(prev => {
           if (prev >= 100) {
@@ -400,7 +397,7 @@ const Record = () => {
           }
           return prev + 1;
         });
-      }, 30); // 3초 동안 100% 도달
+      }, 30);
 
       const data = await fetchPlayerData();
       setRecordData(data);
@@ -446,7 +443,7 @@ const Record = () => {
       assists: '어시스트',
       cleanSheets: '클린시트',
       matches: '경기',
-      momScore: '점',
+      momScore: '파워랭킹',
       personalPoints: '승점'
     };
     return labels[tab] || '';
@@ -459,7 +456,7 @@ const Record = () => {
       );
       return filtered.length > 0 ? (
         filtered.map((record, index) => (
-          <S.CategoryCard key={index} onClick={() => openModal('player', record)}>
+          <S.CategoryCard key={index} isOther onClick={() => openModal('player', record)}>
             <S.CategoryTitle>{record.title}</S.CategoryTitle>
           </S.CategoryCard>
         ))
@@ -515,7 +512,7 @@ const Record = () => {
           <S.Tab active={activeTab === 'matches'} onClick={() => handleTabChange('matches')}>출장</S.Tab>
           <S.Tab active={activeTab === 'momScore'} onClick={() => handleTabChange('momScore')}>MOM</S.Tab>
           <S.Tab active={activeTab === 'personalPoints'} onClick={() => handleTabChange('personalPoints')}>개인 승점</S.Tab>
-          <S.Tab active={activeTab === 'other'} onClick={() => handleTabChange('other')}>기타</S.Tab>
+          <S.Tab active={activeTab === 'other'} onClick={() => handleTabChange('other')}>명예의 전당</S.Tab>
         </S.TabContainer>
       </S.Header>
 
@@ -525,7 +522,7 @@ const Record = () => {
 
       {modalData && modalType === 'player' && (
         <S.ModalOverlay onClick={closeModal}>
-          <S.ModalContent onClick={(e) => e.stopPropagation()}>
+          <S.ModalContent isOther={activeTab === 'other'} onClick={(e) => e.stopPropagation()}>
             <S.CloseButton onClick={closeModal}>×</S.CloseButton>
             <h2 style={{ marginBottom: '16px' }}>{modalData.title}</h2>
             <p>선수: <strong>{modalData.player}</strong></p>
@@ -593,7 +590,7 @@ const Record = () => {
             </S.PlayerRecordSection>
 
             <S.PlayerRecordSection>
-              <S.PlayerRecordTitle>기타 기록</S.PlayerRecordTitle>
+              <S.PlayerRecordTitle>명예의 전당</S.PlayerRecordTitle>
               {modalData.records.other.length > 0 ? (
                 modalData.records.other.map((record, index) => (
                   <S.PlayerRecordItem key={index}>

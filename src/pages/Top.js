@@ -61,12 +61,13 @@ const TOP = () => {
   const [fullRankingSearch, setFullRankingSearch] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [playerStats, setPlayerStats] = useState(null);
-  const [showMorePopup, setShowMorePopup] = useState(null);
+  const [showMorePopup, setShowMorePopup] = useState(null); // Now holds selected category and all categories
   const [positions, setPositions] = useState({});
   const [sortKey, setSortKey] = useState('matches');
   const [currentYear, setCurrentYear] = useState('2025');
   const [hasData, setHasData] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false); // 스크롤 버튼 표시 여부
 
   const fullRankingRef = useRef(null);
   const isDragging = useRef(false);
@@ -75,7 +76,26 @@ const TOP = () => {
 
   useEffect(() => {
     fetchPlayers(currentYear);
+
+    // 스크롤 이벤트 리스너 추가
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [currentYear]);
+
+  // sortKey가 변경될 때마다 테이블의 수직 스크롤을 맨 위로 이동
+  useEffect(() => {
+    if (fullRankingRef.current) {
+      fullRankingRef.current.scrollTop = 0; // 수직 스크롤을 맨 위로 초기화
+    }
+  }, [sortKey]); // sortKey가 변경될 때마다 실행
 
   const fetchPlayers = async (year) => {
     try {
@@ -268,7 +288,17 @@ const TOP = () => {
   };
 
   const handleMoreClick = (category) => {
-    setShowMorePopup(category);
+    setShowMorePopup({
+      selectedCategory: category,
+      categories: statsCategories,
+    });
+  };
+
+  const handleCategoryChange = (category) => {
+    setShowMorePopup(prev => ({
+      ...prev,
+      selectedCategory: category,
+    }));
   };
 
   const sortedPlayers = () => {
@@ -364,6 +394,11 @@ const TOP = () => {
     const x = e.touches[0].pageX - fullRankingRef.current.offsetLeft;
     const walk = (x - startX.current) * 2;
     fullRankingRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
+  // 맨 위로 가기 버튼 클릭 핸들러
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const isPositionVisible = currentYear === '2025';
@@ -673,12 +708,26 @@ const TOP = () => {
         <Styles.PopupOverlay onClick={() => setShowMorePopup(null)}>
           <Styles.TossPopup onClick={(e) => e.stopPropagation()}>
             <Styles.TossHeader>
-              <Styles.TossTitle>{showMorePopup.title} 상위 10명</Styles.TossTitle>
+              <Styles.TossTitle>{showMorePopup.selectedCategory.title} 상위 순위</Styles.TossTitle>
               <Styles.TossCloseButton onClick={() => setShowMorePopup(null)}>×</Styles.TossCloseButton>
             </Styles.TossHeader>
+            {/* Category Buttons */}
+            <Styles.CategoryButtonContainer>
+              <Styles.CategoryButtonScroll>
+                {showMorePopup.categories.map((category) => (
+                  <Styles.CategoryButton
+                    key={category.id}
+                    active={showMorePopup.selectedCategory.id === category.id}
+                    onClick={() => handleCategoryChange(category)}
+                  >
+                    {category.title}
+                  </Styles.CategoryButton>
+                ))}
+              </Styles.CategoryButtonScroll>
+            </Styles.CategoryButtonContainer>
             <Styles.TossList>
-              {showMorePopup.players.slice(0, 10).map((player) => (
-                <Styles.TossListItem key={`${showMorePopup.id}-${player.rank}-${player.name}`}>
+              {showMorePopup.selectedCategory.players.map((player) => (
+                <Styles.TossListItem key={`${showMorePopup.selectedCategory.id}-${player.rank}-${player.name}`}>
                   <Styles.TossRankWrapper>
                     {player.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
                     {player.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
@@ -693,13 +742,20 @@ const TOP = () => {
                   </Styles.TossPlayerInfo>
                   <Styles.TossPlayerStat>
                     {player.value}
-                    {showMorePopup.unit}
+                    {showMorePopup.selectedCategory.unit}
                   </Styles.TossPlayerStat>
                 </Styles.TossListItem>
               ))}
             </Styles.TossList>
           </Styles.TossPopup>
         </Styles.PopupOverlay>
+      )}
+
+      {/* 맨 위로 가기 버튼 */}
+      {showScrollTop && (
+        <Styles.ScrollTopButton onClick={scrollToTop}>
+          ↑
+        </Styles.ScrollTopButton>
       )}
     </Styles.Container>
   );

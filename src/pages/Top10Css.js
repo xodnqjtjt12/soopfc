@@ -1,4 +1,3 @@
-// Top10Css.js
 import styled, { keyframes } from 'styled-components';
 
 // 애니메이션 효과
@@ -38,6 +37,10 @@ export const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
 `;
 
 export const Header = styled.div`
@@ -257,7 +260,6 @@ export const Medal = styled.div`
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   animation: ${subtlePulse} 2s ease-in-out infinite;
 
-  // 검색 팝업에서 메달 스타일 개선
   ${props =>
     props.rank && props.rank <= 3 && `
       width: 28px;
@@ -324,7 +326,7 @@ export const PopupOverlay = styled.div`
 export const PopupContent = styled.div`
   background: white;
   border-radius: 12px;
-  padding:skap 20px;
+  padding: 20px;
   max-width: 480px;
   width: 90%;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -450,14 +452,30 @@ export const TossPopup = styled.div`
   background: white;
   border-radius: 12px;
   padding: 20px;
-  max-width: 600px;
+  max-width: 800px;
   width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   position: relative;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #e0e0e0;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+  }
 
   @media (max-width: 480px) {
     padding: 15px;
     max-width: 90%;
+    max-height: 70vh;
   }
 `;
 
@@ -491,6 +509,57 @@ export const TossCloseButton = styled.button`
   }
 `;
 
+// New styles for category buttons
+export const CategoryButtonContainer = styled.div`
+  overflow-x: auto;
+  white-space: nowrap;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #e0e0e0;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+  }
+`;
+
+export const CategoryButtonScroll = styled.div`
+  display: flex;
+  gap: 10px;
+  min-width: 100%;
+`;
+
+export const CategoryButton = styled.button`
+  padding: 8px 16px;
+  background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
+  color: ${props => (props.active ? 'white' : '#333')};
+  border: 1px solid ${props => (props.active ? '#3182f6' : '#e0e0e0')};
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: ${props => (props.active ? '#2a74e0' : '#e8ecef')};
+  }
+
+  @media (max-width: 480px) {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+`;
+
 export const TossList = styled.ul`
   list-style: none;
   padding: 0;
@@ -513,6 +582,10 @@ export const TossRankWrapper = styled.div`
   align-items: center;
   position: relative;
   width: 30px;
+
+  @media (max-width: 480px) {
+    width: 25px;
+  }
 `;
 
 export const TossRank = styled.span`
@@ -593,9 +666,18 @@ export const FullRankingContainer = styled.div`
   scroll-behavior: smooth;
   max-width: 100%;
   position: relative;
+  cursor: grab;
+  /* 높이를 명시적으로 설정하여 sticky가 안정적으로 동작하도록 */
+  max-height: 600px;
+  overflow-y: auto;
+
+  &:active {
+    cursor: grabbing;
+  }
 
   &::-webkit-scrollbar {
     height: 8px;
+    width: 8px;
   }
 
   &::-webkit-scrollbar-thumb {
@@ -606,19 +688,36 @@ export const FullRankingContainer = styled.div`
   &::-webkit-scrollbar-track {
     background-color: #f5f5f5;
   }
+
+  @media (max-width: 768px) {
+    -webkit-overflow-scrolling: touch;
+    max-height: 500px;
+    /* 모바일에서 고정 열 그라데이션 추가 */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 220px; /* 등수(50px) + 이름(100px) + 포지션(70px) */
+      pointer-events: none;
+      background: linear-gradient(to right, #fff 0%, rgba(255,255,255,0) 100%);
+      z-index: 2;
+    }
+  }
 `;
 
 export const FullRankingTable = styled.table`
   width: 100%;
-  min-width: 1000px; /* 모든 열을 수용하기 위해 충분히 넓게 설정 */
+  min-width: 1200px;
   border-collapse: collapse;
   background-color: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 12px;
   border: 1px solid #e0e0e0;
 
   @media (max-width: 768px) {
-    min-width: 800px; /* 모바일에서 적절한 너비 */
+    min-width: 900px;
   }
 `;
 
@@ -633,19 +732,19 @@ export const TableHeader = styled.th`
   transition: background-color 0.3s ease, color 0.3s ease;
   white-space: nowrap;
 
-  /* 세로 스크롤 시 헤더 고정 */
+  /* 헤더를 항상 상단에 고정 */
   position: sticky;
   top: 0;
   z-index: 10;
 
-  /* 고정 열 (등수, 이름, 포지션) */
+  /* 고정 열 스타일 */
   &:nth-child(1) {
     position: sticky;
     left: 0;
     width: 60px;
     background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
     z-index: 15;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* 고정 열과 스크롤 열 구분 */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   }
   &:nth-child(2) {
     position: sticky;
@@ -707,10 +806,10 @@ export const FixedTableCell = styled.td`
   color: #333;
   font-size: 14px;
   white-space: nowrap;
-  background-color: inherit; /* 행의 배경색 상속 */
+  background-color: inherit;
   position: sticky;
-  z-index: 5; /* 스크롤 셀 위, 헤더 아래 */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* 고정 열과 스크롤 열 구분 */
+  z-index: 5;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 
   &:nth-child(1) {
     left: 0;
@@ -765,5 +864,44 @@ export const NoDataMessage = styled.div`
 
   @media (max-width: 768px) {
     font-size: 14px;
+  }
+`;
+
+// 맨 위로 가기 버튼 스타일
+export const ScrollTopButton = styled.button`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background-color: #3182f6;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  z-index: 1000;
+
+  &:hover {
+    background-color: #2a74e0;
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    bottom: 15px;
+    right: 15px;
   }
 `;

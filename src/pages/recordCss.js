@@ -28,15 +28,15 @@ export const LoadingContainer = styled.div`
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: #f8fafc;
+  background-color: #ffffff;
   animation: ${fadeIn} 0.5s ease-in;
 `;
 
 export const LoadingSpinner = styled.div`
   width: 48px;
   height: 48px;
-  border: 4px solid #e2e8f0;
-  border-top: 4px solid #3182ce;
+  border: 4px solid #f2f4f6;
+  border-top: 4px solid #3887ff;
   border-radius: 50%;
   animation: ${spin} 1s linear infinite;
 `;
@@ -45,21 +45,24 @@ export const LoadingText = styled.div`
   margin-top: 16px;
   font-size: 16px;
   font-weight: 500;
-  color: #4a5568;
+  color: #333d4b;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 `;
 
 export const LoadingPercentage = styled.div`
   margin-top: 8px;
   font-size: 18px;
   font-weight: 600;
-  color: #3182ce;
+  color: #3887ff;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 `;
 
 export const Container = styled.div`
   max-width: 800px;
   margin: 0 auto;
   padding: 40px 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: #333d4b;
 `;
 
 export const Header = styled.header`
@@ -67,10 +70,11 @@ export const Header = styled.header`
 `;
 
 export const Title = styled.h1`
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
-  color: #333;
+  color: #191f28;
   margin-bottom: 16px;
+  letter-spacing: -0.5px;
 `;
 
 export const SearchContainer = styled.div`
@@ -80,22 +84,32 @@ export const SearchContainer = styled.div`
 
 export const SearchInput = styled.input`
   width: 100%;
-  padding: 16px 48px;
-  font-size: 16px;
-  border-radius: 12px;
+  padding: 18px 48px;
+  font-size: 17px;
+  border-radius: 14px;
   border: none;
   background-color: #f2f4f6;
-  color: #333;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  color: #333d4b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  box-sizing: border-box;
+  z-index: 1;
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px #3182ce;
+    box-shadow: 0 0 0 2px #3887ff;
+    background-color: #ffffff;
   }
 
   &::placeholder {
-    color: #a0aec0;
+    color: #8b95a1;
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 50px 10px 44px;
+    font-size: 15px;
+    margin-right: 10px;
   }
 `;
 
@@ -104,44 +118,50 @@ export const SearchIconWrapper = styled.div`
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #a0aec0;
+  color: #8b95a1;
+  z-index: 2;
+
+  @media (max-width: 768px) {
+    left: 12px;
+  }
 `;
 
 export const TabContainer = styled.div`
-//   display: flex;
   margin-bottom: 24px;
-  border-bottom: 1px solid #edf2f7;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef0f3;
 `;
 
 export const Tab = styled.button`
   padding: 12px 16px;
-  font-size: 16px;
-  font-weight: ${props => props.active ? '600' : '400'};
-  color: ${props => props.active ? '#3182ce' : '#718096'};
-  background: none;
+  font-size: 17px;
+  font-weight: 500;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: ${props => props.active ? '#3887ff' : '#8b95a1'};
+  background: ${props => props.active ? '#f2f7ff' : 'transparent'};
   border: none;
-  border-bottom: ${props => props.active ? '2px solid #3182ce' : 'none'};
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  opacity: ${props => props.active ? 1 : 0.7};
 
   &:hover {
-    color: ${props => props.active ? '#3182ce' : '#4a5568'};
-    opacity: 1;
+    color: ${props => props.active ? '#3887ff' : '#333d4b'};
+    background: ${props => props.active ? '#f2f7ff' : '#f2f4f6'};
   }
 `;
 
 export const CategoryContainer = styled.div`
   background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(33, 37, 41, 0.08);
   overflow: hidden;
   margin-bottom: 24px;
 `;
 
 export const CategoryCard = styled.div`
-  padding: 20px 24px;
-  border-bottom: 1px solid #edf2f7;
+  padding: 22px 24px;
+  border-bottom: 1px solid #eef0f3;
   transition: background-color 0.2s ease;
   cursor: pointer;
   position: relative;
@@ -153,23 +173,20 @@ export const CategoryCard = styled.div`
   }
 
   &:hover {
-    background-color: #f8fafc;
+    background-color: #f9fafb;
   }
 
-  &:hover::before {
-    content: '⚽';
-    position: absolute;
-    left: 8px;
-    font-size: 20px;
-    animation: ${ballSpin} 1s linear infinite;
+  &:active {
+    background-color: #f2f4f6;
   }
 `;
 
 export const CategoryTitle = styled.h3`
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
-  color: #2d3748;
+  color: #191f28;
   margin: 0;
+  letter-spacing: -0.5px;
 `;
 
 export const ModalOverlay = styled.div`
@@ -178,44 +195,102 @@ export const ModalOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(0, 48, 73, 0.7), rgba(0, 128, 128, 0.5)); /* 그라데이션 배경 */
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: ${fadeIn} 0.4s ease-out;
-  backdrop-filter: blur(4px); /* 배경 블러 효과 */
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2); /* 내부 그림자 */
+  animation: ${fadeIn} 0.3s ease-out;
+
+  @media (max-width: 480px) {
+    padding: 10px;
+  }
 `;
 
 export const ModalContent = styled.div`
-  background: #fff;
-  padding: 24px;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 600px;
+  background: #ffffff;
+  padding: 32px 28px;
+  border-radius: 24px;
+  width: 88%;
+  max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   position: relative;
-  background: linear-gradient(0deg, #e6f4ea 0%, #ffffff 10%);
-  animation: ${fadeIn} 0.5s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.2); /* 미묘한 테두리 */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); /* 부드러운 그림자 */
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  animation: ${fadeIn} 0.3s ease-out;
+  color: #333d4b;
+  font-size: 16px;
+  line-height: 1.6;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  scrollbar-width: thin;
+  scrollbar-color: #c9cdd2 #f2f4f6;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f2f4f6;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c9cdd2;
+    border-radius: 3px;
+    &:hover {
+      background: #8b95a1;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 28px 24px;
+    width: 96%;
+    max-width: 460px;
+    border-radius: 20px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 24px 20px;
+    width: 85%;
+    max-height: 85vh;
+    border-radius: 16px;
+    font-size: 15px;
+  }
 `;
 
 export const CloseButton = styled.button`
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background: none;
+  top: 20px;
+  right: 20px;
+  background: #f2f4f6;
   border: none;
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
-  color: #4a5568;
-  transition: color 0.2s ease;
+  color: #333d4b;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: #3182ce;
+    background: #eef0f3;
+  }
+
+  &:active {
+    background: #e7e9ec;
+  }
+
+  @media (max-width: 480px) {
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
   }
 `;
 
@@ -226,8 +301,8 @@ export const RankingList = styled.ul`
 `;
 
 export const RankingItem = styled.li`
-  padding: 12px 0;
-  border-bottom: 1px solid #edf2f7;
+  padding: 16px 0;
+  border-bottom: 1px solid #eef0f3;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -235,40 +310,89 @@ export const RankingItem = styled.li`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 480px) {
+    padding: 12px 0;
+    gap: 8px;
+  }
 `;
 
 export const RankingPlayer = styled.span`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
-  color: #4a5568;
+  color: #333d4b;
+  max-width: 75%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: 480px) {
+    font-size: 16px;
+    max-width: 70%;
+    line-height: 1.3;
+  }
 `;
 
 export const RankingCount = styled.span`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: #3182ce;
+  color: #3887ff;
+  white-space: nowrap;
+
+  @media (max-width: 480px) {
+    font-size: 16px;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
 `;
 
 export const NoResults = styled.div`
   padding: 40px 24px;
   text-align: center;
-  color: #718096;
-  font-size: 16px;
+  color: #8b95a1;
+  font-size: 17px;
+
+  @media (max-width: 480px) {
+    padding: 32px 16px;
+    font-size: 16px;
+  }
 `;
 
 export const PlayerRecordSection = styled.div`
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+
+  @media (max-width: 480px) {
+    margin-bottom: 20px;
+  }
 `;
 
 export const PlayerRecordTitle = styled.h3`
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 12px;
+  color: #191f28;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
 `;
 
 export const PlayerRecordItem = styled.div`
-  padding: 8px 0;
-  font-size: 16px;
-  color: #4a5568;
+  padding: 12px 0;
+  font-size: 17px;
+  color: #333d4b;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef0f3;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 16px;
+    padding: 10px 0;
+  }
 `;

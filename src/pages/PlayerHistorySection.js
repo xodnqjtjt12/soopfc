@@ -17,6 +17,7 @@ const PlayerHistorySection = () => {
   const [rankingData, setRankingData] = useState({});
   const [totalRankingData, setTotalRankingData] = useState({});
   const [rankingDataLoading, setRankingDataLoading] = useState(true);
+  const [loadingPercent, setLoadingPercent] = useState(0);
   const [bestPartners, setBestPartners] = useState({
     given: { name: '', count: 0 },
     received: { name: '', count: 0 },
@@ -61,6 +62,24 @@ const PlayerHistorySection = () => {
   const normalizeTeamName = (name) => {
     return name ? name.trim().toLowerCase() : '';
   };
+
+  // 로딩 퍼센트 애니메이션
+  useEffect(() => {
+    let interval;
+    if (rankingDataLoading) {
+      setLoadingPercent(0);
+      interval = setInterval(() => {
+        setLoadingPercent((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 1;
+        });
+      }, 50);
+    }
+    return () => clearInterval(interval);
+  }, [rankingDataLoading]);
 
   // 종합 통계 계산
   useEffect(() => {
@@ -842,102 +861,157 @@ const PlayerHistorySection = () => {
             <PHS.RankingSummary>
               <PHS.SectionTitle>수상 기록</PHS.SectionTitle>
               {rankingDataLoading ? (
-                <div className="loading">발롱도르에서 트로피 가져오는중...</div>
-              ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '10px',
-                    justifyContent: 'center',
-                    flexWrap: 'wrap'
-                  }}
-                >
-                  {years
-                    .filter(year => {
-                      if (!rankingData[year]) return false;
-                      return statRankingToCheck.some(stat => {
-                        if (rankingData[year][stat]) {
-                          const playerItem = rankingData[year][stat].top3.find(item => item.id === playerId);
-                          return playerItem && playerItem.rank <= 3 && playerItem.value > 0;
-                        }
-                        return false;
-                      });
-                    })
-                    .map(year => (
-                      <div key={year} style={{
-                        backgroundColor: '#1a1a1a',
-                        borderRadius: '8px',
-                        padding: '12px',
-                        width: '200px',
-                        flexShrink: 0
-                      }}>
-                        <h4 style={{
-                          margin: '0 0 8px 0',
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                          paddingBottom: '4px',
-                          fontSize: '16px',
-                          color: '#ffffff'
-                        }}>
-                          {year}년 수상 기록
-                        </h4>
-                        <div>
-                          {statRankingToCheck.map((stat, index) => {
-                            if (!rankingData[year][stat]) return null;
-                            const playerItem = rankingData[year][stat].top3.find(item => item.id === playerId);
-                            if (!playerItem) return null;
-                            const rank = playerItem.rank;
-                            const statValue = playerItem.value;
-                            
-                            if (statValue <= 0 || rank > 3) return null;
-                            
-                            const statLabels = {
-                              goals: '득점',
-                              assists: '어시스트',
-                              cleanSheets: '클린시트',
-                              matches: '출장',
-                              momTop3Count: 'MOM TOP 3',
-                              momTop8Count: 'MOM TOP 8'
-                            };
-                            
-                            let icon, color, text;
-                            
-                            switch(rank) {
-                              case 1:
-                                icon = <FaTrophy style={{ color: 'gold' }} />;
-                                color = 'gold';
-                                text = `${statLabels[stat]} ${rank}위 (${statValue})`;
-                                break;
-                              case 2:
-                                icon = <FaMedal style={{ color: 'silver' }} />;
-                                color = 'silver';
-                                text = `${statLabels[stat]} ${rank}위 (${statValue})`;
-                                break;
-                              case 3:
-                                icon = <FaAward style={{ color: '#cd7f32' }} />;
-                                color = '#cd7f32';
-                                text = `${statLabels[stat]} ${rank}위 (${statValue})`;
-                                break;
-                              default:
-                                return null;
-                            }
-                            
-                            return (
-                              <div key={index} style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                marginBottom: '6px',
-                                color,
-                                fontSize: '14px'
-                              }}>
-                                <span style={{ marginRight: '6px' }}>{icon}</span>
-                                <span>{text}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '300px',
+                  gap: '20px'
+                }}>
+                  <img
+                    src="/mom.png"
+                    alt="Loading Logo"
+                    style={{
+                      width: '150px',
+                      height: '150px',
+                      animation: 'spin 2s linear infinite'
+                    }}
+                  />
+                  <div style={{
+                    width: '300px',
+                    height: '20px',
+                    backgroundColor: '#f0f0f0',
+                    borderRadius: '10px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${loadingPercent}%`,
+                      height: '100%',
+                      backgroundColor: '#4286f4',
+                      transition: 'width 0.1s linear'
+                    }} />
+                  </div>
+                  <p>발롱도르에서 트로피 가져오는 중... {loadingPercent}%</p>
                 </div>
+              ) : (
+                (() => {
+                  const hasAwards = years.some(year => {
+                    if (!rankingData[year]) return false;
+                    return statRankingToCheck.some(stat => {
+                      const rankInfo = rankingData[year][stat];
+                      if (rankInfo && rankInfo.top3) {
+                        const playerItem = rankInfo.top3.find(item => item.id === playerId);
+                        return playerItem && playerItem.rank <= 3 && playerItem.value > 0;
+                      }
+                      return false;
+                    });
+                  });
+
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '10px',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      {hasAwards ? (
+                        years
+                          .filter(year => {
+                            if (!rankingData[year]) return false;
+                            return statRankingToCheck.some(stat => {
+                              const rankInfo = rankingData[year][stat];
+                              if (rankInfo && rankInfo.top3) {
+                                const playerItem = rankInfo.top3.find(item => item.id === playerId);
+                                return playerItem && playerItem.rank <= 3 && playerItem.value > 0;
+                              }
+                              return false;
+                            });
+                          })
+                          .map(year => (
+                            <div key={year} style={{
+                              backgroundColor: '#1a1a1a',
+                              borderRadius: '8px',
+                              padding: '12px',
+                              width: '200px',
+                              flexShrink: 0
+                            }}>
+                              <h4 style={{
+                                margin: '0 0 8px 0',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                                paddingBottom: '4px',
+                                fontSize: '16px',
+                                color: '#ffffff'
+                              }}>
+                                {year}년 수상 기록
+                              </h4>
+                              <div>
+                                {statRankingToCheck.map((stat, index) => {
+                                  if (!rankingData[year][stat]) return null;
+                                  const playerItem = rankingData[year][stat].top3.find(item => item.id === playerId);
+                                  if (!playerItem) return null;
+                                  const rank = playerItem.rank;
+                                  const statValue = playerItem.value;
+                                  
+                                  if (statValue <= 0 || rank > 3) return null;
+                                  
+                                  const statLabels = {
+                                    goals: '득점',
+                                    assists: '어시스트',
+                                    cleanSheets: '클린시트',
+                                    matches: '출장',
+                                    momTop3Count: 'MOM TOP 3',
+                                    momTop8Count: 'MOM TOP 8'
+                                  };
+                                  
+                                  let icon, color, text;
+                                  
+                                  switch(rank) {
+                                    case 1:
+                                      icon = <FaTrophy style={{ color: 'gold' }} />;
+                                      color = 'gold';
+                                      text = `${statLabels[stat]} ${rank}위 (${statValue})`;
+                                      break;
+                                    case 2:
+                                      icon = <FaMedal style={{ color: 'silver' }} />;
+                                      color = 'silver';
+                                      text = `${statLabels[stat]} ${rank}위 (${statValue})`;
+                                      break;
+                                    case 3:
+                                      icon = <FaAward style={{ color: '#cd7f32' }} />;
+                                      color = '#cd7f32';
+                                      text = `${statLabels[stat]} ${rank}위 (${statValue})`;
+                                      break;
+                                    default:
+                                      return null;
+                                  }
+                                  
+                                  return (
+                                    <div key={index} style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      marginBottom: '6px',
+                                      color,
+                                      fontSize: '14px'
+                                    }}>
+                                      <span style={{ marginRight: '6px' }}>{icon}</span>
+                                      <span>{text}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))
+                      ) : (
+                        <p style={{ textAlign: 'center', color: '#black', width: '100%' }}>
+                          수상 기록이 없습니다
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()
               )}
             </PHS.RankingSummary>
 
