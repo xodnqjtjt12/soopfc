@@ -110,14 +110,16 @@ export const SmallInput = styled.input`
 `;
 
 export const Button = styled.button`
-  padding: 15px;
-  font-size: 16px;
+  padding: 10px 15px; /* 버튼 크기 조정 */
+  font-size: 14px;
   color: white;
   background-color: #0182ff;
   border: none;
-  border-radius: 10px;
+  border-radius: 5px;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin: 0 5px; /* 버튼 간 간격 추가 */
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
 
   &:hover {
     background-color: #2c5282;
@@ -125,8 +127,8 @@ export const Button = styled.button`
   }
 
   @media (max-width: 640px) {
-    font-size: 14px;
-    padding: 12px;
+    font-size: 12px;
+    padding: 8px 12px;
   }
 `;
 
@@ -170,7 +172,7 @@ export const Table = styled.table`
   border-collapse: collapse;
   background-color: #1a1a1a;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible; /* hidden 대신 visible로 변경 */
   animation: ${fadeIn} 0.5s ease-out;
 `;
 
@@ -195,10 +197,16 @@ export const Td = styled.td`
   font-size: 16px;
   text-align: center;
   border-bottom: 1px solid #3a3a3a;
+  min-width: 150px; /* 최소 너비 설정 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap; /* 버튼이 잘리지 않도록 감싸기 */
 
   @media (max-width: 640px) {
     font-size: 14px;
     padding: 10px;
+    min-width: 100px;
   }
 `;
 

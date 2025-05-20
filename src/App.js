@@ -23,8 +23,9 @@ import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
 import PlayerHistorySectionAdmin from './pages/PlayerHistorySectionAdmin';
 import PlayerHistorySection from './pages/PlayerHistorySection';
 import Top from './pages/Top';
- import Live from './pages/Live'; 
-import LiveAdmin from './pages/LiveAdmin'; // 추가
+import Live from './pages/Live'; 
+import LiveAdmin from './pages/LiveAdmin'; 
+import Record from './pages/record'; // 수정: 대문자 R로 시작하는 컴포넌트 이름
 
 // Components
 import Header from './components/Header';
@@ -96,8 +97,9 @@ function App() {
           <Route path="/mom-ranking" element={<MomRanking />} />
           <Route path="/vod" element={<VodPage />} />
           <Route path="/player-history/:playerId" element={<PlayerHistorySection />} />
-           <Route path="/top" element={<Top />} />
-          <Route path="/live" element={<Live />} /> 추가
+          <Route path="/top" element={<Top />} />
+          <Route path="/live" element={<Live />} /> 
+          <Route path="/record" element={<Record />} /> {/* 수정: 컴포넌트 이름 대문자로 변경 */}
 
           {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}
           <Route path="/admin" element={<AdminLayout />}>
@@ -108,7 +110,7 @@ function App() {
             <Route path="vod" element={<VodAdminPage />} />
             <Route path="announcements" element={<AnnouncementsAdmin />} />
             <Route path="history" element={<PlayerHistorySectionAdmin />} />
-            <Route path="live" element={<LiveAdmin />} /> {/* 추가 */}
+            <Route path="live" element={<LiveAdmin />} />
           </Route>
         </Routes>
       </AppContainer>

@@ -608,18 +608,14 @@ const PlayerHistorySectionAdmin = () => {
                       )}
                     </PHS.Td>
                     <PHS.Td>
-                      {editingId === record.id ? (
+                      <PHS.Button onClick={() => handleEdit(record)}>수정</PHS.Button>
+                      {editingId === record.id && (
                         <>
                           <PHS.Button onClick={() => handleSaveEdit(record.id)}>저장</PHS.Button>
                           <PHS.Button onClick={handleCancelEdit}>취소</PHS.Button>
-                          <PHS.Button onClick={() => handleDelete(record.id)}>삭제</PHS.Button>
-                        </>
-                      ) : (
-                        <>
-                          <PHS.Button onClick={() => handleEdit(record)}>수정</PHS.Button>
-                          <PHS.Button onClick={() => handleDelete(record.id)}>삭제</PHS.Button>
                         </>
                       )}
+                      <PHS.Button onClick={() => handleDelete(record.id)}>삭제</PHS.Button>
                     </PHS.Td>
                   </tr>
                 ))}

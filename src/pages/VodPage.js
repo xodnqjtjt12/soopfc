@@ -1146,7 +1146,7 @@ function VodPage() {
         </PopupStat>
       </PopupBody>
       <PopupFooter>
-        <GradeButton onClick={closePopup}>기록 닫기</GradeButton>
+        {/* <GradeButton onClick={closePopup}>기록 닫기</GradeButton> */}
         <GradeButton 
           onClick={() => navigate(`/player-history/${encodeURIComponent(selectedPlayer.name)}`)} // 경로 수정 및 인코딩
           style={{ marginLeft: '10px', backgroundColor: '#3182f6' }}
