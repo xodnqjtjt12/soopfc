@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, setDoc, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../App';
-import { FaFutbol, FaShoePrints, FaShieldAlt, FaRunning, FaStar, FaMedal, FaChartLine, FaTrophy, FaCheck, FaTimes, FaEquals } from 'react-icons/fa';
+import { FaFutbol, FaShoePrints, FaShieldAlt, FaRunning, FaStar, FaMedal, FaChartLine, FaTrophy, FaFire } from 'react-icons/fa';
 import {
   OuterWrapper, Container, SearchForm, Input, Button, RankBannerContainer, RankMessage,
   PlayerData, PlayerCardHeader, PlayerRating, PlayerName, PlayerPosition, PositionBadge,
   StatsGrid, StatRow, StatHeader, StatLabel, StatValue, StatBarContainer, StatBar,
   AdvancedStatsSection, AdvancedStatsTitle, AdvancedStatsGrid, AdvancedStatCard,
   AdvancedStatValue, AdvancedStatLabel, LevelUpMessage, TitleContainer, Title,
-  getRankColor, getRatingColor, ToggleHistoryButton
+  getRankColor, getRatingColor, ToggleHistoryButton, TopPlayersContainer, TopPlayersTitle,
+  TopPlayerItem, PlayerRank, PlayerNameText, TrendingBadge, LastUpdate
 } from './TotalCss';
 
 // 선수 Rating 계산 (FIFA 스타일)
@@ -143,8 +144,6 @@ const unifyPosition = (position) => {
     'CDM2': 'CDM',
     'CM1': 'CM',
     'CM2': 'CM',
-    
-    
   };
   return positionMap[position] || position;
 };
@@ -187,7 +186,41 @@ const Total = () => {
   const [playerRankings, setPlayerRankings] = useState(null);
   const [error, setError] = useState('');
   const [mostFrequentFormation, setMostFrequentFormation] = useState('N/A');
+  const [topSearchedPlayers, setTopSearchedPlayers] = useState([]);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
+  // Handle window resize for responsive TopPlayersContainer
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Fetch top searched players
+  useEffect(() => {
+    const fetchTopSearchedPlayers = async () => {
+      try {
+        const searchQuery = query(
+          collection(db, 'searchCounts'),
+          orderBy('count', 'desc'),
+          limit(3)
+        );
+        const searchSnapshot = await getDocs(searchQuery);
+        const topPlayers = searchSnapshot.docs.map((doc, index) => ({
+          name: doc.id,
+          count: doc.data().count,
+          rank: index + 1,
+        }));
+        setTopSearchedPlayers(topPlayers);
+      } catch (err) {
+        console.error('Error fetching top searched players:', err);
+      }
+    };
+
+    fetchTopSearchedPlayers();
+  }, []);
+
+  // Fetch rankings
   useEffect(() => {
     const fetchRankings = async () => {
       try {
@@ -246,6 +279,7 @@ const Total = () => {
     fetchRankings();
   }, []);
 
+  // Handle search and increment search count
   const handleSearch = async (e) => {
     e.preventDefault();
 
@@ -259,8 +293,22 @@ const Total = () => {
       return;
     }
 
-    const playerRef = doc(db, 'players', playerName);
+    // Increment search count in Firestore
+    const searchRef = doc(db, 'searchCounts', playerName);
     try {
+      const searchDoc = await getDoc(searchRef);
+      if (searchDoc.exists()) {
+        await updateDoc(searchRef, {
+          count: searchDoc.data().count + 1,
+        });
+      } else {
+        await setDoc(searchRef, {
+          count: 1,
+        });
+      }
+
+      // Fetch player data
+      const playerRef = doc(db, 'players', playerName);
       const playerDoc = await getDoc(playerRef);
 
       if (playerDoc.exists()) {
@@ -284,6 +332,9 @@ const Total = () => {
         const playerInMomRank = playerRankings.rankedByMom.find(p => p.id === playerDoc.id);
         const playerInWinRateRank = playerRankings.rankedByWinRate.find(p => p.id === playerDoc.id);
 
+        // Check if player is in top 3 searched
+        const trendingRank = topSearchedPlayers.find(p => p.name === playerName)?.rank || null;
+
         const formation = await calculateMostFrequentFormation(playerName);
         setMostFrequentFormation(formation);
 
@@ -300,6 +351,7 @@ const Total = () => {
           xG,
           xA,
           war,
+          trendingRank, // Add trending rank to playerInfo
         });
         setError('');
       } else {
@@ -307,7 +359,7 @@ const Total = () => {
         setError('선수를 찾을 수 없습니다.');
       }
     } catch (error) {
-      console.error('Error fetching player data:', error);
+      console.error('Error fetching player data or updating search count:', error);
       setError('선수 데이터 가져오기 중 오류가 발생했습니다.');
     }
   };
@@ -387,6 +439,22 @@ const Total = () => {
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
+        {/* Top Searched Players (Hidden after search) */}
+        {!playerInfo && topSearchedPlayers.length > 0 && (
+          <TopPlayersContainer windowWidth={windowWidth}>
+            <TopPlayersTitle>
+              <FaFire /> 인기 급상승 선수 TOP 3
+            </TopPlayersTitle>
+            {topSearchedPlayers.map((player) => (
+              <TopPlayerItem key={player.name}>
+                <PlayerRank>{player.rank}</PlayerRank>
+                <PlayerNameText>{player.name}</PlayerNameText>
+              </TopPlayerItem>
+            ))}
+            <LastUpdate>최근 업데이트: {new Date().toLocaleTimeString()}</LastUpdate>
+          </TopPlayersContainer>
+        )}
+
         {playerInfo && renderRankBanner()}
 
         {playerInfo && (
@@ -395,7 +463,14 @@ const Total = () => {
               <PlayerRating>
                 {playerInfo.backNumber || '-'}
               </PlayerRating>
-              <PlayerName>{playerInfo.name}</PlayerName>
+              <PlayerName>
+                {playerInfo.name}
+                {playerInfo.trendingRank && (
+                  <TrendingBadge rank={playerInfo.trendingRank}>
+                    #인기 급상승 선수 {playerInfo.trendingRank}위
+                  </TrendingBadge>
+                )}
+              </PlayerName>
               <PlayerPosition>
                 {mostFrequentFormation.toUpperCase()}
                 <div style={{ marginLeft: '10px' }}>

@@ -1,6 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 
-// 애니메이션 키프레임 정의
+// Existing keyframes and styles (unchanged)
 export const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -32,7 +32,14 @@ export const expand = keyframes`
   to { max-height: 1000px; opacity: 1; }
 `;
 
-// 순위에 따라 색상 반환하는 함수
+// New keyframes for badge pulse effect
+export const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+`;
+
+// Existing getRankColor and getRatingColor (unchanged)
 export const getRankColor = (rank) => {
   if (rank === 1) return '#FFD700'; // 금색
   else if (rank === 2) return '#C0C0C0'; // 은색
@@ -47,7 +54,7 @@ export const getRatingColor = (value) => {
   return '#ffffff'; // 흰색
 };
 
-// 스타일 컴포넌트 정의
+// Existing styled components (unchanged)
 export const OuterWrapper = styled.div`
   background-color: #f9fafb;
   padding-top: 24px;
@@ -202,6 +209,9 @@ export const PlayerName = styled.h3`
   overflow: hidden;
   text-overflow: ellipsis;
   animation: ${slideIn} 0.5s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   @media (max-width: 640px) {
     font-size: 24px;
     margin-left: 70px;
@@ -407,20 +417,19 @@ export const Title = styled.div`
   }
 `;
 
-// 선수 기록 더보기 버튼 스타일 (토글 버튼으로 사용)
 export const ToggleHistoryButton = styled.button`
   display: block;
-   margin: 16px 16px;
+  margin: 16px 16px;
   padding: 15px 30px;
   font-size: 18px;
   color: white;
   background-color: #0182ff;
   border: none;
   border-radius: 10px;
-display: flex;
-justify-content: center; /* 수평 중앙 정렬 */
-align-items: center;     /* 수직 중앙 정렬 */
-text-decoration: none;   /* ← 이 줄을 추가하세요 (밑줄 제거) */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
   cursor: pointer;
   transition: all 0.3s ease;
   animation: ${fadeIn} 0.5s ease-out;
@@ -436,7 +445,6 @@ text-decoration: none;   /* ← 이 줄을 추가하세요 (밑줄 제거) */
   }
 `;
 
-// 히스토리 섹션 컨테이너
 export const HistorySection = styled.div`
   padding: 20px;
   background-color: #1a1a1a;
@@ -450,7 +458,6 @@ export const HistorySection = styled.div`
   }
 `;
 
-// PlayerHistorySection 스타일
 export const HistoryTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -495,12 +502,7 @@ export const HistoryTableCell = styled.td`
   }
 `;
 
-// TopSearchedPlayers 스타일
 export const TopPlayersContainer = styled.div`
-  position: fixed;
-  top: 1px;
-  right: 20px;
-  width: 300px;
   background-color: #1a1a1a;
   border-radius: 10px;
   padding: 20px;
@@ -509,21 +511,33 @@ export const TopPlayersContainer = styled.div`
   transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 1000;
 
-  /* 화면 크기에 따라 왼쪽으로 이동 */
-  @media (max-width: 1100px) {
-    transform: translateX(-${(props) => Math.min((1100 - props.windowWidth) * 0.5, 300)}px);
+  /* 데스크톱 스타일 (640px 초과) */
+  @media (min-width: 641px) {
+    // position: fixed;
+    top: 20px;
+    right: 20px;
+    // width: 300px;
+
+    @media (max-width: 1100px) {
+      transform: translateX(-${(props) => Math.min((1100 - props.windowWidth) * 0.5, 300)}px);
+    }
+
+    @media (max-width: 900px) {
+      opacity: 0;
+      transform: translateX(-100px);
+      pointer-events: none;
+    }
   }
 
-  /* Container에 부딪히면 사라짐 */
-  @media (max-width: 900px) {
-    opacity: 0;
-    transform: translateX(-100px);
-    pointer-events: none;
-  }
-
-  /* 모바일에서 숨김 */
+  /* 모바일 스타일 (640px 이하) */
   @media (max-width: 640px) {
-    display: none;
+    position: fixed;
+    // bottom: px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 400px;
+    margin: -70px 16px 50 16px;
   }
 `;
 
@@ -534,6 +548,10 @@ export const TopPlayersTitle = styled.div`
   align-items: center;
   gap: 10px;
   animation: ${fadeIn} 0.5s ease-out;
+
+  @media (max-width: 640px) {
+    font-size: 1.2rem;
+  }
 `;
 
 export const TopPlayerItem = styled.div`
@@ -554,15 +572,36 @@ export const PlayerNameText = styled.span`
   flex: 1;
 `;
 
-export const RankChange = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 5px;
-`;
-
 export const LastUpdate = styled.div`
   font-size: 0.9rem;
   color: #aaa;
   margin-top: 15px;
   text-align: center;
+
+  @media (max-width: 640px) {
+    font-size: 0.8rem;
+  }
+`;
+
+export const TrendingBadge = styled.span`
+  background: linear-gradient(135deg, #ff0000, #ff5555);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: ${pulse} 1.5s infinite;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+
+  &:before {
+    content: '🔥';
+  }
+
+  @media (max-width: 640px) {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
 `;
