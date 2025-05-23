@@ -92,6 +92,13 @@ export const AwardsContainer = styled.div`
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
+
+  
+
+  @media (max-width: 640px) {
+    margin-left: -15px; 
+    margin-left: -5px; /* 모바일에서는 덜 이동시키고 싶다면 값 변경 */
+  }
 `;
 
 // 연도별 수상 기록 카드
@@ -582,6 +589,7 @@ export const RankingSummary = styled.div`
       overflow-x: hidden;
       gap: 8px;
       justify-content: center;  /* 모바일에서도 가운데 정렬 */
+      padding-left: 16px;
     }
     .loading {
       font-size: 14px;
@@ -591,18 +599,24 @@ export const RankingSummary = styled.div`
 `;
 
 export const SectionTitle = styled.h3`
-//   text-align: left;
-  margin-left: 10px;
+  /* 기본 스타일 */
   font-size: 20px;
   color: #1a1a1a;
   margin-bottom: 12px;
 
- @media (max-width: 640px) {
+  /* 너비를 제한하고 자동 가로 마진으로 중앙 정렬 */
+  max-width: 600px;
+  margin: 0 auto 12px;
+
+  /* 살짝 왼쪽으로 이동: translateX(-5px) */
+  transform: translateX(-5px);
+
+  @media (max-width: 640px) {
     font-size: 18px;
-    margin-left: 8px;
-    margin-bottom: 10px;
-    text-align: center;   /* 모바일에서 제목 중앙 정렬 */
-    margin-left: 0;       /* 모바일에서 왼쪽 여백 제거 */
+    margin: 0 auto 10px;
+    /* 모바일에서도 같은 왼쪽 shift */
+    transform: translateX(-5px);
+    text-align: center; /* 텍스트 자체는 중앙 정렬 */
   }
 `;
 

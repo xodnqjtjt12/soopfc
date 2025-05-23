@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc, updateDoc, setDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, setDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../App';
 import { FaFutbol, FaShoePrints, FaShieldAlt, FaRunning, FaStar, FaMedal, FaChartLine, FaTrophy, FaFire } from 'react-icons/fa';
 import {
@@ -10,7 +10,7 @@ import {
   AdvancedStatsSection, AdvancedStatsTitle, AdvancedStatsGrid, AdvancedStatCard,
   AdvancedStatValue, AdvancedStatLabel, LevelUpMessage, TitleContainer, Title,
   getRankColor, getRatingColor, ToggleHistoryButton, TopPlayersContainer, TopPlayersTitle,
-  TopPlayerItem, PlayerRank, PlayerNameText, TrendingBadge, LastUpdate
+  TopPlayerItem, PlayerRank, PlayerNameText, TrendingBadge, LastUpdate, RankChangeIndicator, NewBadge
 } from './TotalCss';
 
 // 선수 Rating 계산 (FIFA 스타일)
@@ -187,6 +187,8 @@ const Total = () => {
   const [error, setError] = useState('');
   const [mostFrequentFormation, setMostFrequentFormation] = useState('N/A');
   const [topSearchedPlayers, setTopSearchedPlayers] = useState([]);
+  const [topPlayersLoading, setTopPlayersLoading] = useState(true);
+  const [topPlayersError, setTopPlayersError] = useState('');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // Handle window resize for responsive TopPlayersContainer
@@ -196,24 +198,101 @@ const Total = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch top searched players
+  // Fetch top searched players with real-time listener
   useEffect(() => {
     const fetchTopSearchedPlayers = async () => {
+      setTopPlayersLoading(true);
+      setTopPlayersError('');
+
       try {
+        // Get current top 3 by search count
         const searchQuery = query(
           collection(db, 'searchCounts'),
           orderBy('count', 'desc'),
           limit(3)
         );
-        const searchSnapshot = await getDocs(searchQuery);
-        const topPlayers = searchSnapshot.docs.map((doc, index) => ({
-          name: doc.id,
-          count: doc.data().count,
-          rank: index + 1,
-        }));
-        setTopSearchedPlayers(topPlayers);
+        const unsubscribe = onSnapshot(searchQuery, async (searchSnapshot) => {
+          console.log('searchCounts snapshot received:', searchSnapshot.docs.length, 'docs');
+          
+          if (searchSnapshot.empty) {
+            console.warn('searchCounts is empty');
+            setTopPlayersError('현재 인기 급상승 선수 데이터가 없습니다.');
+            setTopSearchedPlayers([]);
+            setTopPlayersLoading(false);
+            return;
+          }
+
+          const newTopPlayers = searchSnapshot.docs.map((doc, index) => {
+            const data = {
+              name: doc.id,
+              count: doc.data().count || 0,
+              rank: index + 1,
+            };
+            console.log('New top player:', data);
+            return data;
+          });
+
+          // Get previous ranking from searchHistory (latest entry)
+          const historyQuery = query(
+            collection(db, 'searchHistory'),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+          );
+          const historySnapshot = await getDocs(historyQuery);
+          let prevPlayers = [];
+          if (!historySnapshot.empty) {
+            prevPlayers = historySnapshot.docs[0].data().players || [];
+            console.log('Previous players from searchHistory:', prevPlayers);
+          } else {
+            console.warn('No searchHistory found');
+          }
+
+          // Calculate rank changes
+          const topPlayersWithChange = newTopPlayers.map((player) => {
+            const prevPlayer = prevPlayers.find((p) => p.name === player.name);
+            if (!prevPlayer) {
+              return { ...player, change: 'NEW' };
+            }
+            const prevRank = prevPlayer.rank;
+            const rankDiff = prevRank - player.rank;
+            if (rankDiff > 0) {
+              return { ...player, change: `UP_${rankDiff}` };
+            } else if (rankDiff < 0) {
+              return { ...player, change: `DOWN_${Math.abs(rankDiff)}` };
+            }
+            return { ...player, change: null };
+          });
+          console.log('Top players with change:', topPlayersWithChange);
+
+          // Update searchHistory every 30 minutes
+          const now = new Date();
+          const lastUpdate = historySnapshot.empty ? null : historySnapshot.docs[0].data().timestamp.toDate();
+          const shouldUpdateHistory = !lastUpdate || (now - lastUpdate) / (1000 * 60) > 30;
+
+          if (shouldUpdateHistory) {
+            console.log('Updating searchHistory at:', now.toISOString());
+            await setDoc(doc(db, 'searchHistory', now.toISOString()), {
+              players: newTopPlayers,
+              timestamp: now,
+            });
+          }
+
+          setTopSearchedPlayers(topPlayersWithChange);
+          setTopPlayersError('');
+          setTopPlayersLoading(false);
+        }, (err) => {
+          console.error('Error in searchCounts snapshot:', err);
+          setTopPlayersError('인기 급상승 선수 데이터를 가져오는 중 오류가 발생했습니다.');
+          setTopSearchedPlayers([]);
+          setTopPlayersLoading(false);
+        });
+
+        return unsubscribe;
       } catch (err) {
-        console.error('Error fetching top searched players:', err);
+        console.error('Error setting up top searched players listener:', err);
+        setTopPlayersError('인기 급상승 선수 데이터를 가져오는 중 오류가 발생했습니다.');
+        setTopSearchedPlayers([]);
+        setTopPlayersLoading(false);
       }
     };
 
@@ -351,7 +430,7 @@ const Total = () => {
           xG,
           xA,
           war,
-          trendingRank, // Add trending rank to playerInfo
+          trendingRank,
         });
         setError('');
       } else {
@@ -440,18 +519,40 @@ const Total = () => {
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
         {/* Top Searched Players (Hidden after search) */}
-        {!playerInfo && topSearchedPlayers.length > 0 && (
+        {!playerInfo && (
           <TopPlayersContainer windowWidth={windowWidth}>
             <TopPlayersTitle>
               <FaFire /> 인기 급상승 선수 TOP 3
             </TopPlayersTitle>
-            {topSearchedPlayers.map((player) => (
-              <TopPlayerItem key={player.name}>
-                <PlayerRank>{player.rank}</PlayerRank>
-                <PlayerNameText>{player.name}</PlayerNameText>
-              </TopPlayerItem>
-            ))}
-            <LastUpdate>최근 업데이트: {new Date().toLocaleTimeString()}</LastUpdate>
+            {topPlayersLoading && <p>인기 급상승 선수 데이터를 로딩 중입니다...</p>}
+            {topPlayersError && <p style={{ color: 'red' }}>{topPlayersError}</p>}
+            {!topPlayersLoading && !topPlayersError && topSearchedPlayers.length === 0 && (
+              <p>현재 인기 급상승 선수 데이터가 없습니다.</p>
+            )}
+            {!topPlayersLoading && topSearchedPlayers.length > 0 && (
+              <>
+                {topSearchedPlayers.map((player) => (
+                  <TopPlayerItem key={player.name}>
+                    <PlayerRank>{player.rank ?? 'N/A'}</PlayerRank>
+                    <PlayerNameText>
+                      {player.name}
+                      {player.change === 'NEW' && <NewBadge>NEW</NewBadge>}
+                      {player.change && player.change.startsWith('UP_') && (
+                        <RankChangeIndicator direction="up">
+                          ↑ {player.change.split('_')[1]}단계 UP
+                        </RankChangeIndicator>
+                      )}
+                      {player.change && player.change.startsWith('DOWN_') && (
+                        <RankChangeIndicator direction="down">
+                          ↓ {player.change.split('_')[1]}단계 DOWN
+                        </RankChangeIndicator>
+                      )}
+                    </PlayerNameText>
+                  </TopPlayerItem>
+                ))}
+                <LastUpdate>최근 업데이트: {new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}</LastUpdate>
+              </>
+            )}
           </TopPlayersContainer>
         )}
 

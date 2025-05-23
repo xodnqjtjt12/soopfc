@@ -1,6 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 
-// Existing keyframes and styles (unchanged)
+// Existing keyframes (unchanged)
 export const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -32,7 +32,6 @@ export const expand = keyframes`
   to { max-height: 1000px; opacity: 1; }
 `;
 
-// New keyframes for badge pulse effect
 export const pulse = keyframes`
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
@@ -511,12 +510,9 @@ export const TopPlayersContainer = styled.div`
   transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 1000;
 
-  /* 데스크톱 스타일 (640px 초과) */
   @media (min-width: 641px) {
-    // position: fixed;
     top: 20px;
     right: 20px;
-    // width: 300px;
 
     @media (max-width: 1100px) {
       transform: translateX(-${(props) => Math.min((1100 - props.windowWidth) * 0.5, 300)}px);
@@ -529,15 +525,13 @@ export const TopPlayersContainer = styled.div`
     }
   }
 
-  /* 모바일 스타일 (640px 이하) */
   @media (max-width: 640px) {
-    position: fixed;
-    // bottom: px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 85%;
-    max-width: 400px;
-    margin: -70px 16px 50 16px;
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 82%;
+        max-width: 400px;
+        margin: -70p 16px;
   }
 `;
 
@@ -603,5 +597,39 @@ export const TrendingBadge = styled.span`
   @media (max-width: 640px) {
     font-size: 12px;
     padding: 3px 8px;
+  }
+`;
+
+export const RankChangeIndicator = styled.div`
+  font-size: 12px;
+  font-weight: 500;
+  color: ${props => props.direction === 'up' ? '#28a745' : '#dc3545'};
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: fadeIn 0.5s ease-in;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+export const NewBadge = styled.span`
+  padding: 5px 10px;
+  background: #28a745;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  animation: ${pulse} 1.5s infinite;
+  margin-left: 8px;
+
+  @media (max-width: 640px) {
+    font-size: 10px;
+    padding: 3px 8px;
+    margin-left: 6px;
   }
 `;

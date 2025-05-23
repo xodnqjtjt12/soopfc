@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes } from "styled-components";
 
 // 애니메이션 효과
 const fadeIn = keyframes`
@@ -29,6 +29,37 @@ const subtlePulse = keyframes`
     transform: scale(1.02);
   }
   100% {
+    transform: scale(1);
+  }
+`;
+
+const hoverLift = keyframes`
+  to { transform: translateY(-4px); }
+`;
+
+const tossGlow = keyframes`
+  0% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+  50% {
+    filter: drop-shadow(0 4px 8px rgba(0, 106, 255, 0.3));
+  }
+  100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+`;
+
+const goldSparkle = keyframes`
+  0% {
+    filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.5));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 6px 12px rgba(255, 215, 0, 0.8));
+    transform: scale(1.1);
+  }
+  100% {
+    filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.5));
     transform: scale(1);
   }
 `;
@@ -68,10 +99,10 @@ export const Title = styled.h1`
 `;
 
 export const NavArrow = styled.div`
-  cursor: ${props => (props.disabled ? 'not-allowed' : 'pointer')};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   font-size: 24px;
-  opacity: ${props => (props.disabled ? 0.3 : 1)};
-  pointer-events: ${props => (props.disabled ? 'none' : 'auto')};
+  opacity: ${(props) => (props.disabled ? 0.3 : 1)};
+  pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
 
   @media (max-width: 768px) {
     font-size: 20px;
@@ -165,7 +196,6 @@ export const StatsContainer = styled.div`
   margin-bottom: 20px;
   padding-bottom: 10px;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 
   &::-webkit-scrollbar {
     height: 8px;
@@ -227,45 +257,45 @@ export const RankingItem = styled.div`
 export const RankWrapper = styled.div`
   display: flex;
   align-items: center;
-  position: relative;
-  width: 25px;
+  justify-content: center;
+  width: 50px; /* 메달 크기 증가로 폭 조정 */
+
+  @media (max-width: 480px) {
+    width: 50px;
+  }
 `;
 
 export const Rank = styled.div`
-  width: 25px;
-  text-align: center;
-  font-weight: 600;
-  color: #333;
-`;
-
-export const Medal = styled.div`
-  position: absolute;
-  top: -8px;
-  left: -8px;
-  width: 24px;
-  height: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 50%;
-  background: ${props =>
-    props.rank === 1
-      ? 'linear-gradient(135deg, #FFD700 0%, #FFC107 100%)' // 금메달
-      : props.rank === 2
-      ? 'linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%)' // 은메달
-      : 'linear-gradient(135deg, #CD7F32 0%, #B87333 100%)'}; // 동메달
+  min-height: 36px; /* 메달 높이와 맞춤 */
+  font-size: ${(props) => (props.isNumber ? '16px' : '0')}; /* 숫자 표시용 */
+  font-weight: 500;
   color: #333;
-  font-size: 10px;
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  animation: ${subtlePulse} 2s ease-in-out infinite;
 
-  ${props =>
-    props.rank && props.rank <= 3 && `
-      width: 28px;
-      height: 28px;
-      font-size: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+  @media (max-width: 480px) {
+    min-height: 28px;
+    font-size: ${(props) => (props.isNumber ? '14px' : '0')};
+  }
+`;
+
+export const Medal = styled.img`
+  width: ${(props) => (props.rank === 1 ? '45px' : '45px')}; /* 크기 증가 */
+  height: ${(props) => (props.rank === 1 ? '45px' : '45px')};
+  object-fit: contain;
+  animation: ${(props) => (props.rank === 1 ? goldSparkle : tossGlow)} 1.8s ease-in-out infinite;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    animation: ${hoverLift} 0.2s forwards;
+  }
+
+  ${(props) =>
+    props.rank === 1 &&
+    `
+      border: 1px solid #D4A017;
+      border-radius: 50%;
     `}
 `;
 
@@ -378,10 +408,14 @@ export const StatsContainerInner = styled.div`
   display: flex;
   gap: 16px;
   margin-bottom: 20px;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 
   @media (max-width: 480px) {
-    flex-direction: column;
     gap: 12px;
+    padding: 12px;
   }
 `;
 
@@ -395,10 +429,33 @@ export const StatsColumn = styled.div`
 export const StatItem = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+
+  &:hover {
+    animation: ${hoverLift} 0.2s forwards;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  & .label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  & .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #3182f6;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px;
+    border-radius: 10px;
+  }
 `;
 
 export const StatLabel = styled.div`
@@ -509,7 +566,6 @@ export const TossCloseButton = styled.button`
   }
 `;
 
-// New styles for category buttons
 export const CategoryButtonContainer = styled.div`
   overflow-x: auto;
   white-space: nowrap;
@@ -539,23 +595,41 @@ export const CategoryButtonScroll = styled.div`
 `;
 
 export const CategoryButton = styled.button`
-  padding: 8px 16px;
-  background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
-  color: ${props => (props.active ? 'white' : '#333')};
-  border: 1px solid ${props => (props.active ? '#3182f6' : '#e0e0e0')};
-  border-radius: 12px;
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background-color: ${(props) => (props.active ? "#3182f6" : "#ffffff")};
+  color: ${(props) => (props.active ? "#ffffff" : "#333333")};
+  border: 1px solid ${(props) => (props.active ? "#3182f6" : "#d1d5db")};
+  border-radius: 999px;
+  box-shadow: ${(props) =>
+    props.active
+      ? "0 2px 6px rgba(49, 130, 246, 0.3)"
+      : "0 1px 3px rgba(0, 0, 0, 0.05)"};
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-  white-space: nowrap;
+  transition: 
+    background-color 0.2s ease, 
+    color 0.2s ease, 
+    box-shadow 0.2s ease, 
+    border-color 0.2s ease;
 
   &:hover {
-    background-color: ${props => (props.active ? '#2a74e0' : '#e8ecef')};
+    background-color: ${(props) => (props.active ? "#2a74e0" : "#f0f3f5")};
+    box-shadow: ${(props) =>
+      props.active
+        ? "0 4px 12px rgba(49, 130, 246, 0.35)"
+        : "0 2px 6px rgba(0, 0, 0, 0.1)"};
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(49, 130, 246, 0.3);
   }
 
   @media (max-width: 480px) {
-    padding: 6px 12px;
+    padding: 4px 10px;
     font-size: 12px;
   }
 `;
@@ -580,23 +654,26 @@ export const TossListItem = styled.li`
 export const TossRankWrapper = styled.div`
   display: flex;
   align-items: center;
-  position: relative;
-  width: 30px;
+  justify-content: center;
+  width: 50px; /* 메달 크기 증가로 폭 조정 */
 
   @media (max-width: 480px) {
-    width: 25px;
+    width: 40px;
   }
 `;
 
 export const TossRank = styled.span`
-  width: 30px;
-  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 36px; /* 메달 높이와 맞춤 */
+  font-size: ${(props) => (props.isNumber ? '16px' : '0')}; /* 숫자 표시용 */
+  font-weight: 500;
   color: #333;
-  text-align: center;
 
   @media (max-width: 480px) {
-    width: 25px;
-    font-size: 14px;
+    min-height: 28px;
+    font-size: ${(props) => (props.isNumber ? '14px' : '0')};
   }
 `;
 
@@ -661,15 +738,13 @@ export const FullRankingSearchContainer = styled.div`
 
 export const FullRankingContainer = styled.div`
   width: 100%;
-  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   max-width: 100%;
   position: relative;
   cursor: grab;
-  /* 높이를 명시적으로 설정하여 sticky가 안정적으로 동작하도록 */
   max-height: 600px;
-  overflow-y: auto;
+  overflow: auto;
 
   &:active {
     cursor: grabbing;
@@ -692,16 +767,19 @@ export const FullRankingContainer = styled.div`
   @media (max-width: 768px) {
     -webkit-overflow-scrolling: touch;
     max-height: 500px;
-    /* 모바일에서 고정 열 그라데이션 추가 */
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       bottom: 0;
       left: 0;
-      width: 220px; /* 등수(50px) + 이름(100px) + 포지션(70px) */
+      width: 220px;
       pointer-events: none;
-      background: linear-gradient(to right, #fff 0%, rgba(255,255,255,0) 100%);
+      background: linear-gradient(
+        to right,
+        #fff 0%,
+        rgba(255, 255, 255, 0) 100%
+      );
       z-index: 2;
     }
   }
@@ -723,8 +801,8 @@ export const FullRankingTable = styled.table`
 
 export const TableHeader = styled.th`
   padding: 12px 8px;
-  background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
-  color: ${props => (props.active ? 'white' : '#333')};
+  background-color: ${(props) => (props.active ? "#3182f6" : "#f5f5f5")};
+  color: ${(props) => (props.active ? "white" : "#333")};
   border-bottom: 1px solid #e0e0e0;
   font-weight: 600;
   text-align: center;
@@ -732,17 +810,15 @@ export const TableHeader = styled.th`
   transition: background-color 0.3s ease, color 0.3s ease;
   white-space: nowrap;
 
-  /* 헤더를 항상 상단에 고정 */
   position: sticky;
   top: 0;
   z-index: 10;
 
-  /* 고정 열 스타일 */
   &:nth-child(1) {
     position: sticky;
     left: 0;
     width: 60px;
-    background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
+    background-color: ${(props) => (props.active ? "#3182f6" : "#f5f5f5")};
     z-index: 15;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   }
@@ -750,7 +826,7 @@ export const TableHeader = styled.th`
     position: sticky;
     left: 60px;
     width: 120px;
-    background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
+    background-color: ${(props) => (props.active ? "#3182f6" : "#f5f5f5")};
     z-index: 15;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   }
@@ -758,13 +834,13 @@ export const TableHeader = styled.th`
     position: sticky;
     left: 180px;
     width: 80px;
-    background-color: ${props => (props.active ? '#3182f6' : '#f5f5f5')};
+    background-color: ${(props) => (props.active ? "#3182f6" : "#f5f5f5")};
     z-index: 15;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   }
 
   &:hover {
-    background-color: ${props => (props.active ? '#2a74e0' : '#e8ecef')};
+    background-color: ${(props) => (props.active ? "#2a74e0" : "#e8ecef")};
   }
 
   @media (max-width: 768px) {
@@ -773,13 +849,14 @@ export const TableHeader = styled.th`
 
     &:nth-child(1) {
       width: 50px;
+      left: -1px;
     }
     &:nth-child(2) {
-      left: 50px;
+      left: 73px;
       width: 100px;
     }
     &:nth-child(3) {
-      left: 150px;
+      left: 185px;
       width: 70px;
     }
   }
@@ -793,8 +870,17 @@ export const TableRow = styled.tr`
   }
 
   &:nth-child(even) {
-    background-color: #f9f9f9;
+    td {
+      background-color: #f9f9f9;
+    }
   }
+
+  &:nth-child(odd) {
+    td {
+      background-color: #fff;
+    }
+  }
+
   &:hover {
     background-color: #f1f1f1;
   }
@@ -816,7 +902,7 @@ export const FixedTableCell = styled.td`
     width: 60px;
   }
   &:nth-child(2) {
-    left: 60px;
+    left: 62px;
     width: 120px;
   }
   &:nth-child(3) {
@@ -829,14 +915,14 @@ export const FixedTableCell = styled.td`
     font-size: 12px;
 
     &:nth-child(1) {
-      width: 50px;
+      width: 62px;
     }
     &:nth-child(2) {
-      left: 50px;
+      left: 73px;
       width: 100px;
     }
     &:nth-child(3) {
-      left: 150px;
+      left: 185px;
       width: 70px;
     }
   }
@@ -867,7 +953,6 @@ export const NoDataMessage = styled.div`
   }
 `;
 
-// 맨 위로 가기 버튼 스타일
 export const ScrollTopButton = styled.button`
   position: fixed;
   bottom: 20px;

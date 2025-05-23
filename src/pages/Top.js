@@ -3,7 +3,19 @@ import { collection, getDocs, query, doc, getDoc } from 'firebase/firestore';
 import { db } from '../App';
 import * as Styles from './Top10Css';
 
-// 포지션 통일 함수 (CB1, CB2 통일 등)
+// 메달 컴포넌트
+const Medal = ({ rank }) => {
+  const images = {
+    1: '/trophy.png', // 금
+    2: '/2.png',      // 은
+    3: '/3.png',      // 동
+  };
+  const src = images[rank] || '';
+
+  return <Styles.Medal src={src} rank={rank} alt={`Rank ${rank} Medal`} />;
+};
+
+// 포지션 통일 함수
 const unifyPosition = (position) => {
   const positionMap = {
     'CB1': 'CB',
@@ -16,7 +28,7 @@ const unifyPosition = (position) => {
   return positionMap[position] || position;
 };
 
-// 가장 많이 사용한 포지션 계산 (2025년만 사용)
+// 가장 많이 사용한 포지션 계산
 const calculateMostFrequentPosition = async (playerName, year) => {
   if (year !== '2025') return null;
 
@@ -61,13 +73,13 @@ const TOP = () => {
   const [fullRankingSearch, setFullRankingSearch] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [playerStats, setPlayerStats] = useState(null);
-  const [showMorePopup, setShowMorePopup] = useState(null); // Now holds selected category and all categories
+  const [showMorePopup, setShowMorePopup] = useState(null);
   const [positions, setPositions] = useState({});
   const [sortKey, setSortKey] = useState('matches');
   const [currentYear, setCurrentYear] = useState('2025');
   const [hasData, setHasData] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [showScrollTop, setShowScrollTop] = useState(false); // 스크롤 버튼 표시 여부
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const fullRankingRef = useRef(null);
   const isDragging = useRef(false);
@@ -77,7 +89,6 @@ const TOP = () => {
   useEffect(() => {
     fetchPlayers(currentYear);
 
-    // 스크롤 이벤트 리스너 추가
     const handleScroll = () => {
       if (window.scrollY > 300) {
         setShowScrollTop(true);
@@ -89,13 +100,6 @@ const TOP = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentYear]);
-
-  // sortKey가 변경될 때마다 테이블의 수직 스크롤을 맨 위로 이동
-  useEffect(() => {
-    if (fullRankingRef.current) {
-      fullRankingRef.current.scrollTop = 0; // 수직 스크롤을 맨 위로 초기화
-    }
-  }, [sortKey]); // sortKey가 변경될 때마다 실행
 
   const fetchPlayers = async (year) => {
     try {
@@ -396,7 +400,6 @@ const TOP = () => {
     fullRankingRef.current.scrollLeft = scrollLeft.current - walk;
   };
 
-  // 맨 위로 가기 버튼 클릭 핸들러
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -465,10 +468,12 @@ const TOP = () => {
                       {category.players.slice(0, 4).map((player) => (
                         <Styles.RankingItem key={`${category.id}-${player.rank}-${player.name}`}>
                           <Styles.RankWrapper>
-                            {player.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                            {player.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                            {player.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
-                            <Styles.Rank>{player.rank}</Styles.Rank>
+                            <Styles.Rank isNumber={player.rank > 3}>
+                              {player.rank === 1 && <Medal rank={1} />}
+                              {player.rank === 2 && <Medal rank={2} />}
+                              {player.rank === 3 && <Medal rank={3} />}
+                              {player.rank > 3 && player.rank}
+                            </Styles.Rank>
                           </Styles.RankWrapper>
                           <Styles.PlayerInfo>
                             <Styles.PlayerName>{player.name}</Styles.PlayerName>
@@ -595,7 +600,7 @@ const TOP = () => {
           <Styles.PopupContent onClick={(e) => e.stopPropagation()}>
             <Styles.PopupInner>
               <Styles.PopupHeader>
-                <Styles.PopupTitle>{playerStats.name}님의 순위</Styles.PopupTitle>
+                <Styles.PopupTitle>{playerStats.name}님의 {currentYear} 순위</Styles.PopupTitle>
                 <Styles.CloseButton onClick={() => setShowPopup(false)}>×</Styles.CloseButton>
               </Styles.PopupHeader>
               <Styles.StatsContainerInner>
@@ -604,9 +609,6 @@ const TOP = () => {
                     <Styles.StatLabel>출장수</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.matches.value} 경기</Styles.StatValue>
-                      {playerStats.matches.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.matches.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.matches.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.matches.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -614,9 +616,6 @@ const TOP = () => {
                     <Styles.StatLabel>득점</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.goals.value} 골</Styles.StatValue>
-                      {playerStats.goals.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.goals.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.goals.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.goals.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -624,9 +623,6 @@ const TOP = () => {
                     <Styles.StatLabel>도움</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.assists.value} 개</Styles.StatValue>
-                      {playerStats.assists.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.assists.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.assists.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.assists.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -636,9 +632,6 @@ const TOP = () => {
                     <Styles.StatLabel>공격포인트</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.attackPoints.value} P</Styles.StatValue>
-                      {playerStats.attackPoints.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.attackPoints.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.attackPoints.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.attackPoints.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -646,9 +639,6 @@ const TOP = () => {
                     <Styles.StatLabel>클린시트</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.cleanSheets.value} 회</Styles.StatValue>
-                      {playerStats.cleanSheets.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.cleanSheets.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.cleanSheets.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.cleanSheets.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -656,9 +646,6 @@ const TOP = () => {
                     <Styles.StatLabel>파워랭킹</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.momScore.value} 점</Styles.StatValue>
-                      {playerStats.momScore.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.momScore.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.momScore.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.momScore.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -668,9 +655,6 @@ const TOP = () => {
                     <Styles.StatLabel>TOP 3</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.momTop3Count.value} 회</Styles.StatValue>
-                      {playerStats.momTop3Count.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.momTop3Count.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.momTop3Count.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.momTop3Count.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -678,9 +662,6 @@ const TOP = () => {
                     <Styles.StatLabel>TOP 8</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.momTop8Count.value} 회</Styles.StatValue>
-                      {playerStats.momTop8Count.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.momTop8Count.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.momTop8Count.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.momTop8Count.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -688,9 +669,6 @@ const TOP = () => {
                     <Styles.StatLabel>개인승점</Styles.StatLabel>
                     <Styles.StatValueWrapper>
                       <Styles.StatValue>{playerStats.personalPoints.value} 점</Styles.StatValue>
-                      {playerStats.personalPoints.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                      {playerStats.personalPoints.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                      {playerStats.personalPoints.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
                     </Styles.StatValueWrapper>
                     <Styles.StatRank>순위: {playerStats.personalPoints.rank}</Styles.StatRank>
                   </Styles.StatItem>
@@ -708,10 +686,9 @@ const TOP = () => {
         <Styles.PopupOverlay onClick={() => setShowMorePopup(null)}>
           <Styles.TossPopup onClick={(e) => e.stopPropagation()}>
             <Styles.TossHeader>
-              <Styles.TossTitle>{showMorePopup.selectedCategory.title} 상위 순위</Styles.TossTitle>
+              <Styles.TossTitle>{showMorePopup.selectedCategory.title} {currentYear}시즌 상위 순위</Styles.TossTitle>
               <Styles.TossCloseButton onClick={() => setShowMorePopup(null)}>×</Styles.TossCloseButton>
             </Styles.TossHeader>
-            {/* Category Buttons */}
             <Styles.CategoryButtonContainer>
               <Styles.CategoryButtonScroll>
                 {showMorePopup.categories.map((category) => (
@@ -729,10 +706,12 @@ const TOP = () => {
               {showMorePopup.selectedCategory.players.map((player) => (
                 <Styles.TossListItem key={`${showMorePopup.selectedCategory.id}-${player.rank}-${player.name}`}>
                   <Styles.TossRankWrapper>
-                    {player.rank === 1 && <Styles.Medal rank={1}>1위</Styles.Medal>}
-                    {player.rank === 2 && <Styles.Medal rank={2}>2위</Styles.Medal>}
-                    {player.rank === 3 && <Styles.Medal rank={3}>3위</Styles.Medal>}
-                    <Styles.TossRank>{player.rank}</Styles.TossRank>
+                    <Styles.TossRank isNumber={player.rank > 3}>
+                      {player.rank === 1 && <Medal rank={1} />}
+                      {player.rank === 2 && <Medal rank={2} />}
+                      {player.rank === 3 && <Medal rank={3} />}
+                      {player.rank > 3 && player.rank}
+                    </Styles.TossRank>
                   </Styles.TossRankWrapper>
                   <Styles.TossPlayerInfo>
                     <Styles.TossPlayerName>{player.name}</Styles.TossPlayerName>
@@ -751,7 +730,6 @@ const TOP = () => {
         </Styles.PopupOverlay>
       )}
 
-      {/* 맨 위로 가기 버튼 */}
       {showScrollTop && (
         <Styles.ScrollTopButton onClick={scrollToTop}>
           ↑

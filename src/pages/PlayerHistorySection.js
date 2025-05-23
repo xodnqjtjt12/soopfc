@@ -859,7 +859,7 @@ const PlayerHistorySection = () => {
         ) : (
           <>
             <PHS.RankingSummary>
-              <PHS.SectionTitle>수상 기록</PHS.SectionTitle>
+              <PHS.SectionTitle>🏆수상 기록🏆</PHS.SectionTitle>
               {rankingDataLoading ? (
                 <div style={{
                   display: 'flex',
@@ -909,14 +909,18 @@ const PlayerHistorySection = () => {
                   });
 
                   return (
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '10px',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap'
-                      }}
-                    >
+                  <div
+  style={{
+    display: 'flex',
+    gap: '10px',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    /* 전체를 왼쪽으로 10px 당겨줍니다 */
+    marginLeft: '-35px',
+    /* 모바일 기기(폭 ≤ 640px)에서만 덜 당기고 싶다면 미디어쿼리를 쓸 수는 없으니, 
+       대신 JS로 화면 너비를 감지해서 값만 다르게 줄 수도 있습니다. */
+  }}
+>
                       {hasAwards ? (
                         years
                           .filter(year => {
@@ -946,6 +950,7 @@ const PlayerHistorySection = () => {
                                 color: '#ffffff'
                               }}>
                                 {year}년 수상 기록
+
                               </h4>
                               <div>
                                 {statRankingToCheck.map((stat, index) => {
