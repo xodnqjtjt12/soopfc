@@ -25,7 +25,9 @@ import PlayerHistorySection from './pages/PlayerHistorySection';
 import Top from './pages/Top';
 import Live from './pages/Live'; 
 import LiveAdmin from './pages/LiveAdmin'; 
-import Record from './pages/record'; // 수정: 대문자 R로 시작하는 컴포넌트 이름
+import Record from './pages/record';
+import Score from './pages/Score';
+import ScoreAdmin from './pages/ScoreAdmin';
 
 // Components
 import Header from './components/Header';
@@ -57,7 +59,6 @@ const AppContainer = styled.div`
 
   @media (max-width: 768px) {
     background-color: #ffffff;
-   
   }
 `;
 const Footer = styled.footer`
@@ -99,7 +100,8 @@ function App() {
           <Route path="/player-history/:playerId" element={<PlayerHistorySection />} />
           <Route path="/top" element={<Top />} />
           <Route path="/live" element={<Live />} /> 
-          <Route path="/record" element={<Record />} /> {/* 수정: 컴포넌트 이름 대문자로 변경 */}
+          <Route path="/record" element={<Record />} />
+          <Route path="/score" element={<Score />} /> {/* 수정: 소문자 score로 통일 */}
 
           {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}
           <Route path="/admin" element={<AdminLayout />}>
@@ -111,25 +113,10 @@ function App() {
             <Route path="announcements" element={<AnnouncementsAdmin />} />
             <Route path="history" element={<PlayerHistorySectionAdmin />} />
             <Route path="live" element={<LiveAdmin />} />
+            <Route path="score" element={<ScoreAdmin />} /> {/* 수정: score로 변경 */}
           </Route>
         </Routes>
       </AppContainer>
-
-      {/* 공통 Footer (하단 네비게이션) */}
-      {/* <Footer>
-        <IconLink to="/top-goal-scorer">
-          <Icon src={goalIcon} alt="Goal Scorer" />
-        </IconLink>
-        <IconLink to="/top-assists">
-          <Icon src={assistIcon} alt="Assist Provider" />
-        </IconLink>
-        <IconLink to="/top-defender">
-          <Icon src={defenderIcon} alt="Top Defender" />
-        </IconLink>
-        <IconLink to="/overall-rankings">
-          <Icon src={trophyIcon} alt="Overall Rankings" />
-        </IconLink>
-      </Footer> */}
     </Router>
   );
 }

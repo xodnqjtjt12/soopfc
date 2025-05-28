@@ -41,7 +41,8 @@ export default function AdminLayout() {
         <StyledLink to="vod">경기기록 관리</StyledLink>
         <StyledLink to="announcements">투표 관리</StyledLink>
         <StyledLink to="history">레거시 데이터 관리</StyledLink>
-        <StyledLink to="live">라인업 관리</StyledLink> {/* 추가 */}
+        <StyledLink to="live">라인업 관리</StyledLink>
+        <StyledLink to="score">스코어 관리</StyledLink> {/* 추가 */}
       </Sidebar>
       <Content>
         <Outlet />
