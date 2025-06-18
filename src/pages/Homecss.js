@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import Calendar from 'react-calendar';
 import { keyframes } from 'styled-components';
-import 'react-calendar/dist/Calendar.css'; // react-calendar CSS import
+import 'react-calendar/dist/Calendar.css';
 
 export const HomeContainer = styled.div`
   display: flex;
@@ -16,7 +16,6 @@ export const HomeContainer = styled.div`
   width: 100%;
   box-sizing: border-box;
 
-  /* 모바일 패딩 수정 - 상단 여백 줄임 */
   @media (max-width: 768px) {
     margin-top: -230px !important;
   }
@@ -82,7 +81,7 @@ export const HeroImageContainer = styled.div`
   aspect-ratio: 16 / 9;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0.15);
   margin-left: -10px;
 
   @media (max-width: 640px) {
@@ -119,7 +118,7 @@ export const PrimaryButton = styled.a`
   background-color: #3182f6;
   border-radius: 12px;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all::0.2s ease;
   box-shadow: 0 4px 12px rgba(49, 130, 246, 0.2);
   &:hover {
     background-color: #1c6fef;
@@ -135,7 +134,7 @@ export const StatsContainer = styled.div`
   margin-bottom: 40px;
   padding: 20px;
   background-color: white;
-  border-radius: 12px;
+  border-radius:  12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
@@ -185,9 +184,9 @@ export const PlayerCard = styled.div`
   }
   @media (max-width: 640px) {
     min-width: 85%;
-    scroll-snap-align: start; /* 스크롤 시 첫 카드가 왼쪽에 딱 맞게 정렬되도록 */
+    scroll-snap-align: start;
     &:first-child {
-      margin-left: 0; /* 첫 번째 카드의 왼쪽 마진 제거 */
+      margin-left: 0;
     }
   }
 `;
@@ -201,7 +200,6 @@ export const PlayerRank = styled.div`
   font-weight: 600;
   color: #4E4E4E;
   letter-spacing: 0.5px;
-  
 `;
 
 export const PlayerStats = styled.div`
@@ -309,7 +307,7 @@ export const StyledCalendar = styled(Calendar)`
     border-radius: 50%;
     transition: background-color 0.2s;
     flex-shrink: 0;
-    
+
     &:hover {
       background-color: #f2f4f6;
     }
@@ -374,7 +372,7 @@ export const StyledCalendar = styled(Calendar)`
     background-color: #e7f4fd;
     font-weight: 600;
     color: #3182f6;
-    
+
     &::after {
       content: '';
       position: absolute;
@@ -392,7 +390,7 @@ export const StyledCalendar = styled(Calendar)`
     background-color: #3182f6;
     color: white;
     font-weight: 600;
-    
+
     &:hover {
       background-color: #1c6fef;
     }
@@ -400,7 +398,7 @@ export const StyledCalendar = styled(Calendar)`
 
   .react-calendar__tile--hasMatch {
     position: relative;
-    
+
     &::before {
       content: '';
       position: absolute;
@@ -414,16 +412,16 @@ export const StyledCalendar = styled(Calendar)`
   }
 
   .react-calendar__tile.saturday {
-    color: blue; /* 토요일: 파란색 */
+    color: blue;
   }
 
   .react-calendar__tile.sunday-or-holiday {
-    color: red; /* 일요일 및 공휴일: 빨간색 */
+    color: red;
   }
 
   .react-calendar__tile--win {
     position: relative;
-    
+
     &::after {
       content: '';
       position: absolute;
@@ -437,34 +435,32 @@ export const StyledCalendar = styled(Calendar)`
     }
   }
 
-  /* 모바일 반응형 조정 */
   @media (max-width: 640px) {
     padding: 12px;
-    
+
     .react-calendar__navigation {
       padding: 0 4px 12px;
       margin-bottom: 12px;
     }
-    
-.react-calendar__navigation__label {
-  /* flex:1 은 가용 공간을 동등 분할 → 텍스트가 통째로 잘릴 수 있음 */
-  flex: 0 0 auto !important;         /* flex: none */ :contentReference[oaicite:3]{index=3}
-  white-space: nowrap;               /* 줄바꿈 금지 */ :contentReference[oaicite:4]{index=4}
-  overflow: visible !important;      /* 잘린 부분 보이도록 */ :contentReference[oaicite:5]{index=5}
-  text-overflow: clip !important;    /* ellipsis 대신 클립 */ :contentReference[oaicite:6]{index=6}
-  min-width: max-content;            /* 콘텐츠가 요구하는 최소 폭 보장 */ :contentReference[oaicite:7]{index=7}
-}
-    
+
+    .react-calendar__navigation__label {
+      flex: 0 0 auto !important;
+      white-space: nowrap;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      min-width: max-content;
+    }
+
     .react-calendar__navigation__arrow {
       width: 36px;
       height: 36px;
       font-size: 18px;
     }
-    
+
     .react-calendar__month-view__weekdays__weekday {
       font-size: 12px;
       padding: 4px 0;
-      
+
       abbr {
         white-space: nowrap;
         overflow: hidden;
@@ -472,11 +468,11 @@ export const StyledCalendar = styled(Calendar)`
         display: block;
       }
     }
-    
+
     .react-calendar__month-view__days {
       gap: 4px;
     }
-    
+
     .react-calendar__tile {
       min-height: 40px;
       padding: 8px 2px;
@@ -484,13 +480,13 @@ export const StyledCalendar = styled(Calendar)`
       border-radius: 8px;
       flex-direction: column;
     }
-    
+
     .react-calendar__tile--now::after {
       bottom: 4px;
       width: 3px;
       height: 3px;
     }
-    
+
     .react-calendar__tile--hasMatch::before,
     .react-calendar__tile--win::after {
       top: 4px;
@@ -500,36 +496,35 @@ export const StyledCalendar = styled(Calendar)`
     }
   }
 
-  /* 더 작은 화면에 대한 추가 최적화 */
   @media (max-width: 400px) {
     padding: 8px;
-    
+
     .react-calendar__navigation {
       padding: 0 2px 8px;
       margin-bottom: 8px;
     }
-    
+
     .react-calendar__navigation__label {
       font-size: 14px;
       padding: 4px;
       margin: 0 4px;
     }
-    
+
     .react-calendar__navigation__arrow {
       width: 32px;
       height: 32px;
       font-size: 16px;
     }
-    
+
     .react-calendar__month-view__weekdays__weekday {
       font-size: 11px;
       padding: 2px 0;
     }
-    
+
     .react-calendar__month-view__days {
       gap: 2px;
     }
-    
+
     .react-calendar__tile {
       min-height: 36px;
       padding: 4px 1px;
@@ -556,11 +551,11 @@ export const ScheduleItem = styled.li`
   justify-content: space-between;
   align-items: center;
   transition: background-color 0.2s;
-  
+
   &:hover {
     background-color: #eef1f4;
   }
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -581,14 +576,14 @@ export const SoccerAnnounceBanner = styled.div`
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   position: relative;
   animation: ${fadeIn} 0.5s ease-out;
-  
+
   &::before {
     content: "⚽";
     font-size: 1.5rem;
     margin-right: 10px;
     vertical-align: middle;
   }
-  
+
   &::after {
     content: "";
     position: absolute;
@@ -606,8 +601,6 @@ export const SoccerAnnounceBanner = styled.div`
     border-radius: 6px;
     pointer-events: none;
   }
-
-  
 `;
 
 export const SwipeHint = styled.div`
@@ -634,7 +627,6 @@ export const EndMessage = styled.div`
   }
 `;
 
-// Homecss.js 또는 해당 스타일 파일
 export const WhiteDivider = styled.div`
   width: 100%;
   height: 1px;
@@ -646,12 +638,12 @@ export const MomPlayersContainer = styled.div`
   display: flex;
   gap: 16px;
   overflow-x: ${({ isScrollable }) => (isScrollable ? 'auto' : 'hidden')};
-  justify-content: center; /* Center the items horizontally - PC 환경 */
+  justify-content: center;
   padding: 35px 30px;
-  width: calc(100% + 24px); 
+  width: calc(100% + 24px);
   scrollbar-width: thin;
   scroll-padding-left: 24px;
-  margin-left: -35px;  
+  margin-left: -35px;
 
   &::-webkit-scrollbar {
     height: 6px;
@@ -663,11 +655,11 @@ export const MomPlayersContainer = styled.div`
   }
 
   @media (max-width: 850px) {
-    justify-content: flex-start; /* 왼쪽 정렬 */
+    justify-content: flex-start;
     overflow-x: auto;
     padding-left: 16px;
     padding-right: 16px;
-    width: calc(100% - 32px); /* 패딩을 고려한 너비 조정 */
+    width: calc(100% - 32px);
     margin: 0;
     scroll-snap-type: none;
     -webkit-overflow-scrolling: touch;
@@ -677,16 +669,17 @@ export const MomPlayersContainer = styled.div`
     justify-content: flex-start;
     padding-left: 16px;
     padding-right: 16px;
-    width: calc(100% - 32px); /* 패딩을 고려한 너비 조정 */
+    width: calc(100% - 32px);
     margin: 0;
     scroll-snap-type: none;
     scrollbar-width: none;
-    
+
     &::-webkit-scrollbar {
       display: none;
     }
   }
 `;
+
 export const PlayerRankBadge = styled.div`
   display: flex;
   align-items: center;
@@ -784,5 +777,29 @@ export const MomSectionTitle = styled(SectionTitle)`
   img {
     width: 80px;
     height: 80px;
+  }
+`;
+
+// New styled components for countdown timer
+export const VoteButtonWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const VoteCountdownText = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff3b30; // Red to indicate urgency
+  background-color: rgba(255, 59, 48, 0.1);
+  padding: 6px 12px;
+  border-radius: 8px;
+  animation: ${fadeIn} 0.4s ease-out;
+  text-align: center;
+
+  @media (max-width: 640px) {
+    font-size: 12px;
+    padding: 4px 8px;
   }
 `;

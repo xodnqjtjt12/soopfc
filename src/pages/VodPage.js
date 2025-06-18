@@ -125,7 +125,7 @@ const FORMATIONS = {
   '4-3-3': {
     desktop: [
       { position: 'GK', left: '1%', top: '47%' },
-      { position: 'RB', left: '20%', top: '90%' },
+      { position: 'RB', left: '20%', top: '85%' },
       { position: 'CB1', left: '20%', top: '40%' },
       { position: 'CB2', left: '20%', top: '60%' },
       { position: 'LB', left: '20%', top: '10%' },
@@ -297,11 +297,11 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         }
         if (newPos.position.startsWith('RW')) {
           newPos.top = '80%';
-          newPos.left = '67%';
+          newPos.left = '55%';
         }
         if (newPos.position.startsWith('LW')) {
           newPos.top = '20%';
-          newPos.left = '67%';
+          newPos.left = '55%';
         }
         if (newPos.position.startsWith('ST')) {
           newPos.top = '47%';

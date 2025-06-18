@@ -20,6 +20,26 @@ const formatDate = (date) => {
   return `${year}${month}${day}`;
 };
 
+// 날짜 및 시간 포맷팅 (YYYY-MM-DD HH:MM)
+const formatDateTimeDisplay = (date) => {
+  const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const year = kstDate.getFullYear();
+  const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+  const day = String(kstDate.getDate()).padStart(2, '0');
+  const hours = String(kstDate.getHours()).padStart(2, '0');
+  const minutes = String(kstDate.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
+
+// 날짜 포맷팅 (YYYY-MM-DD)
+const formatDateDisplay = (date) => {
+  const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const year = kstDate.getFullYear();
+  const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+  const day = String(kstDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // 컴포넌트 분리
 const VoteTable = React.memo(({ voteResults }) => (
   <S.VoteTable>
@@ -171,7 +191,10 @@ const AnnouncementsAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
-  const [voteEnabled, setVoteEnabled] = useState(true);
+  const [voteEnabled, setVoteEnabled] = useState(false);
+  const [voteStartDateTime, setVoteStartDateTime] = useState(null);
+  const [voteEndDateTime, setVoteEndDateTime] = useState(null);
+  const [matchDate, setMatchDate] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [pendingVoteState, setPendingVoteState] = useState(null);
   const [isReopening, setIsReopening] = useState(false);
@@ -182,10 +205,14 @@ const AnnouncementsAdmin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-const [capsLockOn, setCapsLockOn] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [newVoteStartDateTime, setNewVoteStartDateTime] = useState('');
+  const [newVoteEndDateTime, setNewVoteEndDateTime] = useState('');
+  const [newMatchDate, setNewMatchDate] = useState('');
+  const [exposedDates, setExposedDates] = useState([]);
+  const [newExposedDate, setNewExposedDate] = useState('');
 
   const today = formatDate(new Date());
-  
 
   // 비밀번호 확인
   const handlePasswordSubmit = useCallback((e) => {
@@ -221,7 +248,6 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     let topEightList = [];
     let rank = 0;
 
-    // 상위 3위 계산
     const thirdVoteCount = sortedResults.length >= 3 ? sortedResults[2].total : 0;
     for (let i = 0; i < sortedResults.length; i++) {
       if (i === 0 || sortedResults[i].total !== sortedResults[i - 1].total) {
@@ -234,13 +260,12 @@ const [capsLockOn, setCapsLockOn] = useState(false);
       }
     }
 
-    // 상위 3위를 제외한 상위 8위 계산
     rank = 0;
     let nonTopThreeCount = 0;
     const topThreeIds = new Set(topThreeList.map(p => p.id));
     for (let i = 0; i < sortedResults.length && nonTopThreeCount < 8; i++) {
       if (topThreeIds.has(sortedResults[i].id)) {
-        continue; // 상위 3위 선수는 건너뛰기
+        continue;
       }
       if (i === 0 || sortedResults[i].total !== sortedResults[i - 1].total) {
         rank = nonTopThreeCount + 1;
@@ -253,13 +278,10 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     }
 
     const total = sortedResults.reduce((sum, player) => sum + player.total, 0);
-
-    // 댓글 데이터 계산
     const comments = historyItem.data.comments
       ? Object.entries(historyItem.data.comments).map(([userId, comment]) => ({ userId, comment }))
       : [];
 
-    console.log('히스토리 데이터:', { topThreeList, topEightList, comments });
     return { total, topThreeList, topEightList, comments };
   }, []);
 
@@ -270,7 +292,6 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     let topEightList = [];
     let rank = 0;
 
-    // 상위 3위 계산
     const thirdVoteCount = results.length >= 3 ? results[2].total : 0;
     for (let i = 0; i < results.length; i++) {
       if (i === 0 || results[i].total !== results[i - 1].total) {
@@ -283,13 +304,12 @@ const [capsLockOn, setCapsLockOn] = useState(false);
       }
     }
 
-    // 상위 3위를 제외한 상위 8위 계산
     rank = 0;
     let nonTopThreeCount = 0;
     const topThreeIds = new Set(topThreeList.map(p => p.id));
     for (let i = 0; i < results.length && nonTopThreeCount < 8; i++) {
       if (topThreeIds.has(results[i].id)) {
-        continue; // 상위 3위 선수는 건너뛰기
+        continue;
       }
       if (i === 0 || results[i].total !== results[i - 1].total) {
         rank = nonTopThreeCount + 1;
@@ -302,8 +322,6 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     }
 
     const total = results.reduce((sum, player) => sum + player.total, 0);
-
-    console.log('현재 데이터:', { topThreeList, topEightList });
     return { results, topThreeList, topEightList, total };
   }, [voteResults]);
 
@@ -329,12 +347,10 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     if (isAuthenticated) {
       fetchData();
 
-      // 실시간 투표 데이터 리스너
       const voteRef = doc(db, 'votes', `vote_${today}`);
       const voteStatusRef = doc(db, 'voteStatus', today);
 
       const unsubscribeVote = onSnapshot(voteRef, (voteDoc) => {
-        console.log('투표 데이터 스냅샷:', voteDoc.exists() ? voteDoc.data() : '데이터 없음');
         if (voteDoc.exists()) {
           const voteData = voteDoc.data();
           if (!voteData.playerVotes || typeof voteData.playerVotes !== 'object') {
@@ -371,13 +387,33 @@ const [capsLockOn, setCapsLockOn] = useState(false);
       });
 
       const unsubscribeStatus = onSnapshot(voteStatusRef, (voteStatusDoc) => {
-        console.log('투표 상태 스냅샷:', voteStatusDoc.exists() ? voteStatusDoc.data() : '상태 없음');
         if (voteStatusDoc.exists()) {
-          setVoteEnabled(voteStatusDoc.data().isEnabled);
+          const { isEnabled, voteStartDateTime, voteEndDateTime, matchDate, exposedDates = [] } = voteStatusDoc.data();
+          setVoteEnabled(isEnabled);
+          setVoteStartDateTime(voteStartDateTime ? new Date(voteStartDateTime) : null);
+          setVoteEndDateTime(voteEndDateTime ? new Date(voteEndDateTime) : null);
+          setNewVoteStartDateTime(voteStartDateTime ? formatDateTimeDisplay(new Date(voteStartDateTime)) : '');
+          setNewVoteEndDateTime(voteEndDateTime ? formatDateTimeDisplay(new Date(voteEndDateTime)) : '');
+          setMatchDate(matchDate ? formatDateDisplay(new Date(matchDate)) : '');
+          setNewMatchDate(matchDate ? formatDateDisplay(new Date(matchDate)) : '');
+          setExposedDates(exposedDates);
         } else {
-          setDoc(voteStatusRef, { isEnabled: true }).then(() => {
-            console.log('투표 상태 초기화: isEnabled=true');
-            setVoteEnabled(true);
+          setDoc(voteStatusRef, { 
+            isEnabled: false, 
+            voteStartDateTime: null, 
+            voteEndDateTime: null, 
+            matchDate: null, 
+            exposedDates: []
+          }).then(() => {
+            console.log('투표 상태 초기화: isEnabled=false, voteStartDateTime=null, voteEndDateTime=null, matchDate=null, exposedDates=[]');
+            setVoteEnabled(false);
+            setVoteStartDateTime(null);
+            setVoteEndDateTime(null);
+            setNewVoteStartDateTime('');
+            setNewVoteEndDateTime('');
+            setMatchDate('');
+            setNewMatchDate('');
+            setExposedDates([]);
           }).catch(err => {
             console.error('투표 상태 초기화 오류:', err.message);
             setError(`투표 상태 초기화 중 오류: ${err.message}`);
@@ -405,7 +441,6 @@ const [capsLockOn, setCapsLockOn] = useState(false);
       }));
       historyData.sort((a, b) => b.date.localeCompare(a.date));
       setVoteHistory(historyData);
-      console.log('투표 히스토리:', historyData);
     } catch (err) {
       console.error('투표 히스토리 가져오기 오류:', err.message);
     }
@@ -416,6 +451,76 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     setIsReopening(newStatus && !voteEnabled);
     setShowModal(true);
   }, [voteEnabled]);
+
+  const handleStartDateTimeChange = useCallback((e) => {
+    setNewVoteStartDateTime(e.target.value);
+  }, []);
+
+  const handleEndDateTimeChange = useCallback((e) => {
+    setNewVoteEndDateTime(e.target.value);
+  }, []);
+
+  const handleMatchDateChange = useCallback((e) => {
+    setNewMatchDate(e.target.value);
+  }, []);
+
+  const handleExposedDateChange = useCallback((e) => {
+    setNewExposedDate(e.target.value);
+  }, []);
+
+  const addExposedDate = useCallback(async () => {
+    if (!newExposedDate) {
+      alert('노출 날짜를 선택하세요.');
+      return;
+    }
+
+    const selectedDate = new Date(newExposedDate);
+    const formattedDate = formatDate(selectedDate);
+
+    if (exposedDates.includes(formattedDate)) {
+      alert('이미 추가된 날짜입니다.');
+      return;
+    }
+
+    try {
+      const voteStatusRef = doc(db, 'voteStatus', today);
+      const newExposedDates = [...exposedDates, formattedDate];
+      await updateDoc(voteStatusRef, { exposedDates: newExposedDates });
+      setExposedDates(newExposedDates);
+      setNewExposedDate('');
+
+      // Create or update voteStatus for the exposed date
+      const exposedVoteStatusRef = doc(db, 'voteStatus', formattedDate);
+      await setDoc(exposedVoteStatusRef, {
+        isEnabled: true,
+        voteStartDateTime: newVoteStartDateTime ? new Date(newVoteStartDateTime).toISOString() : null,
+        voteEndDateTime: newVoteEndDateTime ? new Date(newVoteEndDateTime).toISOString() : null,
+        matchDate: newMatchDate ? new Date(newMatchDate).toISOString() : null,
+        exposedDates: []
+      });
+      console.log(`노출 날짜 추가: ${formattedDate}`);
+    } catch (err) {
+      console.error('노출 날짜 추가 오류:', err.message);
+      alert(`노출 날짜 추가 중 오류가 발생했습니다: ${err.message}`);
+    }
+  }, [newExposedDate, exposedDates, today, newVoteStartDateTime, newVoteEndDateTime, newMatchDate]);
+
+  const removeExposedDate = useCallback(async (date) => {
+    try {
+      const voteStatusRef = doc(db, 'voteStatus', today);
+      const newExposedDates = exposedDates.filter(d => d !== date);
+      await updateDoc(voteStatusRef, { exposedDates: newExposedDates });
+      setExposedDates(newExposedDates);
+
+      // Optionally, delete the voteStatus document for the removed date
+      const exposedVoteStatusRef = doc(db, 'voteStatus', date);
+      await deleteDoc(exposedVoteStatusRef);
+      console.log(`노출 날짜 제거: ${date}`);
+    } catch (err) {
+      console.error('노출 날짜 제거 오류:', err.message);
+      alert(`노출 날짜 제거 중 오류가 발생했습니다: ${err.message}`);
+    }
+  }, [exposedDates, today]);
 
   const confirmVoteStatusChange = useCallback(async () => {
     setStatusUpdateLoading(true);
@@ -445,25 +550,46 @@ const [capsLockOn, setCapsLockOn] = useState(false);
         console.log('투표 데이터 초기화');
       }
 
+      const startDateTime = newVoteStartDateTime ? new Date(newVoteStartDateTime) : null;
+      const endDateTime = newVoteEndDateTime ? new Date(newVoteEndDateTime) : null;
+      const matchDate = newMatchDate ? new Date(newMatchDate) : null;
+
+      if (pendingVoteState && startDateTime && endDateTime && startDateTime >= endDateTime) {
+        alert('마감 시간이 시작 시간보다 빠를 수 없습니다.');
+        setStatusUpdateLoading(false);
+        return;
+      }
+
+      const updateData = {
+        isEnabled: pendingVoteState,
+        voteStartDateTime: newVoteStartDateTime ? new Date(newVoteStartDateTime).toISOString() : null,
+        voteEndDateTime: newVoteEndDateTime ? new Date(newVoteEndDateTime).toISOString() : null,
+        matchDate: newMatchDate ? new Date(newMatchDate).toISOString() : null,
+        exposedDates: exposedDates
+      };
+
       const voteStatusDoc = await getDoc(voteStatusRef);
       if (voteStatusDoc.exists()) {
-        await updateDoc(voteStatusRef, { isEnabled: pendingVoteState });
+        await updateDoc(voteStatusRef, updateData);
       } else {
-        await setDoc(voteStatusRef, { isEnabled: pendingVoteState });
+        await setDoc(voteStatusRef, updateData);
       }
 
       setVoteEnabled(pendingVoteState);
+      setVoteStartDateTime(startDateTime);
+      setVoteEndDateTime(endDateTime);
+      setMatchDate(newMatchDate);
       setShowModal(false);
       setIsReopening(false);
       await fetchVoteHistory();
-      console.log('투표 상태 업데이트 완료:', pendingVoteState);
+      console.log('투표 상태 업데이트 완료:', updateData);
     } catch (err) {
       console.error('투표 상태 업데이트 오류:', err.message);
       alert(`투표 상태 변경 중 오류가 발생했습니다: ${err.message}. Firestore 권한을 확인하세요.`);
     } finally {
       setStatusUpdateLoading(false);
     }
-  }, [pendingVoteState, isReopening, today]);
+  }, [pendingVoteState, isReopening, today, newVoteStartDateTime, newVoteEndDateTime, newMatchDate, exposedDates]);
 
   const handleDeleteHistory = useCallback(async (date) => {
     if (!window.confirm(`${date}의 투표 기록을 삭제하시겠습니까?`)) return;
@@ -506,7 +632,10 @@ const [capsLockOn, setCapsLockOn] = useState(false);
     setShowModal(false);
     setPendingVoteState(null);
     setIsReopening(false);
-  }, []);
+    setNewVoteStartDateTime(voteStartDateTime ? formatDateTimeDisplay(voteStartDateTime) : '');
+    setNewVoteEndDateTime(voteEndDateTime ? formatDateTimeDisplay(voteEndDateTime) : '');
+    setNewMatchDate(matchDate ? formatDateDisplay(matchDate) : '');
+  }, [voteStartDateTime, voteEndDateTime, matchDate]);
 
   if (!isAuthenticated) {
     return (
@@ -515,20 +644,20 @@ const [capsLockOn, setCapsLockOn] = useState(false);
           <S.ModalTitle>관리자 인증</S.ModalTitle>
           <S.ModalText>비밀번호를 입력하세요.</S.ModalText>
           <form onSubmit={handlePasswordSubmit}>
-           <S.PasswordModalInput
-   type="password"
-   value={password}
-   onChange={(e) => setPassword(e.target.value)}
-   onKeyDown={(e) => {
-     setCapsLockOn(e.getModifierState('CapsLock'));
-     if (e.key === 'Enter') {
-       handlePasswordSubmit(e);
-     }
-   }}
-   onKeyUp={(e) => setCapsLockOn(e.getModifierState('CapsLock'))}
-   placeholder="비밀번호 입력"
-   autoFocus
- />
+            <S.PasswordModalInput
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                setCapsLockOn(e.getModifierState('CapsLock'));
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit(e);
+                }
+              }}
+              onKeyUp={(e) => setCapsLockOn(e.getModifierState('CapsLock'))}
+              placeholder="비밀번호 입력"
+              autoFocus
+            />
             {passwordError && <S.PasswordModalError>{passwordError}</S.PasswordModalError>}
             <S.ModalButtons>
               <S.ModalButton type="submit" primary>
@@ -590,6 +719,74 @@ const [capsLockOn, setCapsLockOn] = useState(false);
                 : '투표 종료됨'}
           </S.StatusText>
         </S.SwitchContainer>
+        <S.DateTimeContainer>
+          <S.SwitchLabel>투표 기간:</S.SwitchLabel>
+          <S.DateTimeWrapper>
+            <S.DateTimeInput
+              type="datetime-local"
+              value={newVoteStartDateTime}
+              onChange={handleStartDateTimeChange}
+              disabled={statusUpdateLoading}
+            />
+            <S.DateTimeSeparator>~</S.DateTimeSeparator>
+            <S.DateTimeInput
+              type="datetime-local"
+              value={newVoteEndDateTime}
+              onChange={handleEndDateTimeChange}
+              disabled={statusUpdateLoading}
+            />
+          </S.DateTimeWrapper>
+          {(voteStartDateTime || voteEndDateTime) && (
+            <S.StatusText>
+              설정된 기간: 
+              {voteStartDateTime ? ` ${formatDateTimeDisplay(voteStartDateTime)}` : ' 미설정'} 
+              ~ 
+              {voteEndDateTime ? ` ${formatDateTimeDisplay(voteEndDateTime)}` : ' 미설정'}
+            </S.StatusText>
+          )}
+        </S.DateTimeContainer>
+        <S.DateTimeContainer>
+          <S.SwitchLabel>경기 날짜:</S.SwitchLabel>
+          <S.DateTimeWrapper>
+            <S.DateTimeInput
+              type="date"
+              value={newMatchDate}
+              onChange={handleMatchDateChange}
+              disabled={statusUpdateLoading}
+            />
+          </S.DateTimeWrapper>
+          {matchDate && (
+            <S.StatusText>
+              설정된 경기 날짜: {formatDateDisplay(matchDate)}
+            </S.StatusText>
+          )}
+        </S.DateTimeContainer>
+        <S.DateTimeContainer>
+          <S.SwitchLabel>노출 날짜 추가:</S.SwitchLabel>
+          <S.DateTimeWrapper>
+            <S.DateTimeInput
+              type="date"
+              value={newExposedDate}
+              onChange={handleExposedDateChange}
+              disabled={statusUpdateLoading}
+            />
+            <S.ExposeDateButton onClick={addExposedDate} disabled={statusUpdateLoading}>
+              추가
+            </S.ExposeDateButton>
+          </S.DateTimeWrapper>
+          {exposedDates.length > 0 && (
+            <S.ExposedDatesList>
+              {exposedDates.map(date => (
+                <S.ExposedDateItem key={date}>
+                  {date}
+                  <S.RemoveExposeDateButton onClick={() => removeExposedDate(date)}>
+                    ×
+                  </S.RemoveExposeDateButton>
+                </S.ExposedDateItem>
+              ))}
+            </S.ExposedDatesList>
+          )}
+        </S.DateTimeContainer>
       </S.VoteControlSection>
 
       {voteResults.length > 0 ? (
@@ -630,6 +827,39 @@ const [capsLockOn, setCapsLockOn] = useState(false);
                   ? '투표 받기를 시작하시겠습니까?'
                   : '투표 받기를 종료하시겠습니까?'}
             </S.ModalText>
+            {pendingVoteState && (
+              <>
+                <S.DateTimeContainer>
+                  <S.SwitchLabel>투표 기간 설정:</S.SwitchLabel>
+                  <S.DateTimeWrapper>
+                    <S.DateTimeInput
+                      type="datetime-local"
+                      value={newVoteStartDateTime}
+                      onChange={handleStartDateTimeChange}
+                      disabled={statusUpdateLoading}
+                    />
+                    <S.DateTimeSeparator>~</S.DateTimeSeparator>
+                    <S.DateTimeInput
+                      type="datetime-local"
+                      value={newVoteEndDateTime}
+                      onChange={handleEndDateTimeChange}
+                      disabled={statusUpdateLoading}
+                    />
+                  </S.DateTimeWrapper>
+                </S.DateTimeContainer>
+                <S.DateTimeContainer>
+                  <S.SwitchLabel>경기 날짜 설정:</S.SwitchLabel>
+                  <S.DateTimeWrapper>
+                    <S.DateTimeInput
+                      type="date"
+                      value={newMatchDate}
+                      onChange={handleMatchDateChange}
+                      disabled={statusUpdateLoading}
+                    />
+                  </S.DateTimeWrapper>
+                </S.DateTimeContainer>
+              </>
+            )}
             <S.ModalButtons>
               <S.ModalButton onClick={closeModal}>취소</S.ModalButton>
               <S.ModalButton primary onClick={confirmVoteStatusChange} disabled={statusUpdateLoading}>

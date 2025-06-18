@@ -112,6 +112,53 @@ export const ScoreInputContainer = styled.div`
   width: 100%;
 `;
 
+export const ScoreSeparator = styled.span`
+  font-size: 16px;
+  color: #191f28;
+  font-weight: 500;
+`;
+
+export const PredictionDetails = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+export const PredictionViewContainer = styled.div`
+  padding: 20px;
+  background: white;
+  min-height: 100vh;
+  animation: ${fadeIn} 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+export const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f1f5f9;
+  border: none;
+  border-radius: 12px;
+  color: #3182f6;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  align-self: flex-start;
+  margin: 12px 20px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e2e8f0;
+  }
+
+  @media (min-width: 768px) {
+    margin: 16px;
+  }
+`;
+
+
 export const PasswordContainer = styled.div`
   position: relative;
   width: 100%;

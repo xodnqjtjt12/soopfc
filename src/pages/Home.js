@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, Timestamp, doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '../App';
-import { format, startOfDay, addDays, isWithinInterval } from 'date-fns';
+import { format, isWithinInterval } from 'date-fns';
 import moment from 'moment';
 import styled from 'styled-components';
 import * as S from './Homecss';
@@ -43,20 +43,12 @@ export const MatchButton = styled.a.attrs({
   margin: 0;
   animation: float 3s ease-in-out infinite;
 
-  /* 둥둥 떠다니는 애니메이션 정의 */
   @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-6px);
-    }
-    100% {
-      transform: translateY(0px);
-    }
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0px); }
   }
 
-  /* 아이콘이 있을 경우 간격 추가 */
   svg {
     margin-right: 6px;
     font-size: 18px;
@@ -76,58 +68,32 @@ export const MatchButton = styled.a.attrs({
     animation-play-state: paused;
   }
 
-  /* PC 환경 */
   @media (min-width: 768px) {
     padding: 16px 32px;
     font-size: 18px;
-
-    svg {
-      font-size: 20px;
-    }
-
+    svg { font-size: 20px; }
     @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-8px);
-      }
-      100% {
-        transform: translateY(0px);
-      }
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
     }
   }
 
-  /* 모바일 환경 */
   @media (max-width: 767px) {
     padding: 12px 24px;
     font-size: 16px;
-
-    svg {
-      font-size: 16px;
-    }
-
+    svg { font-size: 16px; }
     @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-4px);
-      }
-      100% {
-        transform: translateY(0px);
-      }
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+      100% { transform: translateY(0px); }
     }
   }
 
-  /* 매우 작은 화면 */
   @media (max-width: 360px) {
     padding: 10px 20px;
     font-size: 14px;
-
-    svg {
-      font-size: 14px;
-    }
+    svg { font-size: 14px; }
   }
 `;
 
@@ -138,7 +104,6 @@ const Home = () => {
   const [showHint, setShowHint] = useState(true);
   const [showEnd, setShowEnd] = useState(false);
   const momRef = useRef(null);
-
   const [stats, setStats] = useState({
     members: 0,
     totalGoals: 0,
@@ -148,7 +113,6 @@ const Home = () => {
     attackpersonalPoints: 0,
     war: 0,
   });
-
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeStartDate, setActiveStartDate] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -159,33 +123,100 @@ const Home = () => {
   const [visibleIds, setVisibleIds] = useState([]);
   const [countdowns, setCountdowns] = useState({});
   const [liveMatches, setLiveMatches] = useState([]);
-
+  const [voteExposures, setVoteExposures] = useState([]);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [hideToday, setHideToday] = useLocalStorage('hideAnnouncementsDate', null);
-
   const [holidays, setHolidays] = useState([]);
   const [anniversaries, setAnniversaries] = useState([]);
+
+  // 투표 노출 데이터 가져오기
+  useEffect(() => {
+    const fetchVoteExposures = async () => {
+      try {
+        const today = format(new Date(), 'yyyyMMdd');
+        const voteStatusRef = doc(db, 'voteStatus', today);
+        const unsubscribe = onSnapshot(voteStatusRef, async (voteStatusDoc) => {
+          const exposures = [];
+          if (voteStatusDoc.exists()) {
+            const { isEnabled, voteStartDateTime, voteEndDateTime, matchDate, exposedDates = [] } = voteStatusDoc.data();
+            const now = new Date();
+
+            // 오늘 투표 추가
+            if (isEnabled && voteStartDateTime && voteEndDateTime && matchDate) {
+              const start = new Date(voteStartDateTime);
+              const end = new Date(voteEndDateTime);
+              const match = new Date(matchDate);
+              if (isWithinInterval(now, { start, end }) && !isNaN(match.getTime())) {
+                exposures.push({
+                  date: today,
+                  dateStr: format(match, 'yyyy-MM-dd'),
+                  matchId: `vote_${today}`,
+                  isVotingClosed: false,
+                  matchDate: match,
+                  startDateTime: start,
+                  endDateTime: end,
+                });
+              }
+            }
+
+            // 추가 노출 투표
+            for (const date of exposedDates) {
+              const voteRef = doc(db, 'voteStatus', date);
+              const voteDoc = await getDoc(voteRef);
+              if (voteDoc.exists()) {
+                const { isEnabled, voteStartDateTime, voteEndDateTime, matchDate } = voteDoc.data();
+                if (isEnabled && voteStartDateTime && voteEndDateTime && matchDate) {
+                  const start = new Date(voteStartDateTime);
+                  const end = new Date(voteEndDateTime);
+                  const match = new Date(matchDate);
+                  if (isWithinInterval(now, { start, end }) && !isNaN(match.getTime())) {
+                    exposures.push({
+                      date,
+                      dateStr: format(match, 'yyyy-MM-dd'),
+                      matchId: `vote_${date}`,
+                      isVotingClosed: false,
+                      matchDate: match,
+                      startDateTime: start,
+                      endDateTime: end,
+                    });
+                  }
+                }
+              }
+            }
+
+            setVoteExposures(exposures);
+            console.log('투표 노출 데이터:', exposures);
+          }
+        }, (err) => {
+          console.error('투표 상태 리스너 오류:', err.message);
+        });
+
+        return () => unsubscribe();
+      } catch (e) {
+        console.error('투표 노출 fetch 에러:', e);
+      }
+    };
+
+    fetchVoteExposures();
+  }, []);
 
   // live 및 votingStatus 컬렉션에서 경기 데이터 가져오기
   useEffect(() => {
     const fetchLiveMatches = async () => {
       try {
-        // live 컬렉션
         const liveSnap = await getDocs(collection(db, 'live'));
         const matches = liveSnap.docs.map(doc => ({
           id: doc.id,
-          date: doc.data().date
+          date: doc.data().date,
         }));
 
-        // votingStatus 컬렉션
         const votingSnap = await getDocs(collection(db, 'votingStatus'));
         const votingStatuses = votingSnap.docs.map(doc => ({
           matchId: doc.data().matchId,
           date: doc.data().date,
-          isVotingClosed: doc.data().isVotingClosed
+          isVotingClosed: doc.data().isVotingClosed,
         }));
 
-        // 날짜별로 그룹화 (중복 제거)
         const uniqueDates = [];
         const seenDates = new Set();
         matches.forEach(match => {
@@ -278,24 +309,24 @@ const Home = () => {
         + `?solYear=${year}&solMonth=${month}`
         + `&ServiceKey=CADGVCpJ6S3ugec34rtjEC4Fq1h0t0sbaD%2BchVRlpPGrKdOCDgyGmI0WnIpPQf4d7a4EPfo8FXmTmJqWxPrqrQ%3D%3D`
         + `&_type=json`;
-  
+
       try {
         const res = await fetch(url);
         const json = await res.json();
         let items = json.response.body.items?.item;
         if (!items) items = [];
         else if (!Array.isArray(items)) items = [items];
-  
+
         const evts = items.map(i => ({
           date: `${String(i.locdate).slice(0,4)}-${String(i.locdate).slice(4,6)}-${String(i.locdate).slice(6,8)}`,
-          title: i.dateName
+          title: i.dateName,
         }));
         setAnniversaries(evts);
       } catch (e) {
         console.error('기념일 API 에러:', e);
       }
     };
-  
+
     fetchAnniversaries();
   }, [activeStartDate]);
 
@@ -412,59 +443,30 @@ const Home = () => {
   };
 
   // 버튼 표시 여부 및 상태 확인
-  const getButtonState = (matchDate, isVotingClosed) => {
-    if (!matchDate || isNaN(matchDate.getTime())) {
-      console.warn('Invalid match date:', matchDate);
+  const getButtonState = (matchDate, isVotingClosed, matchId, startDateTime, endDateTime) => {
+    if (!matchDate || isNaN(matchDate.getTime()) || !startDateTime || !endDateTime) {
+      console.warn('Invalid match date or voting period:', { matchDate, startDateTime, endDateTime });
       return { visible: false, type: null, to: null, text: '' };
     }
 
     const now = new Date();
-    let matchDayStart, matchDayEnd, nextDayStart, nextDayEnd, afterNextDayStart;
+    const start = new Date(startDateTime);
+    const end = new Date(endDateTime);
 
     try {
-      matchDayStart = startOfDay(matchDate); // 경기일 00:00
-      matchDayEnd = addDays(matchDayStart, 1); // 경기일 +1 00:00
-      nextDayStart = matchDayEnd; // 다음 날 00:00
-      nextDayEnd = addDays(nextDayStart, 1); // 다음 날 +1 00:00
-      afterNextDayStart = nextDayEnd; // 그 다음 날 00:00
-
-      console.log(`Match ${format(matchDate, 'yyyy-MM-dd')}:`, {
-        now: now.toISOString(),
-        matchDayStart: matchDayStart.toISOString(),
-        matchDayEnd: matchDayEnd.toISOString(),
-        nextDayStart: nextDayStart.toISOString(),
-        nextDayEnd: nextDayEnd.toISOString(),
-        isVotingClosed
-      });
-
-      // 경기일: D일 00:00 ~ D+1 00:00
-      if (isWithinInterval(now, { start: matchDayStart, end: matchDayEnd })) {
-        return {
-          visible: true,
-          type: 'lineup',
-          to: '/live',
-          text: `${format(matchDate, 'M월 d일')} 라인업`,
-        };
-      }
-      // 다음 날: D+1 00:00 ~ D+2 00:00
-      else if (isWithinInterval(now, { start: nextDayStart, end: nextDayEnd })) {
+      if (isWithinInterval(now, { start, end }) && !isVotingClosed) {
         return {
           visible: true,
           type: 'mom',
-          to: '/announcements',
+          to: `/announcements?matchId=${matchId}`,
           text: `${format(matchDate, 'M월 d일')} MOM 투표`,
         };
       }
-      // 그 이후 (D+2 00:00 ~): 투표 종료 여부에 따라 숨김
-      else if (now >= afterNextDayStart && isVotingClosed) {
-        return { visible: false, type: null, to: null, text: '' };
-      }
     } catch (e) {
-      console.error('Error in getButtonState:', e, { matchDate, isVotingClosed });
+      console.error('Error in getButtonState:', e, { matchDate, isVotingClosed, startDateTime, endDateTime });
       return { visible: false, type: null, to: null, text: '' };
     }
 
-    // 기본: 버튼 숨김
     return { visible: false, type: null, to: null, text: '' };
   };
 
@@ -480,9 +482,23 @@ const Home = () => {
             <S.ButtonGroup>
               <S.PrimaryButton href="/total">내 스탯 보기</S.PrimaryButton>
               {liveMatches.map(match => {
-                const { visible, type, to, text } = getButtonState(match.date, match.isVotingClosed);
+                const { visible, type, to, text } = getButtonState(match.date, match.isVotingClosed, match.matchId, null, null);
                 return visible && (
                   <MatchButton key={match.dateStr} to={to}>
+                    {text}
+                  </MatchButton>
+                );
+              })}
+              {voteExposures.map(vote => {
+                const { visible, type, to, text } = getButtonState(
+                  vote.matchDate,
+                  vote.isVotingClosed,
+                  vote.matchId,
+                  vote.startDateTime,
+                  vote.endDateTime
+                );
+                return visible && (
+                  <MatchButton key={vote.dateStr} to={to}>
                     {text}
                   </MatchButton>
                 );
@@ -494,7 +510,6 @@ const Home = () => {
           </S.HeroImageContainer>
         </S.HeroSection>
 
-        {/* Stats */}
         <S.StatsContainer>
           <S.StatItem>
             <S.StatValue>{stats.totalGoals}</S.StatValue>
@@ -524,11 +539,9 @@ const Home = () => {
           </div>
         )}
 
-        {/* MOM Section */}
         <div style={{ marginBottom: '60px', width: '100%' }}>
           <S.MomSectionTitle>
-            <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어
-          </S.MomSectionTitle>
+            <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어          </S.MomSectionTitle>
           {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요! →</S.SwipeHint>}
           <S.MomPlayersContainer ref={momRef}>
             {momPlayers.length > 0 ? momPlayers.map((p, i) => (
@@ -560,7 +573,6 @@ const Home = () => {
           {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
         </div>
 
-        {/* Schedule Section */}
         <S.ScheduleSection>
           <S.ScheduleHeader>📅 축구 일정 보기</S.ScheduleHeader>
           <S.StyledCalendar

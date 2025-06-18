@@ -297,8 +297,9 @@ export const VoteControlSection = styled.div`
   padding: ${SPACING.MEDIUM};
   border-top: 1px solid ${COLORS.BORDER};
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  gap: ${SPACING.MEDIUM};
   background: ${COLORS.BACKGROUND};
 `;
 
@@ -308,10 +309,48 @@ export const SwitchContainer = styled.div`
   gap: ${SPACING.SMALL};
 `;
 
+export const DateTimeContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${SPACING.SMALL};
+`;
+
+export const DateTimeWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${SPACING.XSMALL};
+`;
+
+export const DateTimeSeparator = styled.span`
+  font-size: ${FONT_SIZES.XSMALL};
+  color: ${COLORS.TEXT};
+`;
+
 export const SwitchLabel = styled.div`
   font-size: ${FONT_SIZES.SMALL};
   font-weight: 600;
   color: ${COLORS.TEXT};
+`;
+
+export const DateTimeInput = styled.input`
+  padding: ${SPACING.XSMALL};
+  font-size: ${FONT_SIZES.XSMALL};
+  border: 1px solid ${COLORS.BORDER};
+  border-radius: 4px;
+  outline: none;
+  &:focus {
+    border-color: ${COLORS.PRIMARY};
+  }
+  &:disabled {
+    background-color: ${COLORS.BACKGROUND};
+    cursor: not-allowed;
+  }
+
+  ${media.mobile`
+    font-size: ${FONT_SIZES.XXSMALL};
+    padding: 6px;
+  `}
 `;
 
 export const Switch = styled.label`
@@ -379,19 +418,19 @@ export const ModalOverlay = styled.div`
 `;
 
 export const ModalContent = styled.div`
- padding: 20px;
+  padding: 20px;
   max-width: 1000px;
   margin: 0 auto;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  background-color: #ffffff;
+  background-color: ${COLORS.WHITE};
   border-radius: 20px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   overflow-x: hidden;
 
-  @media (max-width: 640px) {
+  ${media.mobile`
     padding: 15px;
-    margin: -70px 16px 0 16px;
-  }
+    margin: 16px;
+  `}
 `;
 
 export const ModalTitle = styled.h3`
@@ -427,20 +466,30 @@ export const ModalButton = styled.button`
   &:hover {
     background: ${({ primary }) => (primary ? COLORS.PRIMARY_HOVER : '#e9ecef')};
   }
+
+  &:disabled {
+    background: ${COLORS.GRAY};
+    cursor: not-allowed;
+  }
 `;
-// 비밀번호 모달 스타일 추가
+
 export const PasswordModalInput = styled.input`
   width: 100%;
   padding: 10px;
   margin: 10px 0;
-  border: 1px solid #ddd;
+  border: 1px solid ${COLORS.BORDER};
   border-radius: 4px;
-  font-size: 16px;
+  font-size: ${FONT_SIZES.SMALL};
+
+  &:focus {
+    outline: none;
+    border-color: ${COLORS.PRIMARY};
+  }
 `;
 
 export const PasswordModalError = styled.div`
-  color: #dc3545;
-  font-size: 14px;
+  color: ${COLORS.ERROR};
+  font-size: ${FONT_SIZES.XSMALL};
   margin-bottom: 10px;
 `;
 
@@ -479,12 +528,13 @@ export const HistoryTable = styled.div`
     padding: ${SPACING.SMALL};
   `}
 `;
+
 export const ViewButton = styled.button`
   background-color: #4CAF50;
-  color: white;
+  color: ${COLORS.WHITE};
   padding: 4px 12px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: ${FONT_SIZES.XSMALL};
   margin-right: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -494,13 +544,13 @@ export const ViewButton = styled.button`
   }
 
   &:disabled {
-    background-color: #cccccc;
+    background-color: ${COLORS.GRAY};
     cursor: not-allowed;
   }
 `;
 
 export const CommentsSection = styled.div`
-  margin-top: 20px;
+  margin-top: ${SPACING.LARGE};
 `;
 
 export const CommentsList = styled.ul`
@@ -510,15 +560,15 @@ export const CommentsList = styled.ul`
 
 export const CommentItem = styled.li`
   padding: 10px;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 14px;
+  border-bottom: 1px solid ${COLORS.BORDER};
+  font-size: ${FONT_SIZES.XSMALL};
 
   &:last-child {
     border-bottom: none;
   }
 
   strong {
-    color: #1f2937;
+    color: ${COLORS.TEXT};
   }
 `;
 
@@ -539,4 +589,43 @@ export const DeleteButton = styled.button`
     padding: 6px ${SPACING.SMALL};
     font-size: ${FONT_SIZES.XXSMALL};
   `}
+`;
+
+
+export const ExposeDateButton = styled.button`
+  margin-left: 10px;
+  padding: 8px 16px;
+  background-color: #3182f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  &:hover {
+    background-color: #1c6fef;
+  }
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+`;
+
+export const ExposedDatesList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+`;
+
+export const ExposedDateItem = styled.li`
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+`;
+
+export const RemoveExposeDateButton = styled.button`
+  margin-left: 10px;
+  background: none;
+  border: none;
+  color: #ff4d4f;
+  cursor: pointer;
+  font-size: 16px;
 `;

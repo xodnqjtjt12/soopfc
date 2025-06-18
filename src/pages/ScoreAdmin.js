@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { db } from '../App';
 import * as S from './ScoreAdminCss';
+import { FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 
 // 오늘 날짜 포맷팅 (YYYYMMDD)
 const formatDate = (date) => {
@@ -13,8 +14,51 @@ const formatDate = (date) => {
   return `${year}${month}${day}`;
 };
 
-// 컴포넌트 분리
-const SelectedMatchCard = React.memo(({ match, index, onRemove, onToggleStatus, statusUpdateLoading }) => (
+// 예측 항목 컴포넌트
+const PredictionItem = React.memo(({ prediction, matchId, onEdit, onDelete }) => (
+  <S.PredictionItem>
+    <S.PredictionDetails>
+      {prediction.nickname}: {prediction.homeScore}:{prediction.awayScore} 
+      (비밀번호: {prediction.password})
+    </S.PredictionDetails>
+    <S.ButtonGroup>
+      <S.EditButton onClick={() => onEdit(matchId, prediction)}>수정</S.EditButton>
+      <S.RemoveButton onClick={() => onDelete(matchId, prediction)}>삭제</S.RemoveButton>
+    </S.ButtonGroup>
+  </S.PredictionItem>
+));
+
+// 예측 목록 뷰 컴포넌트
+const PredictionView = ({ match, predictions, onBack, onEditPrediction, onDeletePrediction }) => (
+  <S.PredictionViewContainer>
+    <S.BackButton onClick={onBack}>
+      <FaArrowLeft /> 뒤로
+    </S.BackButton>
+    <S.Header>{match.homeTeam} vs {match.awayTeam}</S.Header>
+    <S.PlayerStats>일시: {new Date(match.date).toLocaleString()}</S.PlayerStats>
+    <S.PlayerStats>상태: {match.isEnabled ? '예측 가능' : '예측 종료'}</S.PlayerStats>
+    <S.PlayerStats>마감: {match.voteDeadlineOffset ? `${match.voteDeadlineOffset}분 전` : '없음'}</S.PlayerStats>
+    <S.SubHeader>예측 목록 ({predictions.length})</S.SubHeader>
+    <S.PredictionContainer>
+      {predictions.length === 0 ? (
+        <S.NoData>예측 없음</S.NoData>
+      ) : (
+        predictions.map(pred => (
+          <PredictionItem
+            key={pred.id}
+            prediction={pred}
+            matchId={match.id}
+            onEdit={onEditPrediction}
+            onDelete={onDeletePrediction}
+          />
+        ))
+      )}
+    </S.PredictionContainer>
+  </S.PredictionViewContainer>
+);
+
+// 선택된 경기 카드 컴포넌트
+const SelectedMatchCard = React.memo(({ match, index, onRemove, statusUpdateLoading }) => (
   <S.SelectedPlayerCard>
     {match.homeTeam && match.awayTeam ? (
       <>
@@ -23,12 +67,6 @@ const SelectedMatchCard = React.memo(({ match, index, onRemove, onToggleStatus, 
         </S.PlayerName>
         <S.PlayerStats>상태: {match.isEnabled ? '예측 가능' : '예측 종료'}</S.PlayerStats>
         <S.PlayerStats>투표 마감: {match.voteDeadlineOffset ? `${match.voteDeadlineOffset}분 전` : '설정 안 됨'}</S.PlayerStats>
-        {/* <S.EditButton
-          onClick={() => onToggleStatus(index, !match.isEnabled)}
-          disabled={statusUpdateLoading}
-        >
-          {match.isEnabled ? '예측 종료' : '예측 시작'}
-        </S.EditButton> */}
         <S.RemoveButton onClick={() => onRemove(index)}>삭제</S.RemoveButton>
       </>
     ) : (
@@ -50,6 +88,10 @@ const ScoreAdmin = () => {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [predictionsByMatch, setPredictionsByMatch] = useState({});
+  const [editPrediction, setEditPrediction] = useState(null);
+  const [editForm, setEditForm] = useState({ nickname: '', homeScore: '', awayScore: '', password: '' });
+  const [selectedMatch, setSelectedMatch] = useState(null);
 
   // 익명 인증
   useEffect(() => {
@@ -77,7 +119,7 @@ const ScoreAdmin = () => {
 
   // 전체 경기 목록 가져오기
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !selectedMatch) {
       console.log('전체 경기 목록 가져오기 시작');
       const fetchMatches = async () => {
         setLoading(true);
@@ -101,19 +143,21 @@ const ScoreAdmin = () => {
       };
       fetchMatches();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, selectedMatch]);
 
-  // 현재 선택된 경기 데이터 가져오기
+  // 현재 선택된 경기 데이터 및 예측 가져오기
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !selectedMatch) {
       console.log('현재 선택된 경기 데이터 가져오기 시작');
-      const fetchCurrentMatches = async () => {
+      const fetchCurrentMatchesAndPredictions = async () => {
         setLoading(true);
         try {
+          // 경기 데이터 가져오기
           const currentRef = doc(db, 'Score', 'current');
           const currentDoc = await getDoc(currentRef);
+          let matchesData = [];
           if (currentDoc.exists()) {
-            const matchesData = currentDoc.data().matches || [];
+            matchesData = currentDoc.data().matches || [];
             console.log('현재 선택된 경기:', matchesData);
             setSelectedMatches(
               matchesData
@@ -130,16 +174,30 @@ const ScoreAdmin = () => {
             console.log('Score/current 문서가 존재하지 않음');
             setSelectedMatches([{ homeTeam: '', awayTeam: '', date: '', isEnabled: true, id: null, voteDeadlineOffset: 0 }]);
           }
+
+          // 예측 데이터 가져오기
+          const predictionsByMatch = {};
+          for (const match of matchesData) {
+            const predictionsRef = collection(db, 'Score', match.id, 'predictions');
+            const snapshot = await getDocs(predictionsRef);
+            const matchPredictions = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            predictionsByMatch[match.id] = matchPredictions;
+          }
+          console.log('모든 예측 데이터:', predictionsByMatch);
+          setPredictionsByMatch(predictionsByMatch);
         } catch (err) {
-          console.error('현재 경기 데이터 가져오기 오류:', err.message);
-          setError('현재 경기 데이터를 불러오는 중 오류가 발생했습니다.');
+          console.error('데이터 가져오기 오류:', err.message);
+          setError('데이터를 불러오는 중 오류가 발생했습니다.');
         } finally {
           setLoading(false);
         }
       };
-      fetchCurrentMatches();
+      fetchCurrentMatchesAndPredictions();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, selectedMatch]);
 
   // 새 경기 추가
   const handleAddMatch = useCallback(async (e) => {
@@ -169,43 +227,6 @@ const ScoreAdmin = () => {
     setSelectedMatches(prev => [...prev, newMatchData]);
     setNewMatch({ homeTeam: '', awayTeam: '', date: '', voteDeadlineOffset: '' });
   }, [newMatch]);
-
-  // 경기 상태 토글
-  const handleToggleStatus = useCallback(async (index, newStatus) => {
-    setStatusUpdateLoading(true);
-    try {
-      const updatedMatches = selectedMatches.map((match, i) =>
-        i === index ? { ...match, isEnabled: newStatus } : match
-      );
-      setSelectedMatches(updatedMatches);
-
-      console.log('경기 상태 업데이트:', { index, newStatus, updatedMatches });
-
-      const currentRef = doc(db, 'Score', 'current');
-      await setDoc(currentRef, {
-        matches: updatedMatches.filter(m => m.homeTeam && m.awayTeam),
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-
-      const matchId = updatedMatches[index].id;
-      if (matchId) {
-        const matchRef = doc(db, 'Score', matchId);
-        await setDoc(matchRef, {
-          homeTeam: updatedMatches[index].homeTeam,
-          awayTeam: updatedMatches[index].awayTeam,
-          date: updatedMatches[index].date,
-          isEnabled: newStatus,
-          voteDeadlineOffset: updatedMatches[index].voteDeadlineOffset,
-          timestamp: new Date(),
-        }, { merge: true });
-      }
-    } catch (err) {
-      console.error('경기 상태 업데이트 오류:', err.message);
-      alert(`경기 상태 변경 중 오류가 발생했습니다: ${err.message}`);
-    } finally {
-      setStatusUpdateLoading(false);
-    }
-  }, [selectedMatches]);
 
   // 경기 삭제
   const handleRemoveMatch = useCallback(async (index) => {
@@ -277,6 +298,81 @@ const ScoreAdmin = () => {
     }
   }, [selectedMatches]);
 
+  // 예측 수정 시작
+  const startEditPrediction = useCallback((matchId, prediction) => {
+    setEditPrediction({ matchId, predictionId: prediction.id });
+    setEditForm({
+      nickname: prediction.nickname,
+      homeScore: prediction.homeScore.toString(),
+      awayScore: prediction.awayScore.toString(),
+      password: prediction.password,
+    });
+  }, []);
+
+  // 예측 수정 제출
+  const handleEditPrediction = useCallback(async (e) => {
+    e.preventDefault();
+    if (!editForm.nickname || !editForm.homeScore || !editForm.awayScore || !editForm.password) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    const homeScore = parseInt(editForm.homeScore);
+    const awayScore = parseInt(editForm.awayScore);
+    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+      alert('유효한 스코어를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const predictionRef = doc(db, 'Score', editPrediction.matchId, 'predictions', editPrediction.predictionId);
+      const winner = homeScore > awayScore ? selectedMatch.homeTeam :
+                    awayScore > homeScore ? selectedMatch.awayTeam : 'draw';
+      await updateDoc(predictionRef, {
+        nickname: editForm.nickname,
+        homeScore,
+        awayScore,
+        winner,
+        password: editForm.password,
+        timestamp: new Date(),
+      });
+
+      setPredictionsByMatch(prev => ({
+        ...prev,
+        [editPrediction.matchId]: prev[editPrediction.matchId].map(p =>
+          p.id === editPrediction.predictionId ? { ...p, nickname: editForm.nickname, homeScore, awayScore, winner, password: editForm.password, timestamp: new Date() } : p
+        ),
+      }));
+
+      alert('예측이 수정되었습니다!');
+      setEditPrediction(null);
+      setEditForm({ nickname: '', homeScore: '', awayScore: '', password: '' });
+    } catch (err) {
+      console.error('예측 수정 오류:', err.message);
+      alert(`예측 수정 중 오류가 발생했습니다: ${err.message}`);
+    }
+  }, [editForm, editPrediction, selectedMatch]);
+
+  // 예측 삭제
+  const handleDeletePrediction = useCallback((matchId, prediction) => {
+    if (!window.confirm(`${prediction.nickname} ${prediction.homeScore}:${prediction.awayScore} 예측을 삭제하시겠습니까?`)) return;
+
+    try {
+      const predictionRef = doc(db, 'Score', matchId, 'predictions', prediction.id);
+      deleteDoc(predictionRef);
+
+      setPredictionsByMatch(prev => ({
+        ...prev,
+        [matchId]: prev[matchId].filter(p => p.id !== prediction.id),
+      }));
+
+      alert('예측이 삭제되었습니다!');
+    } catch (err) {
+      console.error('예측 삭제 오류:', err.message);
+      alert(`예측 삭제 중 오류가 발생했습니다: ${err.message}`);
+    }
+  }, []);
+
   // 새 슬롯 추가
   const addSlot = () => {
     setSelectedMatches(prev => [
@@ -304,6 +400,13 @@ const ScoreAdmin = () => {
     );
   });
 
+  // 뒤로 가기
+  const handleBack = () => {
+    setSelectedMatch(null);
+    setEditPrediction(null);
+    setEditForm({ nickname: '', homeScore: '', awayScore: '', password: '' });
+  };
+
   if (!isAuthenticated) {
     console.log('비밀번호 인증 화면 렌더링');
     return (
@@ -326,26 +429,82 @@ const ScoreAdmin = () => {
     );
   }
 
-  console.log('메인 화면 렌더링', { selectedMatches, filteredMatches });
+  if (selectedMatch) {
+    return (
+      <>
+        <PredictionView
+          match={selectedMatch}
+          predictions={predictionsByMatch[selectedMatch.id] || []}
+          onBack={handleBack}
+          onEditPrediction={startEditPrediction}
+          onDeletePrediction={handleDeletePrediction}
+        />
+        {editPrediction && (
+          <S.Form onSubmit={handleEditPrediction}>
+            <S.SubHeader>예측 수정</S.SubHeader>
+            <S.Input
+              type="text"
+              placeholder="닉네임"
+              value={editForm.nickname}
+              onChange={(e) => setEditForm(prev => ({ ...prev, nickname: e.target.value }))}
+            />
+            <S.ScoreInputContainer>
+              <S.Input
+                type="number"
+                placeholder="홈팀 스코어"
+                value={editForm.homeScore}
+                onChange={(e) => setEditForm(prev => ({ ...prev, homeScore: e.target.value }))}
+                min="0"
+              />
+              <S.ScoreSeparator>:</S.ScoreSeparator>
+              <S.Input
+                type="number"
+                placeholder="어웨이팀 스코어"
+                value={editForm.awayScore}
+                onChange={(e) => setEditForm(prev => ({ ...prev, awayScore: e.target.value }))}
+                min="0"
+              />
+            </S.ScoreInputContainer>
+            <S.PasswordContainer>
+              <S.Input
+                type="password"
+                placeholder="새 비밀번호"
+                value={editForm.password}
+                onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+              />
+            </S.PasswordContainer>
+            <S.SubmitButton type="submit">수정 완료</S.SubmitButton>
+            <S.CancelButton onClick={() => {
+              setEditPrediction(null);
+              setEditForm({ nickname: '', homeScore: '', awayScore: '', password: '' });
+            }}>
+              취소
+            </S.CancelButton>
+          </S.Form>
+        )}
+      </>
+    );
+  }
+
+  console.log('메인 페이지 렌더링', { selectedMatches, filteredMatches });
   return (
     <S.Container>
       <S.Header>스코어 관리</S.Header>
 
       <S.SubHeader>선택된 경기</S.SubHeader>
       <S.SelectedPlayersContainer>
-        {selectedMatches.map((match, index) => (
-          <SelectedMatchCard
-            key={index}
-            match={match}
-            index={index}
-            onRemove={handleRemoveMatch}
-            onToggleStatus={handleToggleStatus}
-            statusUpdateLoading={statusUpdateLoading}
-          />
-        ))}
-        <S.AddSlotButton onClick={addSlot}>+ 경기 추가</S.AddSlotButton>
-        <S.ResetButton onClick={resetAllMatches}>모두 초기화</S.ResetButton>
-      </S.SelectedPlayersContainer>
+      {selectedMatches.map((match, index) => (
+    <SelectedMatchCard
+      key={index}
+      match={match}
+      index={index}
+      onRemove={handleRemoveMatch}
+      statusUpdateLoading={statusUpdateLoading}
+    />
+  ))}
+  <S.AddSlotButton onClick={addSlot}>+ 경기 추가</S.AddSlotButton>
+  <S.ResetButton onClick={resetAllMatches}>모두 초기화</S.ResetButton>
+</S.SelectedPlayersContainer>
 
       <S.SaveButton
         onClick={saveToScore}
@@ -392,10 +551,12 @@ const ScoreAdmin = () => {
       />
       {loading && <p>로딩 중...</p>}
       <S.PlayersList>
-        {filteredMatches.map(match => (
+        {filteredMatches.map((match) => (
           <S.PlayerCard
             key={match.id}
             onClick={() => {
+              setSelectedMatch(match);
+              // Add match to selectedMatches if not already present
               const isSelected = selectedMatches.some(m => m.id === match.id);
               if (!isSelected) {
                 setSelectedMatches(prev => [
