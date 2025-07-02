@@ -7,8 +7,8 @@ import * as Styles from './Top10Css';
 const Medal = ({ rank }) => {
   const images = {
     1: '/trophy.png', // 금
-    2: '/2.png',      // 은
-    3: '/3.png',      // 동
+    2: '/2등.png',      // 은
+    3: '/3등.png',      // 동
   };
   const src = images[rank] || '';
 

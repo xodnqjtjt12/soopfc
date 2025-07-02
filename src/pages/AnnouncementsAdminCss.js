@@ -279,6 +279,13 @@ export const CopyButton = styled.button`
     }
   `}
 `;
+export const Message = styled.div`
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  color: ${props => (props.error ? '#ff0000' : '#008000')};
+  background-color: ${props => (props.error ? '#ffe6e6' : '#e6ffe6')};
+`;
 
 export const CopyMessage = styled.div`
   text-align: center;
@@ -608,7 +615,12 @@ export const ExposeDateButton = styled.button`
     cursor: not-allowed;
   }
 `;
-
+export const ExposedDatesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
 export const ExposedDatesList = styled.ul`
   list-style: none;
   padding: 0;
@@ -629,3 +641,5 @@ export const RemoveExposeDateButton = styled.button`
   cursor: pointer;
   font-size: 16px;
 `;
+
+

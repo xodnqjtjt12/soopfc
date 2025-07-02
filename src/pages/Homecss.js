@@ -118,7 +118,7 @@ export const PrimaryButton = styled.a`
   background-color: #3182f6;
   border-radius: 12px;
   text-decoration: none;
-  transition: all::0.2s ease;
+  transition: all:0.2s ease;
   box-shadow: 0 4px 12px rgba(49, 130, 246, 0.2);
   &:hover {
     background-color: #1c6fef;
@@ -134,7 +134,7 @@ export const StatsContainer = styled.div`
   margin-bottom: 40px;
   padding: 20px;
   background-color: white;
-  border-radius:  12px;
+  border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
@@ -802,4 +802,101 @@ export const VoteCountdownText = styled.div`
     font-size: 12px;
     padding: 4px 8px;
   }
+`;
+
+// New styled components for lineup and vote sections
+export const LineupSection = styled.div`
+  max-width: 1200px;
+  width: 100%;
+  margin: 40px auto 0;
+  padding: 24px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+`;
+
+export const LineupHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+export const LineupTitle = styled.h3`
+  font-size: 24px;
+  font-weight: 700;
+  color: #191f28;
+`;
+
+export const LineupActions = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
+export const LineupTeams = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+`;
+
+export const LineupTeam = styled.div`
+  flex: 1;
+  min-width: 300px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+`;
+
+export const LineupTeamHeader = styled.h4`
+  font-size: 18px;
+  font-weight: 600;
+  color: #333d4b;
+  margin-bottom: 12px;
+`;
+
+export const LineupPlayers = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 15px;
+  color: #4e5968;
+
+  li {
+    padding: 8px 0;
+    border-bottom: 1px solid #ececec;
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;
+
+export const VoteSection = styled.div`
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+`;
+
+export const VoteTitle = styled.h4`
+  font-size: 18px;
+  font-weight: 600;
+  color: #333d4b;
+  margin-bottom: 12px;
+`;
+
+export const Loading = styled.div`
+  text-align: center;
+  font-size: 16px;
+  color: #4e5968;
+  margin: 16px 0;
+`;
+
+export const Message = styled.div`
+  text-align: center;
+  font-size: 16px;
+  color: ${props => props.error ? '#ff3b30' : '#4e5968'};
+  margin: 16px 0;
 `;

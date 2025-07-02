@@ -121,13 +121,20 @@ const Header = () => {
       </Logo>
       <Hamburger onClick={() => setMenuOpen(!menuOpen)}>☰</Hamburger>
       <NavMenu open={menuOpen}>
-        <NavLinkStyled to="/top-goal-scorer" onClick={handleNavClick}>
-          득점왕<br />TOP10
+        <NavLinkStyled to="/top" onClick={handleNavClick}>
+          Award<br />
         </NavLinkStyled>
-        <NavLinkStyled to="/top-assists" onClick={handleNavClick}>
+          <NavLinkStyled to="/record" onClick={handleNavClick}>
+          기록실<br />
+        </NavLinkStyled>
+
+            {/* <NavLinkStyled to="/top-goal-scorer" onClick={handleNavClick}>
           도움왕<br />TOP10
-        </NavLinkStyled>
-        <NavLinkStyled to="/top-defender" onClick={handleNavClick}>
+        </NavLinkStyled> */}
+        {/* <NavLinkStyled to="/top-assists" onClick={handleNavClick}>
+          도움왕<br />TOP10
+        </NavLinkStyled> */}
+        {/* <NavLinkStyled to="/top-defender" onClick={handleNavClick}>
           수비왕<br />TOP10
         </NavLinkStyled>
         <NavLinkStyled to="/overall-rankings" onClick={handleNavClick}>
@@ -135,7 +142,7 @@ const Header = () => {
         </NavLinkStyled>
         <NavLinkStyled to="/mom-ranking" onClick={handleNavClick}>
           파워랭킹<br />TOP10
-        </NavLinkStyled>
+        </NavLinkStyled> */}
         <NavLinkStyled to="/vod" onClick={handleNavClick}>
           주요 경기 기록
         </NavLinkStyled>

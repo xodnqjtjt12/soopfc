@@ -40,13 +40,19 @@ const SearchBar = React.memo(({ searchTerm, setSearchTerm, filteredPlayers, onSe
     />
     {alreadyVoted && (
       <S.AlertMessage style={{ color: 'red' }}>
-        위에 투표하셨습니다
+        이미 선택된 선수입니다
       </S.AlertMessage>
     )}
-    {filteredPlayers.length > 0 && (
+    {filteredPlayers.length > 0 && searchTerm.trim() !== '' && (
       <S.SearchDropdown>
         {filteredPlayers.map(player => (
-          <S.SearchItem key={player.id} onClick={() => onSelectPlayer(player)}>
+          <S.SearchItem
+            key={player.id}
+            onClick={() => {
+              console.log('SearchBar 클릭:', player.nick, 'ID:', player.id);
+              onSelectPlayer(player);
+            }}
+          >
             <div className="font-medium">{player.nick}</div>
             <div className="text-gray-500 text-xs">{player.teamName} · {POSITIONS[player.position]}</div>
           </S.SearchItem>
@@ -125,6 +131,7 @@ const TeamList = React.memo(({ lineups, onSelectPlayer }) => (
                 <S.TeamPlayerRow
                   key={player.id}
                   onClick={() => {
+                    console.log('TeamList 클릭:', player.nick, 'ID:', player.id);
                     const confirmVote = window.confirm(`${player.nick}을(를) 투표하시겠습니까?`);
                     if (confirmVote) {
                       onSelectPlayer(player);
@@ -170,37 +177,42 @@ const PlayerVoting = () => {
     console.log('Firestore DB 초기화 확인:', db ? '성공' : '실패');
   }, []);
 
+  // alreadyVoted 상태 관리
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setAlreadyVoted(false);
+      return;
+    }
+    const isVoted = selectedPlayers.some(p => p.nick.toLowerCase() === searchTerm.toLowerCase());
+    setAlreadyVoted(isVoted);
+    console.log('alreadyVoted 업데이트:', isVoted, '검색어:', searchTerm);
+  }, [searchTerm, selectedPlayers]);
+
   // 메모이제이션
   const computedFilteredPlayers = useMemo(() => {
     if (searchTerm.trim() === '') {
-      setAlreadyVoted(false);
       return [];
     }
-    const isVoted = selectedPlayers.some(player => 
-      player.nick.toLowerCase() === searchTerm.trim().toLowerCase()
-    );
-    setAlreadyVoted(isVoted);
-    return allPlayers.filter(
-      player => {
-        const searchChars = searchTerm.toLowerCase().split('');
-        let nameIndex = 0;
-        return searchChars.every(char => {
-          nameIndex = player.nick.toLowerCase().indexOf(char, nameIndex);
-          return nameIndex !== -1;
-        }) && !selectedPlayers.some(selected => selected.id === player.id);
-      }
-    );
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const filtered = allPlayers.filter(player => {
+      const isMatch = player.nick.toLowerCase().includes(lowerSearchTerm);
+      const isSelected = selectedPlayers.some(selected => selected.id === player.id);
+      console.log(`필터링: ${player.nick}, 매칭: ${isMatch}, 선택됨: ${isSelected}, ID: ${player.id}`);
+      return isMatch && !isSelected;
+    });
+    console.log('filteredPlayers 계산:', filtered.map(p => ({ nick: p.nick, id: p.id })));
+    return filtered;
   }, [searchTerm, allPlayers, selectedPlayers]);
 
   useEffect(() => {
     setFilteredPlayers(computedFilteredPlayers);
+    console.log('filteredPlayers 업데이트:', computedFilteredPlayers.map(p => ({ nick: p.nick, id: p.id })));
   }, [computedFilteredPlayers]);
 
   useEffect(() => {
     const initialize = async () => {
       try {
         setLoading(true);
-        // userId 설정 후 초기화
         const storedUserId = localStorage.getItem('footballVoteUserId');
         let currentUserId = storedUserId;
         if (!storedUserId) {
@@ -261,12 +273,17 @@ const PlayerVoting = () => {
       
       for (const teamDoc of teamsSnap.docs) {
         const playersSnap = await getDocs(collection(db, 'live', teamDoc.id, 'players'));
-        const teamPlayers = playersSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          teamName: teamDoc.id,
-          teamColor: teamDoc.data().color || '#000000'
-        }));
+        const teamPlayers = playersSnap.docs.map(doc => {
+          const playerData = doc.data();
+          console.log(`선수 데이터 로드: 팀=${teamDoc.id}, 닉=${playerData.nick}, ID=${playerData.id}`);
+          return {
+            id: playerData.id, // Firestore 문서의 id 필드 사용
+            nick: playerData.nick,
+            position: playerData.position,
+            teamName: teamDoc.id,
+            teamColor: teamDoc.data().color || '#000000'
+          };
+        });
         
         lineupsData.push({
           teamName: teamDoc.id,
@@ -279,9 +296,12 @@ const PlayerVoting = () => {
         players.push(...teamPlayers);
       }
       
-      setLineups(lineupsData.slice(0, 2));
+      setLineups(lineupsData.slice(0, 3));
       setAllPlayers(players);
-      console.log('라인업 데이터:', lineupsData);
+      console.log('라인업 데이터:', lineupsData.map(lineup => ({
+        teamName: lineup.teamName,
+        players: lineup.players.map(p => ({ nick: p.nick, id: p.id }))
+      })));
     } catch (err) {
       console.error('라인업 가져오기 오류:', err.message);
       setError('선수 목록을 불러오는 중 오류가 발생했습니다.');
@@ -294,28 +314,41 @@ const PlayerVoting = () => {
   }, []);
 
   const handleSelectPlayer = useCallback((player) => {
+    console.log('선수 선택 시도:', player.nick, 'ID:', player.id, '현재 선택된 선수:', selectedPlayers.map(p => ({ nick: p.nick, id: p.id })));
     if (selectedPlayers.length >= 3) {
       showAlert('3명 모두 선택되었습니다!');
+      console.log('선수 선택 실패: 최대 3명 제한');
       return;
     }
     if (selectedPlayers.some(p => p.id === player.id)) {
       showAlert('이미 선택된 선수입니다.');
+      console.log('선수 선택 실패: 이미 선택된 선수', player.id);
       return;
     }
-    setSelectedPlayers(prev => [...prev, player]);
+    setSelectedPlayers(prev => {
+      const newSelected = [...prev, player];
+      console.log('새로운 selectedPlayers:', newSelected.map(p => ({ nick: p.nick, id: p.id })));
+      return newSelected;
+    });
     setSearchTerm('');
     setFilteredPlayers([]);
-    setAlreadyVoted(false);
   }, [selectedPlayers, showAlert]);
 
   const handleRemovePlayer = useCallback((playerId) => {
-    setSelectedPlayers(prev => prev.filter(player => player.id !== playerId));
+    console.log('선수 제거 시도:', playerId);
+    setSelectedPlayers(prev => {
+      const newSelected = prev.filter(player => player.id !== playerId);
+      console.log('제거 후 selectedPlayers:', newSelected.map(p => ({ nick: p.nick, id: p.id })));
+      return newSelected;
+    });
     setAlreadyVoted(false);
   }, []);
 
   const handleSubmitVote = useCallback(async () => {
+    console.log('투표 제출 시도:', selectedPlayers.map(p => ({ nick: p.nick, id: p.id })));
     if (selectedPlayers.length !== 3) {
       showAlert('최고의 선수 3명을 모두 선택해주세요!');
+      console.log('투표 제출 실패: 선택된 선수 수 부족', selectedPlayers.length);
       return;
     }
     if (!userId) {
@@ -368,7 +401,6 @@ const PlayerVoting = () => {
         voteData.voters.push(userId);
       }
       
-      // 댓글 저장
       if (comment.trim()) {
         if (!voteData.comments) {
           voteData.comments = {};
@@ -379,7 +411,7 @@ const PlayerVoting = () => {
       
       console.log('투표 데이터 저장 시도:', JSON.stringify(voteData, null, 2));
       await setDoc(voteRef, voteData);
-      console.log('투표 데이터 저장 성공: vote_', today);
+      console.log('투표 데이터 저장 성공: vote_', today, '선수:', selectedPlayers.map(p => ({ nick: p.nick, id: p.id })));
       setSubmitted(true);
       showAlert('투표가 성공적으로 제출되었습니다!');
     } catch (err) {
@@ -390,12 +422,6 @@ const PlayerVoting = () => {
       setSubmitting(false);
     }
   }, [selectedPlayers, userId, today, comment, showAlert]);
-
-  const handleSearchClick = useCallback(() => {
-    if (selectedPlayers.length >= 3) {
-      showAlert('3명 모두 선택되었습니다!');
-    }
-  }, [selectedPlayers, showAlert]);
 
   if (loading) {
     return (
@@ -496,11 +522,11 @@ const PlayerVoting = () => {
             onSelectPlayer={handleSelectPlayer}
             isDisabled={selectedPlayers.length >= 3}
             alreadyVoted={alreadyVoted}
-            onClick={handleSearchClick}
           />
           <S.SubmitButton
             onClick={handleSubmitVote}
             disabled={selectedPlayers.length !== 3 || submitting}
+            primary="true"
           >
             {submitting ? '제출 중...' : '투표하기'}
           </S.SubmitButton>
