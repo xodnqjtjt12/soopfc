@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, doc, setDoc, deleteDoc, getDoc, query } from 'firebase/firestore';
 import { db } from '../App';
 import { format } from 'date-fns';
+import styled from 'styled-components';
 import * as S from './LiveAdminCss';
 import eyeIcon from '../icons/eye_icon.png';
 import eyeOffIcon from '../icons/eye_off_icon.png';
@@ -9,7 +10,9 @@ import eyeOffIcon from '../icons/eye_off_icon.png';
 // 포지션 옵션 확장
 const POSITIONS = {
   GK: '골키퍼',
-  CB: '수비수',
+  RB: '오른쪽 풀백',
+  LB: '왼쪽 풀백',
+  CB: '중앙수비수',
   CDM: '수비형 미드필더',
   CM: '중앙 미드필더',
   CAM: '공격형 미드필더',
@@ -19,55 +22,27 @@ const POSITIONS = {
   FW: '공격수'
 };
 
-// 포메이션 통일 함수
-const unifyPosition = (position) => {
-  const positionMap = {
-    'CB1': 'CB',
-    'CB2': 'CB',
-    'CDM1': 'CDM',
-    'CDM2': 'CDM',
-    'CM1': 'CM',
-    'CM2': 'CM',
-  };
-  return positionMap[position] || position;
-};
+const SuggestionsList = styled.ul`
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  list-style: none;
+  margin-top: 4px;
+  padding: 0;
+  width: 100%;
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+`;
 
-// 가장 많이 사용한 포메이션 계산
-const calculateMostFrequentFormation = async (playerName) => {
-  try {
-    const quartersQuery = query(collection(db, 'matches'));
-    const quartersSnapshot = await getDocs(quartersQuery);
-    const playerPositions = {};
-
-    quartersSnapshot.forEach((matchDoc) => {
-      const quarters = matchDoc.data().quarters || [];
-      quarters.forEach((quarter) => {
-        quarter.teams.forEach((team) => {
-          team.players.forEach((player) => {
-            if (player.name === playerName) {
-              const unifiedPos = unifyPosition(player.position);
-              playerPositions[unifiedPos] = (playerPositions[unifiedPos] || 0) + 1;
-            }
-          });
-        });
-      });
-    });
-
-    const positionCounts = Object.entries(playerPositions);
-    if (positionCounts.length === 0) return 'GK'; // 기본값 GK
-
-    const sortedPositions = positionCounts.sort((a, b) => b[1] - a[1]);
-    const maxCount = sortedPositions[0][1];
-    const mostFrequent = sortedPositions
-      .filter(([_, count]) => count === maxCount)
-      .map(([pos]) => pos);
-
-    return mostFrequent[0]; // 첫 번째 포지션 반환
-  } catch (err) {
-    console.error(`포지션 계산 오류 (${playerName}):`, err.message);
-    return 'GK'; // 오류 시 기본값 GK
+const SuggestionItem = styled.li`
+  padding: 8px 12px;
+  cursor: pointer;
+  &:hover {
+    background: #f0f0f0;
   }
-};
+`;
 
 // 빈 선수 객체 생성 함수
 const createEmptyPlayer = () => ({
@@ -119,6 +94,10 @@ const LiveAdmin = () => {
   const [logs, setLogs] = useState([]);
   const [isHomeExposed, setIsHomeExposed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [allPlayers, setAllPlayers] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeInput, setActiveInput] = useState(null);
+  const [playerPositionHistory, setPlayerPositionHistory] = useState({});
 
   const today = formatDate(new Date());
 
@@ -141,10 +120,63 @@ const LiveAdmin = () => {
   };
   const toggleShowPassword = () => setShowPassword((prev) => !prev);
 
+  const fetchAllPlayers = async () => {
+    try {
+        const playersSnap = await getDocs(collection(db, 'players'));
+        const playersList = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllPlayers(playersList);
+        addLog(`전체 선수 목록 로드: ${playersList.length}명`);
+    } catch (err) {
+        console.error('Error fetching all players:', err.message);
+        addLog(`전체 선수 목록 로드 오류: ${err.message}`);
+    }
+  };
+
+  const unifyPosition = (position) => {
+    const positionMap = {
+      'CB1': 'CB', 'CB2': 'CB',
+      'CDM1': 'CDM', 'CDM2': 'CDM',
+      'CM1': 'CM', 'CM2': 'CM',
+    };
+    return positionMap[position] || position;
+  };
+
+  const buildPlayerPositionHistory = async () => {
+    try {
+      const quartersQuery = query(collection(db, 'matches'));
+      const quartersSnapshot = await getDocs(quartersQuery);
+      const history = {};
+
+      quartersSnapshot.forEach((matchDoc) => {
+        const quarters = matchDoc.data().quarters || [];
+        quarters.forEach((quarter) => {
+          quarter.teams.forEach((team) => {
+            team.players.forEach((player) => {
+              if (player.name) {
+                if (!history[player.name]) {
+                  history[player.name] = {};
+                }
+                const unifiedPos = unifyPosition(player.position);
+                history[player.name][unifiedPos] = (history[player.name][unifiedPos] || 0) + 1;
+              }
+            });
+          });
+        });
+      });
+      setPlayerPositionHistory(history);
+      addLog('선수 포지션 기록 빌드 완료');
+    } catch (err) {
+      console.error('포지션 기록 빌드 오류:', err.message);
+      addLog(`포지션 기록 빌드 오류: ${err.message}`);
+    }
+  };
+
   // 초기 데이터 가져오기
   useEffect(() => {
     if (isAuthenticated) {
       fetchLineups();
+      fetchAllPlayers();
+      buildPlayerPositionHistory();
       const voteStatusRef = doc(db, 'voteStatus', today);
       getDoc(voteStatusRef).then((voteStatusDoc) => {
         if (voteStatusDoc.exists()) {
@@ -273,19 +305,49 @@ const LiveAdmin = () => {
     addLog(`팀 데이터 업데이트: 팀 ${index + 1} ${field}=${value}`);
   };
 
-  const handlePlayerChange = async (teamIndex, playerIndex, field, value) => {
-    const newTeams = [...teams];
-    newTeams[teamIndex].players[playerIndex][field] = value;
-
-    if (field === 'nick' && value) {
-      const position = await calculateMostFrequentFormation(value);
-      newTeams[teamIndex].players[playerIndex].position = position;
-      addLog(`선수 포지션 자동 설정: 팀 ${teamIndex + 1}, 선수 ${playerIndex + 1}, ${value} -> ${position}`);
+  const getMostFrequentPosition = (playerName) => {
+    const positions = playerPositionHistory[playerName];
+    if (!positions || Object.keys(positions).length === 0) {
+      return 'GK'; // Default if no history
     }
 
+    const positionCounts = Object.entries(positions);
+    const sortedPositions = positionCounts.sort((a, b) => b[1] - a[1]);
+    return sortedPositions[0][0];
+  };
+
+  const handlePlayerChange = (teamIndex, playerIndex, field, value) => {
+    const newTeams = [...teams];
+    newTeams[teamIndex].players[playerIndex][field] = value;
     setTeams(newTeams);
-    console.log('Updated players for team', teamIndex, ':', newTeams[teamIndex].players);
-    addLog(`선수 데이터 업데이트: 팀 ${teamIndex + 1}, 선수 ${playerIndex + 1} ${field}=${value}`);
+
+    if (field === 'nick') {
+      setActiveInput({ teamIndex, playerIndex });
+      if (value) {
+        const filteredSuggestions = allPlayers.filter(p =>
+          p.name.toLowerCase().includes(value.toLowerCase())
+        );
+        setSuggestions(filteredSuggestions);
+      } else {
+        setSuggestions([]);
+      }
+    }
+  };
+
+  const handlePlayerSelect = (teamIndex, playerIndex, player) => {
+    const newTeams = [...teams];
+    const mainPosition = getMostFrequentPosition(player.name);
+
+    newTeams[teamIndex].players[playerIndex] = {
+      ...newTeams[teamIndex].players[playerIndex],
+      nick: player.name,
+      position: mainPosition,
+    };
+
+    setTeams(newTeams);
+    setSuggestions([]);
+    setActiveInput(null);
+    addLog(`선수 선택: 팀 ${teamIndex + 1}, ${player.name}, 포지션: ${mainPosition}`);
   };
 
   const addPlayer = (teamIndex) => {
@@ -593,27 +655,23 @@ const LiveAdmin = () => {
     }
   };
 
-  const handleEdit = async (lineupGroup) => {
+  const handleEdit = (lineupGroup) => {
     setMessage('');
     setError('');
     setEditingLineupId(lineupGroup.date);
     setOriginalTeamNames(lineupGroup.teams.map(team => team.teamName));
     setDateTime(formatDateTimeDisplay(new Date(lineupGroup.date)));
     setTeamCount(lineupGroup.teams.length);
-    const updatedTeams = await Promise.all(
-      lineupGroup.teams.map(async (team) => ({
-        name: team.teamName,
-        captain: team.captain,
-        color: team.color,
-        players: await Promise.all(
-          team.players.map(async (p) => ({
-            nick: p.nick,
-            position: await calculateMostFrequentFormation(p.nick)
-          }))
-        ),
-        cheerCount: team.cheerCount
-      }))
-    );
+    const updatedTeams = lineupGroup.teams.map(team => ({
+      name: team.teamName,
+      captain: team.captain,
+      color: team.color,
+      players: team.players.map(p => ({
+        nick: p.nick,
+        position: getMostFrequentPosition(p.nick)
+      })),
+      cheerCount: team.cheerCount
+    }));
     setTeams(updatedTeams);
     setEditingCheerCount(Object.fromEntries(lineupGroup.teams.map(team => [team.teamName, team.cheerCount])));
     console.log('Editing lineup group:', lineupGroup);
@@ -929,13 +987,25 @@ const LiveAdmin = () => {
                 <h4>선수 명단 (최대 20명)</h4>
                 {team.players.map((player, playerIndex) => (
                   <S.PlayerRow key={playerIndex}>
-                    <S.Input
-                      type="text"
-                      value={player.nick}
-                      onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'nick', e.target.value)}
-                      placeholder="닉네임"
-                      style={playerIndex === 0 ? { flex: 2, border: '2px solid red' } : { flex: 2 }}
-                    />
+                    <div style={{ position: 'relative', flex: 2 }}>
+                        <S.Input
+                            type="text"
+                            value={player.nick}
+                            onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'nick', e.target.value)}
+                            onFocus={() => setActiveInput({ teamIndex, playerIndex })}
+                            placeholder="닉네임"
+                            style={playerIndex === 0 ? { border: '2px solid red' } : {}}
+                        />
+                        {activeInput?.teamIndex === teamIndex && activeInput?.playerIndex === playerIndex && suggestions.length > 0 && (
+                            <SuggestionsList>
+                            {suggestions.map((p) => (
+                                <SuggestionItem key={p.id} onClick={() => handlePlayerSelect(teamIndex, playerIndex, p)}>
+                                {p.name} ({getMostFrequentPosition(p.name)})
+                                </SuggestionItem>
+                            ))}
+                            </SuggestionsList>
+                        )}
+                    </div>
                     <S.Select
                       value={player.position}
                       onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'position', e.target.value)}

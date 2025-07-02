@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, getDocs, query, doc, getDoc } from 'firebase/firestore';
 import { db } from '../App';
 import * as Styles from './Top10Css';
@@ -18,57 +18,15 @@ const Medal = ({ rank }) => {
 // 포지션 통일 함수
 const unifyPosition = (position) => {
   const positionMap = {
-    'CB1': 'CB',
-    'CB2': 'CB',
-    'CDM1': 'CDM',
-    'CDM2': 'CDM',
-    'CM1': 'CM',
-    'CM2': 'CM',
+    'CB1': 'CB', 'CB2': 'CB',
+    'CDM1': 'CDM', 'CDM2': 'CDM',
+    'CM1': 'CM', 'CM2': 'CM',
   };
   return positionMap[position] || position;
 };
 
-// 가장 많이 사용한 포지션 계산
-const calculateMostFrequentPosition = async (playerName, year) => {
-  if (year !== '2025') return null;
-
-  const quartersQuery = query(collection(db, 'matches'));
-  const quartersSnapshot = await getDocs(quartersQuery);
-  const playerPositions = {};
-
-  quartersSnapshot.forEach((matchDoc) => {
-    const matchData = matchDoc.data();
-    const matchYear = matchData.date ? new Date(matchData.date).getFullYear().toString() : null;
-    if (matchYear !== year) return;
-
-    const quarters = matchData.quarters || [];
-    quarters.forEach((quarter) => {
-      quarter.teams.forEach((team) => {
-        team.players.forEach((player) => {
-          if (player.name === playerName) {
-            const unifiedPos = unifyPosition(player.position);
-            playerPositions[unifiedPos] = (playerPositions[unifiedPos] || 0) + 1;
-          }
-        });
-      });
-    });
-  });
-
-  const positionCounts = Object.entries(playerPositions);
-  if (positionCounts.length === 0) return 'N/A';
-
-  const sortedPositions = positionCounts.sort((a, b) => b[1] - a[1]);
-  const maxCount = sortedPositions[0][1];
-  const mostFrequent = sortedPositions
-    .filter(([_, count]) => count === maxCount)
-    .map(([pos]) => pos);
-
-  return mostFrequent.join(', ');
-};
-
 const TOP = () => {
   const [players, setPlayers] = useState([]);
-  const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [searchNickname, setSearchNickname] = useState('');
   const [fullRankingSearch, setFullRankingSearch] = useState('');
   const [showPopup, setShowPopup] = useState(false);
@@ -87,95 +45,120 @@ const TOP = () => {
   const scrollLeft = useRef(0);
 
   useEffect(() => {
-    fetchPlayers(currentYear);
+    const fetchAllData = async () => {
+      try {
+        let playerData = [];
+        let positionMap = {};
+
+        if (currentYear === '2025') {
+          const [playerSnap, matchesSnap] = await Promise.all([
+            getDocs(collection(db, 'players')),
+            getDocs(query(collection(db, 'matches')))
+          ]);
+
+          playerData = playerSnap.docs.map((doc) => doc.data());
+
+          const playerPositions = {};
+          matchesSnap.forEach((matchDoc) => {
+            const matchData = matchDoc.data();
+            const matchYear = matchData.date ? new Date(matchData.date).getFullYear().toString() : null;
+            if (matchYear !== currentYear) return;
+
+            const quarters = matchData.quarters || [];
+            quarters.forEach((quarter) => {
+              quarter.teams.forEach((team) => {
+                team.players.forEach((player) => {
+                  if (!playerPositions[player.name]) {
+                    playerPositions[player.name] = {};
+                  }
+                  const unifiedPos = unifyPosition(player.position);
+                  playerPositions[player.name][unifiedPos] = (playerPositions[player.name][unifiedPos] || 0) + 1;
+                });
+              });
+            });
+          });
+
+          for (const name in playerPositions) {
+            const counts = Object.entries(playerPositions[name]);
+            if (counts.length > 0) {
+              const sorted = counts.sort((a, b) => b[1] - a[1]);
+              positionMap[name] = sorted[0][0];
+            }
+          }
+
+        } else {
+          const snap = await getDocs(collection(db, 'players'));
+          const yearlyDataPromises = snap.docs.map(async (playerDoc) => {
+            const historyRef = doc(db, 'players', playerDoc.id, 'history', currentYear);
+            const historyDoc = await getDoc(historyRef);
+            if (historyDoc.exists()) {
+              const historyData = historyDoc.data();
+              if (historyData.matches > 0) {
+                return {
+                  ...historyData,
+                  name: playerDoc.data().name,
+                };
+              }
+            }
+            return null;
+          });
+
+          const yearlyData = (await Promise.all(yearlyDataPromises)).filter(data => data !== null);
+          playerData = yearlyData.map(data => ({
+            ...data,
+            goals: data.goals || 0,
+            assists: data.assists || 0,
+            cleanSheets: data.cleanSheets || 0,
+            matches: data.matches || 0,
+            win: data.win || 0,
+            draw: data.draw || 0,
+            lose: data.lose || 0,
+            winRate: data.winRate || 0,
+            personalPoints: data.personalPoints || 0,
+            momScore: data.momScore || 0,
+            momTop3Count: data.momTop3Count || 0,
+            momTop8Count: data.momTop8Count || 0,
+          }));
+        }
+
+        setHasData(playerData.length > 0);
+        setPlayers(playerData);
+        setPositions(positionMap);
+
+        const latestPlayer = playerData.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0))[0];
+        if (latestPlayer && latestPlayer.updatedAt) {
+          setLastUpdated(new Date(latestPlayer.updatedAt.seconds * 1000));
+        }
+
+      } catch (err) {
+        console.error(`Error fetching data for ${currentYear}:`, err);
+        setHasData(false);
+      }
+    };
+
+    fetchAllData();
 
     const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
+      setShowScrollTop(window.scrollY > 300);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentYear]);
 
-  const fetchPlayers = async (year) => {
-    try {
-      let playerData = [];
-
-      if (year === '2025') {
-        const snap = await getDocs(collection(db, 'players'));
-        playerData = snap.docs.map((doc) => doc.data());
-        setHasData(playerData.length > 0);
-      } else {
-        const snap = await getDocs(collection(db, 'players'));
-        const yearlyDataPromises = snap.docs.map(async (playerDoc) => {
-          const historyRef = doc(db, 'players', playerDoc.id, 'history', year);
-          const historyDoc = await getDoc(historyRef);
-          if (historyDoc.exists()) {
-            const historyData = historyDoc.data();
-            if (historyData.matches > 0) {
-              return {
-                ...historyData,
-                name: playerDoc.data().name,
-              };
-            }
-          }
-          return null;
-        });
-
-        const yearlyData = (await Promise.all(yearlyDataPromises)).filter(data => data !== null);
-        playerData = yearlyData.map(data => ({
-          ...data,
-          goals: data.goals || 0,
-          assists: data.assists || 0,
-          cleanSheets: data.cleanSheets || 0,
-          matches: data.matches || 0,
-          win: data.win || 0,
-          draw: data.draw || 0,
-          lose: data.lose || 0,
-          winRate: data.winRate || 0,
-          personalPoints: data.personalPoints || 0,
-          momScore: data.momScore || 0,
-          momTop3Count: data.momTop3Count || 0,
-          momTop8Count: data.momTop8Count || 0,
-        }));
-        setHasData(playerData.length > 0);
-      }
-
-      setPlayers(playerData);
-      setFilteredPlayers(playerData);
-
-      const latestPlayer = playerData[0];
-      if (latestPlayer && latestPlayer.updatedAt) {
-        setLastUpdated(new Date(latestPlayer.updatedAt.seconds * 1000));
-      }
-
-      const positionMap = {};
-      for (const player of playerData) {
-        const pos = await calculateMostFrequentPosition(player.name, year);
-        positionMap[player.name] = pos;
-      }
-      setPositions(positionMap);
-    } catch (err) {
-      console.error(`Error fetching players for ${year}:`, err);
-      setHasData(false);
-    }
-  };
-
-  const calculateStats = () => {
-    if (!hasData) return [];
-
-    const playerData = players.map(player => ({
+  const processedPlayers = useMemo(() => {
+    return players.map(player => ({
       ...player,
       attackPoints: (player.goals || 0) + (player.assists || 0),
       position: positions[player.name] || null,
     }));
+  }, [players, positions]);
+
+  const statsCategories = useMemo(() => {
+    if (!hasData) return [];
 
     const calculateRankings = (key, unit, title) => {
-      const sortedPlayers = [...playerData]
+      const sortedPlayers = [...processedPlayers]
         .filter(p => p[key] > 0)
         .sort((a, b) => {
           if (b[key] === a[key]) {
@@ -219,9 +202,34 @@ const TOP = () => {
       calculateRankings('momTop8Count', '회', 'TOP 8'),
       calculateRankings('personalPoints', '점', '개인승점'),
     ];
-  };
+  }, [processedPlayers, hasData]);
 
-  const statsCategories = calculateStats();
+  const sortedAndFilteredPlayers = useMemo(() => {
+    const sorted = [...processedPlayers].sort((a, b) => {
+      const aValue = a[sortKey] || 0;
+      const bValue = b[sortKey] || 0;
+      if (bValue === aValue) {
+        return (b.matches || 0) - (a.matches || 0);
+      }
+      return bValue - aValue;
+    });
+
+    let currentRank = 1;
+    let currentValue = sorted[0]?.[sortKey] || 0;
+    const rankedPlayers = sorted.map((player, index) => {
+      if (index > 0 && player[sortKey] < currentValue) {
+        currentRank = index + 1;
+        currentValue = player[sortKey];
+      }
+      return { ...player, rank: currentRank };
+    });
+
+    if (fullRankingSearch.trim()) {
+      const nicknameLower = fullRankingSearch.toLowerCase();
+      return rankedPlayers.filter(player => player.name.toLowerCase().includes(nicknameLower));
+    }
+    return rankedPlayers;
+  }, [processedPlayers, sortKey, fullRankingSearch]);
 
   const handleNavClick = (direction) => {
     const years = ['2022', '2023', '2024', '2025'];
@@ -242,31 +250,12 @@ const TOP = () => {
   const handleSearch = () => {
     if (!searchNickname.trim()) return;
     const nicknameLower = searchNickname.toLowerCase();
-    const playerData = players.map(player => ({
-      ...player,
-      attackPoints: (player.goals || 0) + (player.assists || 0),
-    }));
 
     const getRank = (key) => {
-      const sortedPlayers = [...playerData]
-        .filter(p => p[key] > 0)
-        .sort((a, b) => {
-          if (b[key] === a[key]) return (b.matches || 0) - (a.matches || 0);
-          return b[key] - a[key];
-        });
-
-      let currentRank = 1;
-      let currentValue = sortedPlayers[0]?.[key] || 0;
-      const rankedPlayers = sortedPlayers.map((player, index) => {
-        if (index > 0 && player[key] < currentValue) {
-          currentRank = index + 1;
-          currentValue = player[key];
-        }
-        return { ...player, rank: currentRank };
-      });
-
-      const player = rankedPlayers.find(p => p.name.toLowerCase() === nicknameLower);
-      return player ? { rank: player.rank, value: player[key] } : { rank: '-', value: 0 };
+      const category = statsCategories.find(c => c.id === key);
+      if (!category) return { rank: '-', value: 0 };
+      const player = category.players.find(p => p.name.toLowerCase() === nicknameLower);
+      return player ? { rank: player.rank, value: player.value } : { rank: '-', value: 0 };
     };
 
     const stats = {
@@ -305,56 +294,13 @@ const TOP = () => {
     }));
   };
 
-  const sortedPlayers = () => {
-    const playerData = players.map(player => ({
-      ...player,
-      attackPoints: (player.goals || 0) + (player.assists || 0),
-      position: positions[player.name] || null,
-    }));
-
-    const sorted = [...playerData].sort((a, b) => {
-      const aValue = a[sortKey] || 0;
-      const bValue = b[sortKey] || 0;
-      if (bValue === aValue) {
-        return (b.matches || 0) - (a.matches || 0);
-      }
-      return bValue - aValue;
-    });
-
-    let currentRank = 1;
-    let currentValue = sorted[0]?.[sortKey] || 0;
-    const rankedPlayers = sorted.map((player, index) => {
-      if (index > 0 && player[sortKey] < currentValue) {
-        currentRank = index + 1;
-        currentValue = player[sortKey];
-      }
-      return { ...player, rank: currentRank };
-    });
-
-    if (fullRankingSearch.trim()) {
-      const nicknameLower = fullRankingSearch.toLowerCase();
-      return rankedPlayers.filter(player => player.name.toLowerCase() === nicknameLower);
-    }
-    return rankedPlayers;
-  };
-
   const handleSort = (key) => {
     setSortKey(key);
   };
 
-  const handleFullRankingSearch = () => {
-    if (!fullRankingSearch.trim()) {
-      setFilteredPlayers(players);
-      return;
-    }
-    const nicknameLower = fullRankingSearch.toLowerCase();
-    const filtered = players.filter(player => player.name.toLowerCase() === nicknameLower);
-    setFilteredPlayers(filtered);
-  };
-
   const handleFullRankingKeyDown = (e) => {
     if (e.key === 'Enter') {
-      handleFullRankingSearch();
+      // This is handled by the useMemo dependency on fullRankingSearch
     }
   };
 
@@ -506,9 +452,8 @@ const TOP = () => {
                 onKeyDown={handleFullRankingKeyDown}
                 placeholder="닉네임 검색"
               />
-              <Styles.SearchButton onClick={handleFullRankingSearch}>검색</Styles.SearchButton>
             </Styles.FullRankingSearchContainer>
-            {sortedPlayers().length > 0 ? (
+            {sortedAndFilteredPlayers.length > 0 ? (
               <Styles.FullRankingContainer
                 ref={fullRankingRef}
                 onMouseDown={handleMouseDown}
@@ -563,7 +508,7 @@ const TOP = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedPlayers().map((player, index) => (
+                    {sortedAndFilteredPlayers.map((player, index) => (
                       <Styles.TableRow key={index}>
                         <Styles.FixedTableCell>{player.rank}</Styles.FixedTableCell>
                         <Styles.FixedTableCell>{player.name}</Styles.FixedTableCell>

@@ -483,7 +483,7 @@ const Home = () => {
       return {
         visible: true,
         type: 'lineup',
-        to: `/live/${matchId.replace('vote_', '')}`, // matchId에서 'vote_' 제거하여 날짜 추출
+        to: '/live', // matchId에서 'vote_' 제거하여 날짜 추출
         text: `${format(matchDate, 'M월 d일')} 경기 라인업 보기`,
       };
     }
@@ -513,15 +513,7 @@ const Home = () => {
                 );
                 return visible && (
                   <MatchButton key={`${exposure.dateStr}-${type}`} to={to}>
-                    {type === 'lineup' && exposure.startDateTime && exposure.endDateTime ? (
-                      <>
-                        {text}<br />
-                        투표 기간: {format(exposure.startDateTime, 'yyyy-MM-dd HH:mm')} ~{' '}
-                        {format(exposure.endDateTime, 'yyyy-MM-dd HH:mm')}
-                      </>
-                    ) : (
-                      text
-                    )}
+                    {text}
                   </MatchButton>
                 );
               })}

@@ -4,11 +4,16 @@ import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'fireba
 import { db } from '../App';
 import * as S from './AnnouncementsCss';
 
-// 포지션 한글 매핑
+// 포지션 한글 매핑 (LiveAdmin.js와 동일하게 확장)
 const POSITIONS = {
   GK: '골키퍼',
   CB: '수비수',
-  MF: '미드필더',
+  CDM: '수비형 미드필더',
+  CM: '중앙 미드필더',
+  CAM: '공격형 미드필더',
+  LW: '왼쪽 윙어',
+  RW: '오른쪽 윙어',
+  ST: '스트라이커',
   FW: '공격수'
 };
 
@@ -54,7 +59,7 @@ const SearchBar = React.memo(({ searchTerm, setSearchTerm, filteredPlayers, onSe
             }}
           >
             <div className="font-medium">{player.nick}</div>
-            <div className="text-gray-500 text-xs">{player.teamName} · {POSITIONS[player.position]}</div>
+            <div className="text-gray-500 text-xs">{player.teamName} · {POSITIONS[player.position] || player.position}</div>
           </S.SearchItem>
         ))}
       </S.SearchDropdown>
@@ -81,7 +86,7 @@ const SelectedPlayers = React.memo(({ selectedPlayers, onRemovePlayer, comment, 
               <S.VoteCell>{index + 1}</S.VoteCell>
               <S.VoteCell>{player ? player.nick : '-'}</S.VoteCell>
               <S.VoteCell>{player ? player.teamName : '-'}</S.VoteCell>
-              <S.VoteCell>{player ? POSITIONS[player.position] : '-'}</S.VoteCell>
+              <S.VoteCell>{player ? (POSITIONS[player.position] || player.position) : '-'}</S.VoteCell>
               <S.SelectedPlayerCell>
                 {player ? (
                   <S.RemoveButton onClick={() => onRemovePlayer(player.id)}>×</S.RemoveButton>
@@ -143,7 +148,7 @@ const TeamList = React.memo(({ lineups, onSelectPlayer }) => (
                     {player.nick}
                     {player.nick === team.captain && <S.CaptainTag>(주장)</S.CaptainTag>}
                   </S.PlayerNameCell>
-                  <S.PositionCell>{POSITIONS[player.position]}</S.PositionCell>
+                  <S.PositionCell>{POSITIONS[player.position] || player.position}</S.PositionCell>
                 </S.TeamPlayerRow>
               ))}
             </tbody>

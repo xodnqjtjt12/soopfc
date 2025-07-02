@@ -1,11 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 
 // 애니메이션 정의
-export const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
 export const fadeIn = keyframes`
   from { 
     opacity: 0; 
@@ -17,9 +12,13 @@ export const fadeIn = keyframes`
   }
 `;
 
-export const ballSpin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+const roll = keyframes`
+  0% {
+    transform: translateX(-150px) rotate(0deg);
+  }
+  100% {
+    transform: translateX(150px) rotate(360deg);
+  }
 `;
 
 export const LoadingContainer = styled.div`
@@ -29,16 +28,15 @@ export const LoadingContainer = styled.div`
   justify-content: center;
   height: 100vh;
   background-color: #ffffff;
-  animation: ${fadeIn} 0.5s ease-in;
 `;
 
-export const LoadingSpinner = styled.div`
-  width: 48px;
-  height: 48px;
-  border: 4px solid #f2f4f6;
-  border-top: 4px solid #3887ff;
-  border-radius: 50%;
-  animation: ${spin} 1s linear infinite;
+export const Football = styled.div`
+  width: 50px;
+  height: 50px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Soccerball.svg/1200px-Soccerball.svg.png');
+  background-size: cover;
+  animation: ${roll} 2s linear infinite;
+  margin-bottom: 20px;
 `;
 
 export const LoadingText = styled.div`
@@ -46,14 +44,6 @@ export const LoadingText = styled.div`
   font-size: 16px;
   font-weight: 500;
   color: #333d4b;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-`;
-
-export const LoadingPercentage = styled.div`
-  margin-top: 8px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #3887ff;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 `;
 
@@ -127,6 +117,13 @@ export const SearchIconWrapper = styled.div`
 `;
 
 export const TabContainer = styled.div`
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar { /* WebKit */
+    display: none;
+  }
   margin-bottom: 24px;
   gap: 8px;
   padding-bottom: 12px;
@@ -144,6 +141,7 @@ export const Tab = styled.button`
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 
   &:hover {
     color: ${props => props.active ? '#3887ff' : '#333d4b'};
