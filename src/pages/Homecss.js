@@ -81,7 +81,6 @@ export const HeroImageContainer = styled.div`
   aspect-ratio: 16 / 9;
   border-radius: 24px;
   overflow: hidden;
-  // box-shadow: 0 20px 40px rgba(0, 0, 0.15);
   margin-left: -10px;
 
   @media (max-width: 640px) {
@@ -102,7 +101,9 @@ export const HeroImage = styled.img`
 
 export const ButtonGroup = styled.div`
   display: flex;
+  flex-wrap: wrap; /* 버튼이 공간 부족 시 다음 줄로 넘어감 */
   gap: 16px;
+  align-items: center; /* 수직 중앙 정렬 */
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: center;
@@ -110,10 +111,9 @@ export const ButtonGroup = styled.div`
 `;
 
 export const PrimaryButton = styled.a`
-  display: flex; /* inline-block → flex로 교체 */
+  display: flex;
   justify-content: center;
   align-items: center;
-  
   padding: 16px 32px;
   font-size: 18px;
   font-weight: 600;
@@ -123,17 +123,27 @@ export const PrimaryButton = styled.a`
   text-decoration: none;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(49, 130, 246, 0.2);
-
-  flex: 0 0 auto; /* 핵심: flex-grow, shrink, basis = 자동 크기 고정 */
-  min-width: max-content; /* 내용보다 작아지지 않게 */
-  width: auto; /* width 강제 방지 */
+  flex: 0 0 auto; /* 크기 고정: 늘어나거나 줄어들지 않음 */
+  min-width: max-content; /* 내용에 맞는 최소 너비 유지 */
+  width: auto; /* 너비를 내용에 맞춤 */
 
   &:hover {
     background-color: #1c6fef;
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(49, 130, 246, 0.3);
   }
+
+  @media (max-width: 640px) {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+
+  @media (max-width: 360px) {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
 `;
+
 export const StatsContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -787,7 +797,6 @@ export const MomSectionTitle = styled(SectionTitle)`
   }
 `;
 
-// New styled components for countdown timer
 export const VoteButtonWrapper = styled.div`
   display: flex;
   flex-direction: column;
@@ -798,7 +807,7 @@ export const VoteButtonWrapper = styled.div`
 export const VoteCountdownText = styled.div`
   font-size: 14px;
   font-weight: 600;
-  color: #ff3b30; // Red to indicate urgency
+  color: #ff3b30;
   background-color: rgba(255, 59, 48, 0.1);
   padding: 6px 12px;
   border-radius: 8px;
@@ -811,7 +820,6 @@ export const VoteCountdownText = styled.div`
   }
 `;
 
-// New styled components for lineup and vote sections
 export const LineupSection = styled.div`
   max-width: 1200px;
   width: 100%;

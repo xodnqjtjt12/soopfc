@@ -223,7 +223,9 @@ export const StatsCard = styled.div`
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   padding: 15px;
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   border: 1px solid #e0e0e0;
 
   @media (max-width: 768px) {
@@ -245,6 +247,7 @@ export const StatsTitle = styled.div`
 
 export const RankingList = styled.div`
   margin-top: 10px;
+  flex-grow: 1; /* 남은 공간을 채우도록 설정 */
   min-height: 180px; /* 4개 아이템 + 마진을 고려한 높이 */
 `;
 

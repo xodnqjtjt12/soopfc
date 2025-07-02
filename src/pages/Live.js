@@ -11,10 +11,17 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 // 포지션 한글 매핑
 const POSITIONS = {
-  GK: '골키퍼',
-  CB: '수비수',
-  MF: '미드필더',
-  FW: '공격수'
+   GK: 'GK',
+  RB: 'RB',
+  LB: 'LB',
+  CB: 'CB',
+  CDM: 'CDM',
+  CM: 'CM',
+  CAM: 'CAM',
+  LW: 'LW',
+  RW: 'RW',
+  ST: 'ST',
+  FW: 'FW'
 };
 
 // 날짜 포맷팅 함수
@@ -92,7 +99,7 @@ const Live = () => {
       fetchMatches();
       const matchDate = lineups[0]?.date ? new Date(lineups[0].date) : null;
       if (matchDate && !isNaN(matchDate.getTime())) {
-        const revealTime = subHours(matchDate, 5);
+        const revealTime = subHours(matchDate, 8);
         setLineupRevealTime(revealTime);
       } else {
         console.log('유효한 경기 시간이 없음:', matchDate);

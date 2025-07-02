@@ -330,7 +330,28 @@ export const RankingPlayer = styled.span`
     line-height: 1.3;
   }
 `;
+export const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #3182f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
 
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+export const LoadingPercentage = styled.div`
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+`;
 export const RankingCount = styled.span`
   font-size: 18px;
   font-weight: 600;

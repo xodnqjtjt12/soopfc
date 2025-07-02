@@ -122,13 +122,13 @@ const LiveAdmin = () => {
 
   const fetchAllPlayers = async () => {
     try {
-        const playersSnap = await getDocs(collection(db, 'players'));
-        const playersList = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setAllPlayers(playersList);
-        addLog(`전체 선수 목록 로드: ${playersList.length}명`);
+      const playersSnap = await getDocs(collection(db, 'players'));
+      const playersList = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllPlayers(playersList);
+      addLog(`전체 선수 목록 로드: ${playersList.length}명`);
     } catch (err) {
-        console.error('Error fetching all players:', err.message);
-        addLog(`전체 선수 목록 로드 오류: ${err.message}`);
+      console.error('Error fetching all players:', err.message);
+      addLog(`전체 선수 목록 로드 오류: ${err.message}`);
     }
   };
 
@@ -171,6 +171,25 @@ const LiveAdmin = () => {
     }
   };
 
+  // 노출 시간에 따라 isHomeExposed 업데이트
+  useEffect(() => {
+    if (!isAuthenticated || !startDateTime || !endDateTime) return;
+
+    const checkExposure = () => {
+      const now = new Date();
+      const start = new Date(startDateTime);
+      const end = new Date(endDateTime);
+      const isExposed = now >= start && now <= end;
+      setIsHomeExposed(isExposed);
+      addLog(`홈 노출 상태 업데이트: ${isExposed ? '활성화' : '비활성화'} (현재: ${now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })}, 시작: ${start.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })}, 종료: ${end.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })}})`);
+    };
+
+    checkExposure(); // 즉시 실행
+    const interval = setInterval(checkExposure, 60000); // 1분마다 확인
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, startDateTime, endDateTime]);
+
   // 초기 데이터 가져오기
   useEffect(() => {
     if (isAuthenticated) {
@@ -180,21 +199,21 @@ const LiveAdmin = () => {
       const voteStatusRef = doc(db, 'voteStatus', today);
       getDoc(voteStatusRef).then((voteStatusDoc) => {
         if (voteStatusDoc.exists()) {
-          const { matchDate, isHomeExposed = false, startDateTime, endDateTime } = voteStatusDoc.data();
+          const { matchDate, startDateTime, endDateTime } = voteStatusDoc.data();
           setDateTime(matchDate ? formatDateTimeDisplay(new Date(matchDate)) : '');
           setStartDateTime(startDateTime ? formatDateTimeDisplay(new Date(startDateTime)) : '');
           setEndDateTime(endDateTime ? formatDateTimeDisplay(new Date(endDateTime)) : '');
-          setIsHomeExposed(isHomeExposed);
-          addLog(`홈 노출 상태 로드: ${isHomeExposed ? '활성화' : '비활성화'}`);
+          addLog('voteStatus 데이터 로드 완료');
         } else {
-          setIsHomeExposed(false);
-          addLog('홈 노출 상태 없음, 기본값 비활성화 설정');
+          setDateTime('');
+          setStartDateTime('');
+          setEndDateTime('');
+          addLog('voteStatus 데이터 없음, 기본값 설정');
           // voteStatus 문서 초기화
           setDoc(voteStatusRef, {
             matchDate: new Date().toISOString(),
             startDateTime: new Date().toISOString(),
             endDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            isHomeExposed: false,
             isEnabled: true
           }).then(() => {
             addLog(`voteStatus/${today} 초기화`);
@@ -401,55 +420,7 @@ const LiveAdmin = () => {
     return null;
   };
 
-  // 홈 노출 토글
-  const handleHomeExposureToggle = async () => {
-    setLoading(true);
-    try {
-      const newHomeExposed = !isHomeExposed;
-      const voteStatusRef = doc(db, 'voteStatus', today);
-      const voteStatusDoc = await getDoc(voteStatusRef);
-      const currentData = voteStatusDoc.exists() ? voteStatusDoc.data() : {};
-
-      const updateData = {
-        ...currentData,
-        matchDate: currentData.matchDate || (dateTime ? new Date(dateTime).toISOString() : new Date().toISOString()),
-        startDateTime: currentData.startDateTime || (startDateTime ? new Date(startDateTime).toISOString() : new Date().toISOString()),
-        endDateTime: currentData.endDateTime || (endDateTime ? new Date(endDateTime).toISOString() : new Date().toISOString()),
-        isHomeExposed: newHomeExposed,
-        isEnabled: !newHomeExposed // 투표와 반대로 설정
-      };
-
-      await setDoc(voteStatusRef, updateData, { merge: true });
-      setIsHomeExposed(newHomeExposed);
-      addLog(`홈 노출 상태 변경: ${newHomeExposed ? '활성화' : '비활성화'}, 투표 상태: ${!newHomeExposed ? '활성화 가능' : '비활성화'}`);
-
-      // lineups 문서 생성/업데이트
-      if (newHomeExposed) {
-        const lineupRef = doc(db, 'lineups', today);
-        const lineupData = {
-          teams: teams.map(team => ({
-            name: team.name,
-            captain: team.captain,
-            color: team.color,
-            players: team.players.map(player => ({
-              nick: player.nick,
-              position: player.position
-            }))
-          })),
-          createdAt: new Date().toISOString()
-        };
-        await setDoc(lineupRef, lineupData, { merge: true });
-        addLog(`lineups/${today} 문서 생성/업데이트`);
-      }
-    } catch (err) {
-      console.error('홈 노출 상태 변경 오류:', err.message, err.code);
-      setError(`홈 노출 상태 변경 중 오류: ${err.message}`);
-      addLog(`홈 노출 상태 변경 오류: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 홈 노출 토글 제거 (시간 기반으로 자동 제어되므로 불필요)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
@@ -555,10 +526,9 @@ const LiveAdmin = () => {
         matchDate: dateISO,
         startDateTime: startISO,
         endDateTime: endISO,
-        isHomeExposed,
-        isEnabled: !isHomeExposed
+        isEnabled: true // 투표는 항상 활성화 (필요 시 별도 로직 추가)
       }, { merge: true });
-      addLog(`voteStatus/${formatDate(new Date(dateISO))} 업데이트: isHomeExposed=${isHomeExposed}, isEnabled=${!isHomeExposed}`);
+      addLog(`voteStatus/${formatDate(new Date(dateISO))} 업데이트`);
 
       for (const [index, team] of teams.entries()) {
         const teamDocRef = doc(db, 'live', team.name);
@@ -883,19 +853,10 @@ const LiveAdmin = () => {
         </form>
       ) : (
         <>
-          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (라인업은 설정한 시간에서 5시간 전에 나옴)</S.SectionTitle>
+          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (노출 시작 시간과 종료 시간 사이에 홈 화면에 표시됩니다)</S.SectionTitle>
           
           <S.SwitchContainer>
             <S.SwitchLabel>라인업 홈 노출: </S.SwitchLabel>
-            <S.Switch>
-              <input
-                type="checkbox"
-                checked={isHomeExposed}
-                onChange={handleHomeExposureToggle}
-                disabled={loading}
-              />
-              <span />
-            </S.Switch>
             <S.StatusText>{isHomeExposed ? '활성화' : '비활성화'}</S.StatusText>
           </S.SwitchContainer>
           {loading && <S.Loading>로딩 중...</S.Loading>}
