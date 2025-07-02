@@ -6,9 +6,9 @@ import * as Styles from './Top10Css';
 // 메달 컴포넌트
 const Medal = ({ rank }) => {
   const images = {
-    1: '/trophy.png', // 금
-    2: '/2등.png',      // 은
-    3: '/3등.png',      // 동
+    1: '/prize_1st.png', // 금
+    2: '/prize_2ed.png',      // 은
+    3: '/prize3rd.png',      // 동
   };
   const src = images[rank] || '';
 

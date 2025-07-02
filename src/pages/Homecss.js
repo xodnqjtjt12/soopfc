@@ -81,7 +81,7 @@ export const HeroImageContainer = styled.div`
   aspect-ratio: 16 / 9;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0.15);
+  // box-shadow: 0 20px 40px rgba(0, 0, 0.15);
   margin-left: -10px;
 
   @media (max-width: 640px) {
@@ -110,7 +110,10 @@ export const ButtonGroup = styled.div`
 `;
 
 export const PrimaryButton = styled.a`
-  display: inline-block;
+  display: flex; /* inline-block → flex로 교체 */
+  justify-content: center;
+  align-items: center;
+  
   padding: 16px 32px;
   font-size: 18px;
   font-weight: 600;
@@ -118,15 +121,19 @@ export const PrimaryButton = styled.a`
   background-color: #3182f6;
   border-radius: 12px;
   text-decoration: none;
-  transition: all:0.2s ease;
+  transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(49, 130, 246, 0.2);
+
+  flex: 0 0 auto; /* 핵심: flex-grow, shrink, basis = 자동 크기 고정 */
+  min-width: max-content; /* 내용보다 작아지지 않게 */
+  width: auto; /* width 강제 방지 */
+
   &:hover {
     background-color: #1c6fef;
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(49, 130, 246, 0.3);
   }
 `;
-
 export const StatsContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
