@@ -245,6 +245,7 @@ export const StatsTitle = styled.div`
 
 export const RankingList = styled.div`
   margin-top: 10px;
+  min-height: 180px; /* 4개 아이템 + 마진을 고려한 높이 */
 `;
 
 export const RankingItem = styled.div`
@@ -284,7 +285,7 @@ export const Medal = styled.img`
   width: ${(props) => (props.rank === 1 ? '45px' : '45px')}; /* 크기 증가 */
   height: ${(props) => (props.rank === 1 ? '45px' : '45px')};
   object-fit: contain;
-  animation: ${(props) => (props.rank === 1 ? goldSparkle : tossGlow)} 1.8s ease-in-out infinite;
+  // animation: ${(props) => (props.rank === 1 )} 1.8s ease-in-out infinite;
   transition: transform 0.2s ease;
 
   &:hover {
@@ -294,7 +295,7 @@ export const Medal = styled.img`
   ${(props) =>
     props.rank === 1 &&
     `
-      border: 1px solid #D4A017;
+      // border: 1px solid #D4A017;
       border-radius: 50%;
     `}
 `;
