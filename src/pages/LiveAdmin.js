@@ -853,7 +853,7 @@ const LiveAdmin = () => {
         </form>
       ) : (
         <>
-          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (노출 시작 시간과 종료 시간 사이에 홈 화면에 표시됩니다)</S.SectionTitle>
+          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (홈 노출 시작 시간과 종료 시간 사이에 홈 화면에 표시됩니다)</S.SectionTitle>
           
           <S.SwitchContainer>
             <S.SwitchLabel>라인업 홈 노출: </S.SwitchLabel>
@@ -866,21 +866,21 @@ const LiveAdmin = () => {
               type="datetime-local"
               value={dateTime}
               onChange={(e) => setDateTime(e.target.value)}
-              placeholder="경기 날짜와 시간"
+              placeholder="경기 시간"
               required
             />
             <S.Input
               type="datetime-local"
               value={startDateTime}
               onChange={(e) => setStartDateTime(e.target.value)}
-              placeholder="라인업 노출 시작 시간"
+              placeholder="홈 노출 시작 시간"
               required
             />
             <S.Input
               type="datetime-local"
               value={endDateTime}
               onChange={(e) => setEndDateTime(e.target.value)}
-              placeholder="라인업 노출 종료 시간"
+              placeholder="홈 노출 종료 시간"
               required
             />
             

@@ -11,7 +11,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 // 포지션 한글 매핑
 const POSITIONS = {
-   GK: 'GK',
+  GK: 'GK',
   RB: 'RB',
   LB: 'LB',
   CB: 'CB',
@@ -88,11 +88,23 @@ const Live = () => {
   const [error, setError] = useState('');
   const [cheers, setCheers] = useState([]);
   const [lineupRevealTime, setLineupRevealTime] = useState(null);
+  const [allExistingPlayers, setAllExistingPlayers] = useState([]);
 
   useEffect(() => {
     fetchLineups();
     setupCheerListener();
+    fetchAllExistingPlayers();
   }, []);
+
+  const fetchAllExistingPlayers = async () => {
+    try {
+      const playersSnap = await getDocs(collection(db, 'players'));
+      const existingPlayerNicks = playersSnap.docs.map(doc => doc.id);
+      setAllExistingPlayers(existingPlayerNicks);
+    } catch (err) {
+      console.error('Error fetching all existing players:', err.message);
+    }
+  };
 
   useEffect(() => {
     if (lineups.length > 0) {
@@ -416,6 +428,11 @@ const Live = () => {
                     <S.PlayerItem key={player.id} index={playerIndex}>
                       <S.PlayerName isCaptain={player.nick === team.captain}>
                         {player.nick}
+                        {!allExistingPlayers.includes(player.nick) && (
+                          <span style={{ marginLeft: '5px', color: '#FF4500', fontWeight: 'bold' }}>
+                            (데뷔) 🔥
+                          </span>
+                        )}
                       </S.PlayerName>
                       <S.PlayerPosition>{POSITIONS[player.position]}</S.PlayerPosition>
                     </S.PlayerItem>
