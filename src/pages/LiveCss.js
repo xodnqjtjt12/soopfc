@@ -526,7 +526,7 @@ export const ErrorMessage = styled.div`
 export const ChartContainer = styled.div`
   height: 300px;
   padding: 20px;
-  transform-origin: bottom;
+  transform-origin: bottom;\
   animation: ${growIn} 0.8s ease-out;
 
   @media (max-width: 768px) {
@@ -682,4 +682,78 @@ export const LineupMessage = styled.div`
     padding: 12px;
     margin: 8px;
   }
+`;
+
+export const CompetitionPointsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+  }
+`;
+
+export const CompetitionItem = styled.div`
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 15px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  text-align: center;
+  flex: 1;
+  min-width: 280px;
+  max-width: 350px;
+  transition: all 0.3s ease;
+  animation: ${fadeInUp} 0.7s ease-out;
+
+  &:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+
+  @media (max-width: 768px) {
+    min-width: 90%;
+    padding: 12px 15px;
+  }
+`;
+
+export const CompetitionTitle = styled.h4`
+  font-size: 18px;
+  color: #004aad;
+  margin-bottom: 10px;
+  font-weight: bold;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+`;
+
+export const CompetitionDetail = styled.p`
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+  line-height: 1.5;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
+`;
+
+export const NoCompetitionMessage = styled.div`
+  font-size: 16px;
+  color: #666;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+  animation: ${fadeInUp} 0.7s ease-out;
 `;

@@ -89,6 +89,13 @@ const Live = () => {
   const [cheers, setCheers] = useState([]);
   const [lineupRevealTime, setLineupRevealTime] = useState(null);
   const [allExistingPlayers, setAllExistingPlayers] = useState([]);
+  const [competitionPoints, setCompetitionPoints] = useState({
+    topGoalScorer: [],
+    topAssistProvider: [],
+    topWinRate: [],
+    topCleanSheet: [],
+    topPowerRanking: []
+  });
 
   useEffect(() => {
     fetchLineups();
@@ -118,6 +125,12 @@ const Live = () => {
       }
     }
   }, [lineups]);
+
+  useEffect(() => {
+    if (allExistingPlayers.length > 0 && lineups.length > 0) {
+      fetchCompetitionPoints();
+    }
+  }, [allExistingPlayers, lineups]);
 
   const fetchLineups = async () => {
     try {
@@ -163,16 +176,83 @@ const Live = () => {
             winRate: data.winRate || 0,
             win: data.win || 0,
             draw: data.draw || 0,
-            lose: data.lose || 0
+            lose: data.lose || 0,
+            powerRanking: data.powerRanking || 0
           };
         } else {
-          stats[captain] = { goals: 0, assists: 0, cleanSheets: 0, matches: 0, winRate: 0, win: 0, draw: 0, lose: 0 };
+          stats[captain] = { goals: 0, assists: 0, cleanSheets: 0, matches: 0, winRate: 0, win: 0, draw: 0, lose: 0, powerRanking: 0 };
         }
       }
       setCaptainStats(stats);
     } catch (err) {
       console.error('주장 통계 가져오기 오류:', err.message, err.code);
       setError('주장 통계 불러오기 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
+  const fetchCompetitionPoints = async () => {
+    try {
+      const playersSnap = await getDocs(collection(db, 'players'));
+      let playersData = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Calculate powerRanking for each player based on Total.js's xG logic
+      playersData = playersData.map((player) => {
+        const matches = player.matches || 1;
+        const normalizedGoals = (player.goals || 0) / matches;
+        const normalizedAssists = (player.assists || 0) / matches;
+        const normalizedCleanSheets = (player.cleanSheets || 0) / matches;
+        const normalizedWinRate = (player.winRate || 0) / 100;
+        const normalizedPoints = (player.personalPoints || 0) / matches;
+
+        const calculatedPowerRanking =
+          0.4 * normalizedGoals +
+          0.3 * normalizedAssists +
+          0.2 * normalizedCleanSheets +
+          0.05 * normalizedWinRate +
+          0.05 * normalizedPoints;
+
+        return { ...player, powerRanking: calculatedPowerRanking };
+      });
+
+      // Normalize powerRanking to a 0-1 scale, similar to Total.js's xG
+      const maxPowerRanking = Math.max(...playersData.map((p) => p.powerRanking), 1);
+      playersData = playersData.map((player) => ({
+        ...player,
+        powerRanking: Math.min((player.powerRanking / maxPowerRanking), 1.0),
+      }));
+
+      const getTopN = (arr, key, n = 2, isHigherBetter = true) => {
+        const sorted = [...arr].sort((a, b) => {
+          if (isHigherBetter) return (b[key] || 0) - (a[key] || 0);
+          return (a[key] || 0) - (b[key] || 0);
+        });
+        if (sorted.length < n) return sorted;
+        const topPlayers = sorted.slice(0, n);
+        const diff = Math.abs((topPlayers[0][key] || 0) - (topPlayers[1][key] || 0));
+        if (diff <= 0.05 && key === 'powerRanking') { // Adjust diff threshold for powerRanking
+          return topPlayers;
+        } else if (diff <= 2 && key !== 'powerRanking') {
+          return topPlayers;
+        }
+        return [];
+      };
+
+      const topGoalScorer = getTopN(playersData, 'goals');
+      const topAssistProvider = getTopN(playersData, 'assists');
+      const topWinRate = getTopN(playersData, 'winRate');
+      const topCleanSheet = getTopN(playersData, 'cleanSheets');
+      const topPowerRanking = getTopN(playersData, 'powerRanking');
+
+      setCompetitionPoints({
+        topGoalScorer,
+        topAssistProvider,
+        topWinRate,
+        topCleanSheet,
+        topPowerRanking
+      });
+
+    } catch (err) {
+      console.error('관전 포인트 데이터 가져오기 오류:', err.message);
     }
   };
 
@@ -498,6 +578,55 @@ const Live = () => {
           </S.StatsSection>
         </S.Section>
       )}
+
+      <S.Section>
+        <S.SectionTitle>관전 포인트</S.SectionTitle>
+        <S.CompetitionPointsContainer>
+          {competitionPoints.topGoalScorer.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>득점왕 경쟁</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topGoalScorer[0].id} {competitionPoints.topGoalScorer[0].goals}골 vs {competitionPoints.topGoalScorer[1].id} {competitionPoints.topGoalScorer[1].goals}골
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
+          {competitionPoints.topAssistProvider.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>도움왕 경쟁</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topAssistProvider[0].id} {competitionPoints.topAssistProvider[0].assists}도움 vs {competitionPoints.topAssistProvider[1].id} {competitionPoints.topAssistProvider[1].assists}도움
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
+          {competitionPoints.topWinRate.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>승률 1위 유지</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topWinRate[0].id} {competitionPoints.topWinRate[0].winRate}% vs {competitionPoints.topWinRate[1].id} {competitionPoints.topWinRate[1].winRate}%
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
+          {competitionPoints.topCleanSheet.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>클린시트 경쟁</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topCleanSheet[0].id} {competitionPoints.topCleanSheet[0].cleanSheets}클린시트 vs {competitionPoints.topCleanSheet[1].id} {competitionPoints.topCleanSheet[1].cleanSheets}클린시트
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
+          {competitionPoints.topPowerRanking.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>파워랭킹 경쟁</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topPowerRanking[0].id} {competitionPoints.topPowerRanking[0].powerRanking}점 vs {competitionPoints.topPowerRanking[1].id} {competitionPoints.topPowerRanking[1].powerRanking}점
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
+          {Object.values(competitionPoints).every(arr => arr.length < 2) && (
+            <S.NoCompetitionMessage>현재 치열한 경쟁이 없습니다.</S.NoCompetitionMessage>
+          )}
+        </S.CompetitionPointsContainer>
+      </S.Section>
 
       {lineups.length > 1 && (
         <S.Section>
