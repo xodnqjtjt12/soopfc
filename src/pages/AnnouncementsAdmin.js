@@ -133,7 +133,7 @@ const CommentsSection = React.memo(({ comments }) => (
 
 const VoteHistory = React.memo(({ voteHistory, onDelete, onView }) => (
   <S.VoteHistorySection>
-    <h3>투표 히스토리</h3>
+    <h3>지난 투표 기록 (votes 컬렉션)</h3>
     {voteHistory.length > 0 ? (
       <S.HistoryTable>
         <table>
@@ -151,14 +151,14 @@ const VoteHistory = React.memo(({ voteHistory, onDelete, onView }) => (
                 id,
                 name: data.name || 'Unknown',
                 team: data.team || 'Unknown',
-                total: data.votes.total || 0
+                total: data.votes?.total || 0
               }));
               results.sort((a, b) => b.total - a.total);
               const topThreeNames = results.slice(0, 3).map(p => p.name).join(', ');
               const totalVotes = results.reduce((sum, player) => sum + player.total, 0);
 
               return (
-                <S.VoteRow key={item.date}>
+                <S.VoteRow key={item.id}>
                   <S.VoteCell>{item.date}</S.VoteCell>
                   <S.VoteCell>{totalVotes}표</S.VoteCell>
                   <S.VoteCell>{topThreeNames || '없음'}</S.VoteCell>
@@ -166,7 +166,7 @@ const VoteHistory = React.memo(({ voteHistory, onDelete, onView }) => (
                     <S.ViewButton onClick={() => onView(item)}>
                       보기
                     </S.ViewButton>
-                    <S.DeleteButton onClick={() => onDelete(item.date)}>
+                    <S.DeleteButton onClick={() => onDelete(item.id)}>
                       삭제
                     </S.DeleteButton>
                   </S.VoteCell>
@@ -450,21 +450,22 @@ const AnnouncementsAdmin = () => {
     }
   }, [today, isAuthenticated]);
 
-  // 투표 히스토리 가져오기
+  // 지난 투표 기록 가져오기 (votes 컬렉션)
   const fetchVoteHistory = async () => {
     try {
-      const historyRef = collection(db, 'voteHistory');
+      const historyRef = collection(db, 'votes');
       const historySnap = await getDocs(historyRef);
       const historyData = historySnap.docs.map(doc => ({
-        date: doc.id,
+        id: doc.id,
+        date: doc.id.replace('vote_', ''),
         data: doc.data()
-      }));
+      })).filter(item => item.date !== today);
       historyData.sort((a, b) => b.date.localeCompare(a.date));
       setVoteHistory(historyData);
-      console.log('투표 히스토리 가져오기 완료:', historyData);
+      console.log('지난 투표 기록(votes) 가져오기 완료:', historyData);
     } catch (err) {
-      console.error('투표 히스토리 가져오기 오류:', err.message);
-      setError(`투표 히스토리 가져오기 중 오류: ${err.message}`);
+      console.error('지난 투표 기록(votes) 가져오기 오류:', err.message);
+      setError(`지난 투표 기록(votes) 가져오기 중 오류: ${err.message}`);
     }
   };
 
@@ -738,17 +739,18 @@ const AnnouncementsAdmin = () => {
   }, [pendingVoteState, isReopening, today, newVoteStartDateTime, newVoteEndDateTime, newMatchDate, exposedDates]);
 
   // 투표 히스토리 삭제
-  const handleDeleteHistory = useCallback(async (date) => {
+  const handleDeleteHistory = useCallback(async (docId) => {
+    const date = docId.replace('vote_', '');
     if (!window.confirm(`${date}의 투표 기록을 삭제하시겠습니까?`)) return;
 
     try {
-      const historyRef = doc(db, 'voteHistory', date);
+      const historyRef = doc(db, 'votes', docId);
       await deleteDoc(historyRef);
-      setVoteHistory(prev => prev.filter(item => item.date !== date));
-      setMessage(`투표 히스토리 ${date} 삭제 완료.`);
-      console.log(`투표 히스토리 삭제: ${date}`);
+      setVoteHistory(prev => prev.filter(item => item.id !== docId));
+      setMessage(`투표 기록 ${date} 삭제 완료.`);
+      console.log(`투표 기록 삭제: ${docId}`);
     } catch (err) {
-      console.error('투표 히스토리 삭제 오류:', err.message);
+      console.error('투표 기록 삭제 오류:', err.message);
       setError(`투표 기록 삭제 중 오류가 발생했습니다: ${err.message}`);
     }
   }, []);
@@ -993,23 +995,24 @@ const AnnouncementsAdmin = () => {
           )}
 
           {showViewModal && selectedHistoryData && (
-            <S.ModalOverlay>
-              <S.ModalContent>
+            <S.ModalOverlay onClick={closeViewModal}>
+              <S.ModalContent onClick={(e) => e.stopPropagation()}>
                 <S.ModalTitle>{selectedHistoryData.date} 투표 결과</S.ModalTitle>
                 {(() => {
                   const { total, topThreeList, topEightList, comments } = computeHistoryVoteData(selectedHistoryData);
+                  const voteResults = Object.entries(selectedHistoryData.data.playerVotes || {}).map(([id, data]) => ({
+                      id,
+                      name: data.name || 'Unknown',
+                      team: data.team || 'Unknown',
+                      position: data.position || 'Unknown',
+                      rank1: data.votes?.rank1 || 0,
+                      rank2: data.votes?.rank2 || 0,
+                      rank3: data.votes?.rank3 || 0,
+                      total: data.votes?.total || 0
+                    }));
                   return (
                     <>
-                      <VoteTable voteResults={Object.entries(selectedHistoryData.data.playerVotes || {}).map(([id, data]) => ({
-                        id,
-                        name: data.name || 'Unknown',
-                        team: data.team || 'Unknown',
-                        position: data.position || 'Unknown',
-                        rank1: data.votes?.rank1 || 0,
-                        rank2: data.votes?.rank2 || 0,
-                        rank3: data.votes?.rank3 || 0,
-                        total: data.votes?.total || 0
-                      }))} />
+                      <VoteTable voteResults={voteResults} />
                       <Summary totalVotes={total} topThree={topThreeList} topEight={topEightList} />
                       <CommentsSection comments={comments} />
                       <S.ModalButtons>

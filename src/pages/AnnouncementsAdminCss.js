@@ -432,7 +432,8 @@ export const ModalContent = styled.div`
   background-color: ${COLORS.WHITE};
   border-radius: 20px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  overflow-x: hidden;
+  overflow-y: auto; /* 내용이 길어지면 스크롤 추가 */
+  max-height: 80vh; /* 화면 높이의 80%로 최대 높이 제한 */
 
   ${media.mobile`
     padding: 15px;
