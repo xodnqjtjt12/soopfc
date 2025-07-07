@@ -133,7 +133,7 @@ const CommentsSection = React.memo(({ comments }) => (
 
 const VoteHistory = React.memo(({ voteHistory, onDelete, onView }) => (
   <S.VoteHistorySection>
-    <h3>지난 투표 기록 (votes 컬렉션)</h3>
+    <h3>지난 투표 기록</h3>
     {voteHistory.length > 0 ? (
       <S.HistoryTable>
         <table>

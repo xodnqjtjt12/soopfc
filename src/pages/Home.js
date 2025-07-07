@@ -581,7 +581,7 @@ const Home = () => {
                 <S.StatRow><S.StatLabel>경기수</S.StatLabel><S.StatLabel>{p.matches}</S.StatLabel></S.StatRow>
                 <S.StatRow><S.StatLabel>승률</S.StatLabel><S.StatLabel>{p.winRate}%</S.StatLabel></S.StatRow>
                 <S.StatRow><S.StatLabel>승점</S.StatLabel><S.StatLabel>{p.personalPoints}</S.StatLabel></S.StatRow>
-                <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.xG}</S.StatLabel></S.StatRow>
+                <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.war}</S.StatLabel></S.StatRow>
               </S.PlayerCard>
             )) : <p>MOM 플레이어가 없습니다.</p>}
           </S.MomPlayersContainer>
