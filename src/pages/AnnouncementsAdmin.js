@@ -101,15 +101,15 @@ const Summary = React.memo(({ totalVotes, topThree, topEight }) => (
           {player.name} ({player.team}, {player.total}표)
         </S.SummaryItem>
       ))}
-      {topEight.length < 8 &&
-        Array(8 - topThree.length)
-          .fill()
-          .map((_, index) => (
-            <S.SummaryItem key={`empty-eight-${index}`}>
-              <span className="rank">{topEight.length + index + 1}</span>
-              데이터 없음
-            </S.SummaryItem>
-          ))}
+     {topEight.length < 8 &&
+  Array(Math.max(0, 8 - topEight.length))  // 음수 방지
+    .fill()
+    .map((_, index) => (
+      <S.SummaryItem key={`empty-eight-${index}`}>
+        <span className="rank">{topEight.length + index + 1}</span>
+        데이터 없음
+      </S.SummaryItem>
+    ))}
     </S.TopEightSection>
   </S.SummarySection>
 ));

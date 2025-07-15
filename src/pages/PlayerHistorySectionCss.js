@@ -129,6 +129,19 @@ export const AwardSectionTitle = styled.div`
     margin-right: 6px;
     color: #ffc107; /* 트로피는 금색으로 */
     filter: drop-shadow(0 0 3px rgba(255, 193, 7, 0.3));
+    animation: float 1.5s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
   }
   
   h4 {

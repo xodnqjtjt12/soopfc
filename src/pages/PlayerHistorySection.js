@@ -627,7 +627,7 @@ const PlayerHistorySection = () => {
     
     switch(playerItem.rank) {
       case 1:
-        icon = <FaTrophy style={{ color: 'gold', marginRight: '4px' }} />;
+        icon = <FaTrophy className="trophy-icon" style={{ color: 'gold', marginRight: '4px' }} />;
         color = 'gold';
         text = `${year}년 ${statLabels[stat]} ${playerItem.rank}위`;
         break;
@@ -715,7 +715,7 @@ const PlayerHistorySection = () => {
     
     switch(playerItem.rank) {
       case 1:
-        icon = <FaTrophy style={{ color: 'gold', marginRight: '4px' }} />;
+        icon = <FaTrophy className="trophy-icon" style={{ color: 'gold', marginRight: '4px' }} />;
         color = 'gold';
         text = `총 ${statLabels[stat]} ${playerItem.rank}위`;
         break;
