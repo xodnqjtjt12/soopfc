@@ -192,8 +192,12 @@ const Live = () => {
 
   const fetchCompetitionPoints = async () => {
     try {
+      // 현재 라인업에 포함된 선수들만 추출
+      const lineupPlayerNicks = lineups.flatMap(team => team.players.map(player => player.nick));
       const playersSnap = await getDocs(collection(db, 'players'));
-      let playersData = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let playersData = playersSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(player => lineupPlayerNicks.includes(player.id));
 
       // Calculate powerRanking for each player based on Total.js's xG logic
       playersData = playersData.map((player) => {
@@ -618,7 +622,7 @@ const Live = () => {
             <S.CompetitionItem>
               <S.CompetitionTitle>파워랭킹 경쟁</S.CompetitionTitle>
               <S.CompetitionDetail>
-                {competitionPoints.topPowerRanking[0].id} {competitionPoints.topPowerRanking[0].powerRanking}점 vs {competitionPoints.topPowerRanking[1].id} {competitionPoints.topPowerRanking[1].powerRanking}점
+                {competitionPoints.topPowerRanking[0].id} {(competitionPoints.topPowerRanking[0].powerRanking * 100).toFixed(2)}점 vs {competitionPoints.topPowerRanking[1].id} {(competitionPoints.topPowerRanking[1].powerRanking * 100).toFixed(2)}점
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}

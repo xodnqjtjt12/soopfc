@@ -12,6 +12,30 @@ export const fadeIn = keyframes`
   }
 `;
 
+export const shine = keyframes`
+  0% {
+    background-position: -200%;
+  }
+  100% {
+    background-position: 200%;
+  }
+`;
+
+export const pulse = keyframes`
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(56, 135, 255, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(56, 135, 255, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(56, 135, 255, 0);
+  }
+`;
+
 const roll = keyframes`
   0% {
     transform: translateX(-150px) rotate(0deg);
@@ -45,6 +69,29 @@ export const LoadingText = styled.div`
   font-weight: 500;
   color: #333d4b;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+`;
+
+export const LoadingPercentage = styled.div`
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+`;
+
+export const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #3182f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 export const Container = styled.div`
@@ -292,6 +339,45 @@ export const CloseButton = styled.button`
   }
 `;
 
+export const WinnerBadge = styled.div`
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 24px;
+  animation: ${pulse} 2s infinite;
+`;
+
+export const StatsContainer = styled.div`
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(90deg, #f2f7ff, #ffffff);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: ${shine} 3s linear infinite;
+  background-size: 200%;
+`;
+
+export const StatItem = styled.div`
+  font-size: 16px;
+  font-weight: 500;
+  color: #191f28;
+  display: flex;
+  justify-content: space-between;
+`;
+
+export const WinnerRecord = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(90deg, #fff8e1, #ffffff);
+  border-radius: 12px;
+  animation: ${shine} 3s linear infinite;
+  background-size: 200%;
+`;
+
 export const RankingList = styled.ul`
   list-style: none;
   padding: 0;
@@ -330,28 +416,7 @@ export const RankingPlayer = styled.span`
     line-height: 1.3;
   }
 `;
-export const LoadingSpinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #3182f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
 
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-export const LoadingPercentage = styled.div`
-  margin-top: 10px;
-  text-align: center;
-  font-size: 14px;
-  color: #666;
-`;
 export const RankingCount = styled.span`
   font-size: 18px;
   font-weight: 600;
@@ -403,7 +468,7 @@ export const PlayerRecordItem = styled.div`
   font-size: 17px;
   color: #333d4b;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   border-bottom: 1px solid #eef0f3;
 
   &:last-child {

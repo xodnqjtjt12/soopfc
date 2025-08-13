@@ -237,37 +237,74 @@ const fetchPlayerData = async () => {
       if (arr && arr[0]) topByYear[y][stat] = arr[0].player;
     });
   });
+
   const labelMap = {
     goals: '득점왕',
-    matches: '출장'
+    matches: '출장왕'
   };
+
+  // 연속 기록 자동화
   ['goals', 'matches'].forEach((stat) => {
-    for (let i = 0; i < years.length - 1; i++) {
-      const y1 = years[i], y2 = years[i + 1];
-      if (topByYear[y1][stat] && topByYear[y1][stat] === topByYear[y2][stat]) {
-        otherRecords.push({
-          position: careerStats[topByYear[y1][stat]].position,
-          title: `2년 연속 ${labelMap[stat]}`,
-          player: topByYear[y1][stat],
-          period: `${y1}~${y2}`
-        });
-      }
-      if (i < years.length - 2) {
-        const y3 = years[i + 2];
-        if (
-          topByYear[y1][stat] &&
-          topByYear[y1][stat] === topByYear[y2][stat] &&
-          topByYear[y2][stat] === topByYear[y3][stat]
-        ) {
-          otherRecords.push({
-            position: careerStats[topByYear[y1][stat]].position,
-            title: `3년 연속 ${labelMap[stat]}`,
-            player: topByYear[y1][stat],
-            period: `${y1}~${y3}`
-          });
+    const players = new Set(Object.values(topByYear).map((yearData) => yearData[stat]).filter(Boolean));
+    players.forEach((player) => {
+      let streak = 1;
+      let streakStartYear = null;
+      for (let i = 0; i < years.length; i++) {
+        const currentYear = years[i];
+        const nextYear = years[i + 1];
+
+        if (topByYear[currentYear][stat] === player) {
+          if (streak === 1) streakStartYear = currentYear;
+          if (nextYear && topByYear[nextYear][stat] === player) {
+            streak++;
+          } else {
+            if (streak >= 2) {
+              otherRecords.push({
+                position: careerStats[player].position,
+                title: `${streak}년 연속 ${labelMap[stat]}`,
+                player,
+                period: `${streakStartYear}~${currentYear}`,
+                stats: {
+                  matches: careerStats[player].matches,
+                  goals: careerStats[player].goals,
+                  assists: careerStats[player].assists
+                }
+              });
+            }
+            streak = 1;
+            streakStartYear = null;
+          }
         }
       }
-    }
+    });
+  });
+
+  // 새로운 클럽 기록 추가 (10-10, 20-20, 30-30 등)
+  const clubs = [
+    { min: 10, max: 19, title: '10-10 클럽 가입' },
+    { min: 20, max: 29, title: '20-20 클럽 가입' },
+    { min: 30, max: 39, title: '30-30 클럽 가입' },
+  ];
+
+  clubs.forEach((club) => {
+    Object.entries(careerStats).forEach(([pid, stats]) => {
+      if (
+        stats.goals >= club.min && stats.goals <= club.max &&
+        stats.assists >= club.min && stats.assists <= club.max
+      ) {
+        otherRecords.push({
+          position: stats.position,
+          title: club.title,
+          player: pid,
+          period: '2022~2025',
+          stats: {
+            matches: stats.matches,
+            goals: stats.goals,
+            assists: stats.assists
+          }
+        });
+      }
+    });
   });
 
   return {
@@ -363,7 +400,7 @@ const fetchPlayerRecords = (playerName, recordData) => {
     });
   });
 
-  // 기타 기록
+  // 기타 기록 (클럽 기록 포함)
   playerRecords.other = recordData.other.filter((record) => record.player.toLowerCase() === playerName.toLowerCase());
 
   return playerRecords;
@@ -457,7 +494,7 @@ const Record = () => {
       );
       return filtered.length > 0 ? (
         filtered.map((record, index) => (
-          <S.CategoryCard key={index} isOther onClick={() => openModal('player', record)}>
+          <S.CategoryCard key={`${record.player}-${record.title}-${record.period}`} onClick={() => openModal('player', record)}>
             <S.CategoryTitle>{record.title}</S.CategoryTitle>
           </S.CategoryCard>
         ))
@@ -483,7 +520,7 @@ const Record = () => {
   if (loading) {
     return (
       <S.LoadingContainer>
-        <S.LoadingSpinner />
+        <S.Football />
         <S.LoadingText>기록을 불러오는 중...</S.LoadingText>
         <S.LoadingPercentage>{loadingPercent}%</S.LoadingPercentage>
       </S.LoadingContainer>
@@ -525,10 +562,18 @@ const Record = () => {
         <S.ModalOverlay onClick={closeModal}>
           <S.ModalContent isOther={activeTab === 'other'} onClick={(e) => e.stopPropagation()}>
             <S.CloseButton onClick={closeModal}>×</S.CloseButton>
+            <S.WinnerBadge>🏆</S.WinnerBadge>
             <h2 style={{ marginBottom: '16px' }}>{modalData.title}</h2>
             <p>선수: <strong>{modalData.player}</strong></p>
             <p>포지션: {modalPosition}</p>
             <p>기간: {modalData.period}</p>
+            {modalData.stats && (
+              <S.StatsContainer>
+                <S.StatItem>경기수: {modalData.stats.matches}경기</S.StatItem>
+                <S.StatItem>득점: {modalData.stats.goals}골</S.StatItem>
+                <S.StatItem>어시스트: {modalData.stats.assists}어시스트</S.StatItem>
+              </S.StatsContainer>
+            )}
             {modalData.count !== undefined && (
               <p>기록: <strong>{modalData.count} {getLabel(activeTab)}</strong></p>
             )}
@@ -594,8 +639,17 @@ const Record = () => {
               <S.PlayerRecordTitle>명예의 전당</S.PlayerRecordTitle>
               {modalData.records.other.length > 0 ? (
                 modalData.records.other.map((record, index) => (
-                  <S.PlayerRecordItem key={index}>
-                    {record.title} ({record.period})
+                  <S.PlayerRecordItem key={`${record.player}-${record.title}-${record.period}`}>
+                    <S.WinnerRecord>
+                      {record.title} ({record.period})
+                      {record.stats && (
+                        <S.StatsContainer>
+                          <S.StatItem>경기수: {record.stats.matches}경기</S.StatItem>
+                          <S.StatItem>득점: {record.stats.goals}골</S.StatItem>
+                          <S.StatItem>어시스트: {record.stats.assists}어시스트</S.StatItem>
+                        </S.StatsContainer>
+                      )}
+                    </S.WinnerRecord>
                   </S.PlayerRecordItem>
                 ))
               ) : (
