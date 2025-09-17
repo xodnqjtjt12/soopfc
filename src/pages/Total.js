@@ -518,7 +518,7 @@ const Total = () => {
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
-        {/* Top Searched Players (Hidden after search) */}
+        {/* 인기 급상승 선수 TOP 3 (검색 전 표시) */}
         {!playerInfo && (
           <TopPlayersContainer windowWidth={windowWidth}>
             <TopPlayersTitle>
@@ -536,6 +536,7 @@ const Total = () => {
                     <PlayerRank>{player.rank ?? 'N/A'}</PlayerRank>
                     <PlayerNameText>
                       {player.name}
+                      <span style={{ marginLeft: '10px', color: '#666' }}>(조회수: {player.count})</span>
                       {player.change === 'NEW' && <NewBadge>NEW</NewBadge>}
                       {player.change && player.change.startsWith('UP_') && (
                         <RankChangeIndicator direction="up">

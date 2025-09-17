@@ -28,6 +28,8 @@ import LiveAdmin from './pages/LiveAdmin';
 import Record from './pages/record';
 import Score from './pages/Score';
 import ScoreAdmin from './pages/ScoreAdmin';
+import PlayerMonthAward from './pages/PlayerMonthAward';
+import PlayerMonthAwardAdmin from './pages/PlayerMonthAwardAdmin';
 
 // Components
 import Header from './components/Header';
@@ -55,7 +57,7 @@ export const db = getFirestore(app);
 const AppContainer = styled.div`
   min-height: 100vh;
   padding: 140px 0 60px 0;
-  background-color: #f9fafb;
+  background-color: #ffffff;
 
   @media (max-width: 768px) {
     background-color: #ffffff;
@@ -101,20 +103,20 @@ function App() {
           <Route path="/top" element={<Top />} />
           <Route path="/live" element={<Live />} /> 
           <Route path="/record" element={<Record />} />
-          <Route path="/score" element={<Score />} /> {/* 수정: 소문자 score로 통일 */}
+          <Route path="/player-month-award" element={<PlayerMonthAward />} />
+          <Route path="/score" element={<Score />} />
 
-          {/* 관리 페이지 - 사이드바 + 자식 페이지들 */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminPage />} />
-            <Route path="players" element={<AdminPage />} />
-            <Route path="power-ranking" element={<PowerRankingAdmin />} />
-            <Route path="schedule" element={<SchedulePage />} />
-            <Route path="vod" element={<VodAdminPage />} />
-            <Route path="announcements" element={<AnnouncementsAdmin />} />
-            <Route path="history" element={<PlayerHistorySectionAdmin />} />
-            <Route path="live" element={<LiveAdmin />} />
-            <Route path="score" element={<ScoreAdmin />} /> {/* 수정: score로 변경 */}
-          </Route>
+          {/* 관리 페이지 - 중첩 구조 제거 및 개별 라우트로 변경 */}
+          <Route path="/admin" element={<AdminLayout><AdminPage /></AdminLayout>} />
+          <Route path="/admin/players" element={<AdminLayout><AdminPage /></AdminLayout>} />
+          <Route path="/admin/power-ranking" element={<AdminLayout><PowerRankingAdmin /></AdminLayout>} />
+          <Route path="/admin/schedule" element={<AdminLayout><SchedulePage /></AdminLayout>} />
+          <Route path="/admin/vod" element={<AdminLayout><VodAdminPage /></AdminLayout>} />
+          <Route path="/admin/announcements" element={<AdminLayout><AnnouncementsAdmin /></AdminLayout>} />
+          <Route path="/admin/history" element={<AdminLayout><PlayerHistorySectionAdmin /></AdminLayout>} />
+          <Route path="/admin/live" element={<AdminLayout><LiveAdmin /></AdminLayout>} />
+          <Route path="/admin/score" element={<AdminLayout><ScoreAdmin /></AdminLayout>} />
+          <Route path="/admin/player-month-award" element={<AdminLayout><PlayerMonthAwardAdmin /></AdminLayout>} />
         </Routes>
       </AppContainer>
     </Router>
