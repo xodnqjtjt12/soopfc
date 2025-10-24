@@ -737,7 +737,7 @@ const Record = () => {
         <S.ModalOverlay onClick={closeModal}>
           <S.ModalContent isOther={activeTab === 'other'} onClick={(e) => e.stopPropagation()}>
             <S.CloseButton onClick={closeModal}>x</S.CloseButton>
-            <S.WinnerBadge>Trophy</S.WinnerBadge>
+           <S.WinnerBadge>🎖️🎖️</S.WinnerBadge> 
             <h2 style={{ marginBottom: '16px' }}>{modalData.title}</h2>
             <p>선수: <strong>{modalData.player}</strong></p>
             <p>포지션: {modalPosition}</p>
