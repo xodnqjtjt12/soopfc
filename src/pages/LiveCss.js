@@ -216,6 +216,114 @@ export const MatchDate = styled.div`
   }
 `;
 
+export const MatchDateBelow = styled.div`
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  margin-top: 10px;
+  opacity: 0;
+  animation: ${fadeInUp} 1s ease-out 0.7s forwards;
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+    margin-top: 10px;
+    width: auto;
+    word-break: break-word;
+  }
+`;
+
+export const CheerSection = styled.div`
+  margin: 20px 0;
+  text-align: center;
+  animation: ${fadeInUp} 0.7s ease-out;
+`;
+
+export const CheerButton = styled.button`
+  background-color: ${props => props.color || '#3b82f6'};
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  margin: 0 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    background-color: ${props => props.color ? `${props.color}cc` : '#2563eb'};
+    animation: ${bounce} 0.4s ease;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+`;
+
+export const CheerGauge = styled.div`
+  display: flex;
+  height: 20px;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  animation: ${zoomIn} 0.7s ease-out;
+
+  @media (max-width: 768px) {
+    max-width: 90%;
+    height: 18px;
+  }
+`;
+
+export const GaugeBar = styled.div`
+  background-color: ${props => props.color || '#3b82f6'};
+  width: ${props => props.width || '50%'};
+  transition: width 0.5s ease-in-out;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+export const GaugeText = styled.div`
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: ${props => props.percentage > 10 ? '#fff' : 'transparent'};
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  padding: 2px 8px;
+  border-radius: 4px;
+  animation: ${pulse} 2s infinite;
+  white-space: nowrap;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
+`;
+
+export const CheerMessage = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #3b82f6;
+  text-align: center;
+  margin-top: 12px;
+  animation: ${fadeInUp} 0.7s ease-out;
+
+  strong {
+    color: #333;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
+`;
+
 export const Section = styled.div`
   background-color: white;
   margin: 15px 0;
@@ -352,6 +460,23 @@ export const PlayerPosition = styled.span`
   }
 `;
 
+export const LineupMessage = styled.div`
+  padding: 15px;
+  text-align: center;
+  font-size: 16px;
+  color: #666;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin: 10px;
+  animation: ${fadeInUp} 0.6s ease-out;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 12px;
+    margin: 8px;
+  }
+`;
+
 export const StatsSection = styled.div`
   padding: 15px;
   animation: ${fadeInUp} 0.7s ease-out;
@@ -411,6 +536,104 @@ export const TeamStatValue = styled.span`
   }
 `;
 
+export const ChartContainer = styled.div`
+  height: 350px;
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  transform-origin: bottom;
+  animation: ${growIn} 0.8s ease-out;
+
+  @media (max-width: 768px) {
+    height: 300px;
+    padding: 15px;
+  }
+
+  @media (max-width: 640px) {
+    height: 250px;
+  }
+`;
+
+export const CompetitionPointsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+  }
+`;
+
+export const CompetitionItem = styled.div`
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 15px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  text-align: center;
+  flex: 1;
+  min-width: 280px;
+  max-width: 350px;
+  transition: all 0.3s ease;
+  animation: ${fadeInUp} 0.7s ease-out;
+
+  &:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+
+  @media (max-width: 768px) {
+    min-width: 90%;
+    padding: 12px 15px;
+  }
+`;
+
+export const CompetitionTitle = styled.h4`
+  font-size: 18px;
+  color: #004aad;
+  margin-bottom: 10px;
+  font-weight: bold;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
+
+  span {
+    font-size: 14px;
+    color: #3b82f6;
+    margin-left: 8px;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+`;
+
+export const CompetitionDetail = styled.p`
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+  line-height: 1.5;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
+`;
+
+export const NoCompetitionMessage = styled.div`
+  font-size: 16px;
+  color: #666;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+  animation: ${fadeInUp} 0.7s ease-out;
+`;
+
 export const PreviousMatchesTitle = styled.h3`
   font-size: 16px;
   font-weight: bold;
@@ -424,6 +647,55 @@ export const PreviousMatchesTitle = styled.h3`
     font-size: 14px;
     padding: 10px 12px;
   }
+`;
+
+export const HeadToHead = styled.div`
+  margin-bottom: 20px;
+  text-align: center;
+  animation: ${fadeInUp} 0.7s ease-out;
+
+  @media (max-width: 768px) {
+    display: block; // 모바일에서도 표시되도록 수정
+  }
+`;
+
+export const HeadToHeadTitle = styled.h4`
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+`;
+
+export const HeadToHeadStats = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-size: 16px;
+  animation: ${zoomIn} 0.8s ease-out;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14px;
+  }
+`;
+
+export const HeadToHeadTeam = styled.span`
+  font-weight: bold;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+`;
+
+export const HeadToHeadVS = styled.span`
+  color: #666;
+  animation: ${pulse} 2s infinite;
 `;
 
 export const MatchList = styled.ul`
@@ -523,237 +795,14 @@ export const ErrorMessage = styled.div`
   animation: ${fadeInUp} 0.6s ease-out;
 `;
 
-export const ChartContainer = styled.div`
-  height: 300px;
-  padding: 20px;
-  transform-origin: bottom;\
-  animation: ${growIn} 0.8s ease-out;
-
-  @media (max-width: 768px) {
-    height: 250px;
-    padding: 15px;
-  }
-`;
-
-export const CheerSection = styled.div`
-  margin: 20px 0;
-  text-align: center;
-  animation: ${fadeInUp} 0.7s ease-out;
-`;
-
-export const CheerButton = styled.button`
-  background-color: ${props => props.color || '#3182f6'};
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  margin: 0 10px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    background-color: ${props => props.color ? `${props.color}cc` : '#2563eb'};
-    animation: ${bounce} 0.4s ease;
-  }
-
-  @media (max-width: 768px) {
-    padding: 8px 16px;
-    font-size: 14px;
-  }
-`;
-
-export const CheerGauge = styled.div`
-  display: flex;
-  height: 20px;
-  width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-  animation: ${zoomIn} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    max-width: 90%;
-    height: 18px;
-  }
-`;
-
-export const GaugeBar = styled.div`
-  background-color: ${props => props.color || '#3182f6'};
-  width: ${props => props.width || '50%'};
-  transition: width 0.5s ease-in-out;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-export const GaugeText = styled.div`
-  position: absolute;
-  // top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+export const HighlightText = styled.span`
   font-size: 14px;
+  color: #3b82f6;
   font-weight: 600;
-  color: #fff;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-  padding: 2px 8px;
-  border-radius: 4px;
+  margin-left: 8px;
   animation: ${pulse} 2s infinite;
-  white-space: nowrap;
 
   @media (max-width: 768px) {
     font-size: 12px;
   }
-`;
-
-export const MatchDateBelow = styled.div`
-  font-size: 14px;
-  color: #666;
-  text-align: center;
-  margin-top: 10px;
-  opacity: 0;
-  animation: ${fadeInUp} 1s ease-out 0.7s forwards;
-  white-space: nowrap;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-    margin-top: 10px;
-    width: auto;
-    word-break: break-word;
-  }
-`;
-
-
-export const HeadToHead = styled.div`
-  margin-bottom: 20px;
-  text-align: center;
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-export const HeadToHeadTitle = styled.h4`
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-`;
-
-export const HeadToHeadStats = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  font-size: 16px;
-  animation: ${zoomIn} 0.8s ease-out;
-`;
-
-export const HeadToHeadTeam = styled.span`
-  font-weight: bold;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-`;
-
-export const HeadToHeadVS = styled.span`
-  color: #666;
-  animation: ${pulse} 2s infinite;
-`;
-
-export const LineupMessage = styled.div`
-  padding: 15px;
-  text-align: center;
-  font-size: 16px;
-  color: #666;
-  background-color: #f9fafb;
-  border-radius: 8px;
-  margin: 10px;
-  animation: ${fadeInUp} 0.6s ease-out;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    padding: 12px;
-    margin: 8px;
-  }
-`;
-
-export const CompetitionPointsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: center;
-    padding: 10px;
-  }
-`;
-
-export const CompetitionItem = styled.div`
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  padding: 15px 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  text-align: center;
-  flex: 1;
-  min-width: 280px;
-  max-width: 350px;
-  transition: all 0.3s ease;
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  &:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  }
-
-  @media (max-width: 768px) {
-    min-width: 90%;
-    padding: 12px 15px;
-  }
-`;
-
-export const CompetitionTitle = styled.h4`
-  font-size: 18px;
-  color: #004aad;
-  margin-bottom: 10px;
-  font-weight: bold;
-  border-bottom: 2px solid #e0e0e0;
-  padding-bottom: 8px;
-
-  @media (max-width: 768px) {
-    font-size: 16px;
-  }
-`;
-
-export const CompetitionDetail = styled.p`
-  font-size: 16px;
-  color: #333;
-  font-weight: 500;
-  line-height: 1.5;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
-`;
-
-export const NoCompetitionMessage = styled.div`
-  font-size: 16px;
-  color: #666;
-  padding: 20px;
-  text-align: center;
-  width: 100%;
-  animation: ${fadeInUp} 0.7s ease-out;
 `;

@@ -563,8 +563,18 @@ function VodPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedQuarter, setSelectedQuarter] = useState(null);
+  const [filters, setFilters] = useState([]);
   const datesPerPage = 5;
   const navigate = useNavigate(); // useNavigate 훅 추가
+
+  const filterOptions = [
+    { value: 'win', label: '승' },
+    { value: 'draw', label: '무' },
+    { value: 'loss', label: '패' },
+    { value: 'goal', label: '골' },
+    { value: 'assist', label: '어시스트' },
+    { value: 'clean', label: '클린시트' },
+  ];
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -595,7 +605,57 @@ function VodPage() {
         })
         .filter(match => match !== null);
       console.log(`Filtered matches for ${nickname}:`, filtered);
-      setFilteredMatches(filtered);
+
+      const additionallyFiltered = filtered.filter(match => {
+        if (filters.length === 0) return true;
+
+        let satisfies = false;
+
+        const myTeams = new Set(match.quarters.map(q => q.teams.find(t => t.players.some(p => p.name.toLowerCase() === nickname.toLowerCase()))?.name).filter(Boolean));
+        const myTeam = [...myTeams][0]; // Assume user is in one team per match
+
+        const { teamStats, winner } = calculateTotalScores(match.quarters);
+
+        const isWin = winner === myTeam;
+        const isDraw = winner === null;
+        const isLoss = !isWin && !isDraw;
+
+        let hasGoal = false;
+        let hasAssist = false;
+        let hasClean = false;
+
+        const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
+
+        match.quarters.forEach(q => {
+          const myTeamInQuarter = q.teams.find(t => t.players.some(p => p.name.toLowerCase() === nickname.toLowerCase()));
+          if (!myTeamInQuarter) return;
+
+          const isDefender = myTeamInQuarter.players.find(p => p.name.toLowerCase() === nickname.toLowerCase())?.position in defensivePositions;
+
+          if (q.goalAssistPairs?.some(p => p.goal.player.toLowerCase() === nickname.toLowerCase())) hasGoal = true;
+
+          if (q.goalAssistPairs?.some(p => p.assist.player?.toLowerCase() === nickname.toLowerCase())) hasAssist = true;
+
+          if (isDefender) {
+            const opponentGoals = q.teams.filter(t => t.name !== myTeamInQuarter.name).reduce((sum, opp) => {
+              return sum + (q.goalAssistPairs?.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(opp.name)).length || 0) +
+                     (q.ownGoals?.filter(og => normalizeTeamName(og.team) === normalizeTeamName(myTeamInQuarter.name)).length || 0);
+            }, 0);
+            if (opponentGoals === 0) hasClean = true;
+          }
+        });
+
+        if (filters.includes('win') && isWin) satisfies = true;
+        if (filters.includes('draw') && isDraw) satisfies = true;
+        if (filters.includes('loss') && isLoss) satisfies = true;
+        if (filters.includes('goal') && hasGoal) satisfies = true;
+        if (filters.includes('assist') && hasAssist) satisfies = true;
+        if (filters.includes('clean') && hasClean) satisfies = true;
+
+        return satisfies;
+      });
+
+      setFilteredMatches(additionallyFiltered);
     } else {
       const startIndex = (currentPage - 1) * datesPerPage;
       const endIndex = startIndex + datesPerPage;
@@ -606,7 +666,7 @@ function VodPage() {
           : matches.filter(m => m.date === filterDate)
       );
     }
-  }, [filterDate, matches, nickname, currentPage, dates]);
+  }, [filterDate, matches, nickname, currentPage, dates, filters]);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -679,13 +739,14 @@ function VodPage() {
   };
 
   const handleSearch = () => {
-    console.log(`Searching for nickname: ${nickname}`);
+    console.log(`Searching for nickname: ${nickname} with filters: ${filters}`);
     setShowModal(false);
     setCurrentPage(1);
   };
 
   const handleCancel = () => {
     setNickname('');
+    setFilters([]);
     setShowModal(false);
     setFilteredMatches(filterDate === 'all' ? matches : matches.filter(m => m.date === filterDate));
     setCurrentPage(1);
@@ -778,6 +839,25 @@ function VodPage() {
                 placeholder="닉네임 입력"
                 autoFocus
               />
+              <h4>필터 (선택 시 해당 조건을 만족하는 경기만 표시)</h4>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {filterOptions.map(opt => (
+                  <label key={opt.value} style={{ marginBottom: '5px' }}>
+                    <input
+                      type="checkbox"
+                      checked={filters.includes(opt.value)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setFilters([...filters, opt.value]);
+                        } else {
+                          setFilters(filters.filter(f => f !== opt.value));
+                        }
+                      }}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
               <div style={modalStyles.buttonContainer}>
                 <button
                   style={{ ...modalStyles.button, ...modalStyles.cancelButton }}

@@ -45,39 +45,39 @@ const normalizeTeamName = (name) => {
 
 // 전체 스코어 계산 함수 (VodPage.js 로직 기반)
 const calculateTotalScores = (quarters) => {
-    const teamStats = {};
+  const teamStats = {};
 
-    quarters.forEach(q => {
-        if (!q.teams) return;
-        const quarterScores = {};
-        q.teams.forEach(team => {
-            const teamName = team.name;
-            const normalizedTeamName = normalizeTeamName(teamName);
-            const goals = (q.goalAssistPairs?.filter(p => normalizeTeamName(p.goal.team) === normalizedTeamName).length || 0);
-            const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== normalizedTeamName);
-            const ownGoalsFor = opponentTeam ? (q.ownGoals?.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length || 0) : 0;
-            quarterScores[teamName] = goals + ownGoalsFor;
-        });
-
-        q.teams.forEach(team => {
-            if (!teamStats[team.name]) {
-                teamStats[team.name] = { goals: 0 };
-            }
-            teamStats[team.name].goals += quarterScores[team.name] || 0;
-        });
+  quarters.forEach(q => {
+    if (!q.teams) return;
+    const quarterScores = {};
+    q.teams.forEach(team => {
+      const teamName = team.name;
+      const normalizedTeamName = normalizeTeamName(teamName);
+      const goals = (q.goalAssistPairs?.filter(p => normalizeTeamName(p.goal.team) === normalizedTeamName).length || 0);
+      const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== normalizedTeamName);
+      const ownGoalsFor = opponentTeam ? (q.ownGoals?.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length || 0) : 0;
+      quarterScores[teamName] = goals + ownGoalsFor;
     });
 
-    const teams = Object.keys(teamStats);
-    let winner = null;
-    if (teams.length === 2) {
-        const [team1, team2] = teams;
-        if (teamStats[team1].goals > teamStats[team2].goals) {
-            winner = team1;
-        } else if (teamStats[team2].goals > teamStats[team1].goals) {
-            winner = team2;
-        }
+    q.teams.forEach(team => {
+      if (!teamStats[team.name]) {
+        teamStats[team.name] = { goals: 0 };
+      }
+      teamStats[team.name].goals += quarterScores[team.name] || 0;
+    });
+  });
+
+  const teams = Object.keys(teamStats);
+  let winner = null;
+  if (teams.length === 2) {
+    const [team1, team2] = teams;
+    if (teamStats[team1].goals > teamStats[team2].goals) {
+      winner = team1;
+    } else if (teamStats[team2].goals > teamStats[team1].goals) {
+      winner = team2;
     }
-    return { teamStats, winner };
+  }
+  return { teamStats, winner };
 };
 
 const Live = () => {
@@ -94,7 +94,9 @@ const Live = () => {
     topAssistProvider: [],
     topWinRate: [],
     topCleanSheet: [],
-    topPowerRanking: []
+    topPowerRanking: [],
+    topAttackPoints: [], // 추가된 경쟁 항목
+    topMomCount: [],    // 추가된 경쟁 항목
   });
 
   useEffect(() => {
@@ -177,10 +179,24 @@ const Live = () => {
             win: data.win || 0,
             draw: data.draw || 0,
             lose: data.lose || 0,
-            powerRanking: data.powerRanking || 0
+            powerRanking: data.momScore || 0,
+            attackPoints: (data.goals || 0) + (data.assists || 0), // 추가
+            momTop3Count: data.momTop3Count || 0 // 추가
           };
         } else {
-          stats[captain] = { goals: 0, assists: 0, cleanSheets: 0, matches: 0, winRate: 0, win: 0, draw: 0, lose: 0, powerRanking: 0 };
+          stats[captain] = {
+            goals: 0,
+            assists: 0,
+            cleanSheets: 0,
+            matches: 0,
+            winRate: 0,
+            win: 0,
+            draw: 0,
+            lose: 0,
+            powerRanking: 0,
+            attackPoints: 0,
+            momTop3Count: 0
+          };
         }
       }
       setCaptainStats(stats);
@@ -192,38 +208,17 @@ const Live = () => {
 
   const fetchCompetitionPoints = async () => {
     try {
-      // 현재 라인업에 포함된 선수들만 추출
       const lineupPlayerNicks = lineups.flatMap(team => team.players.map(player => player.nick));
       const playersSnap = await getDocs(collection(db, 'players'));
       let playersData = playersSnap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          attackPoints: (doc.data().goals || 0) + (doc.data().assists || 0), // 추가
+          powerRanking: doc.data().momScore || 0,
+          momTop3Count: doc.data().momTop3Count || 0 // 추가
+        }))
         .filter(player => lineupPlayerNicks.includes(player.id));
-
-      // Calculate powerRanking for each player based on Total.js's xG logic
-      playersData = playersData.map((player) => {
-        const matches = player.matches || 1;
-        const normalizedGoals = (player.goals || 0) / matches;
-        const normalizedAssists = (player.assists || 0) / matches;
-        const normalizedCleanSheets = (player.cleanSheets || 0) / matches;
-        const normalizedWinRate = (player.winRate || 0) / 100;
-        const normalizedPoints = (player.personalPoints || 0) / matches;
-
-        const calculatedPowerRanking =
-          0.4 * normalizedGoals +
-          0.3 * normalizedAssists +
-          0.2 * normalizedCleanSheets +
-          0.05 * normalizedWinRate +
-          0.05 * normalizedPoints;
-
-        return { ...player, powerRanking: calculatedPowerRanking };
-      });
-
-      // Normalize powerRanking to a 0-1 scale, similar to Total.js's xG
-      const maxPowerRanking = Math.max(...playersData.map((p) => p.powerRanking), 1);
-      playersData = playersData.map((player) => ({
-        ...player,
-        powerRanking: Math.min((player.powerRanking / maxPowerRanking), 1.0),
-      }));
 
       const getTopN = (arr, key, n = 2, isHigherBetter = true) => {
         const sorted = [...arr].sort((a, b) => {
@@ -233,9 +228,11 @@ const Live = () => {
         if (sorted.length < n) return sorted;
         const topPlayers = sorted.slice(0, n);
         const diff = Math.abs((topPlayers[0][key] || 0) - (topPlayers[1][key] || 0));
-        if (diff <= 0.05 && key === 'powerRanking') { // Adjust diff threshold for powerRanking
+        if (key === 'powerRanking' && diff <= 0.05) {
           return topPlayers;
-        } else if (diff <= 2 && key !== 'powerRanking') {
+        } else if (key === 'momTop3Count' && diff <= 1) { // MOM 횟수 임계값
+          return topPlayers;
+        } else if (diff <= 2 && key !== 'powerRanking' && key !== 'momTop3Count') {
           return topPlayers;
         }
         return [];
@@ -246,15 +243,18 @@ const Live = () => {
       const topWinRate = getTopN(playersData, 'winRate');
       const topCleanSheet = getTopN(playersData, 'cleanSheets');
       const topPowerRanking = getTopN(playersData, 'powerRanking');
+      const topAttackPoints = getTopN(playersData, 'attackPoints'); // 추가
+      const topMomCount = getTopN(playersData, 'momTop3Count'); // 추가
 
       setCompetitionPoints({
         topGoalScorer,
         topAssistProvider,
         topWinRate,
         topCleanSheet,
-        topPowerRanking
+        topPowerRanking,
+        topAttackPoints,
+        topMomCount
       });
-
     } catch (err) {
       console.error('관전 포인트 데이터 가져오기 오류:', err.message);
     }
@@ -262,78 +262,77 @@ const Live = () => {
 
   const fetchMatches = async () => {
     try {
-        const captains = lineups.map(team => team.captain).filter(Boolean);
-        if (captains.length < 2) {
-            setRecentMatches([]);
-            setHeadToHeadStats({});
-            return;
-        }
+      const captains = lineups.map(team => team.captain).filter(Boolean);
+      if (captains.length < 2) {
+        setRecentMatches([]);
+        setHeadToHeadStats({});
+        return;
+      }
 
-        const matchesQuery = query(collection(db, 'matches'), orderBy('date', 'desc'));
-        const matchesSnapshot = await getDocs(matchesQuery);
+      const matchesQuery = query(collection(db, 'matches'), orderBy('date', 'desc'));
+      const matchesSnapshot = await getDocs(matchesQuery);
 
-        const h2hStats = {};
-        const captain1 = captains[0];
-        const captain2 = captains[1];
-        const pairKey = [captain1, captain2].sort().join('_vs_');
+      const h2hStats = {};
+      const captain1 = captains[0];
+      const captain2 = captains[1];
+      const pairKey = [captain1, captain2].sort().join('_vs_');
 
-        h2hStats[pairKey] = {
-            [captain1]: { wins: 0, draws: 0, losses: 0 },
-            [captain2]: { wins: 0, draws: 0, losses: 0 },
-            history: []
-        };
+      h2hStats[pairKey] = {
+        [captain1]: { wins: 0, draws: 0, losses: 0 },
+        [captain2]: { wins: 0, draws: 0, losses: 0 },
+        history: []
+      };
 
-        matchesSnapshot.docs.forEach(doc => {
-            const match = doc.data();
-            if (!match.quarters || match.quarters.length === 0) return;
+      matchesSnapshot.docs.forEach(doc => {
+        const match = doc.data();
+        if (!match.quarters || match.quarters.length === 0) return;
 
-            const matchParticipants = {};
-            match.quarters[0].teams.forEach(team => {
-                team.players.forEach(player => {
-                    if (player.name === captain1 || player.name === captain2) {
-                        matchParticipants[player.name] = team.name;
-                    }
-                });
-            });
-
-            if (matchParticipants[captain1] && matchParticipants[captain2] && matchParticipants[captain1] !== matchParticipants[captain2]) {
-                const { teamStats, winner } = calculateTotalScores(match.quarters);
-                const team1Name = matchParticipants[captain1];
-                const team2Name = matchParticipants[captain2];
-                const score1 = teamStats[team1Name]?.goals || 0;
-                const score2 = teamStats[team2Name]?.goals || 0;
-
-                let resultText = '';
-                if (winner === team1Name) {
-                    h2hStats[pairKey][captain1].wins++;
-                    h2hStats[pairKey][captain2].losses++;
-                    resultText = `${captain1} 승`;
-                } else if (winner === team2Name) {
-                    h2hStats[pairKey][captain2].wins++;
-                    h2hStats[pairKey][captain1].losses++;
-                    resultText = `${captain2} 승`;
-                } else {
-                    h2hStats[pairKey][captain1].draws++;
-                    h2hStats[pairKey][captain2].draws++;
-                    resultText = '무승부';
-                }
-
-                h2hStats[pairKey].history.push({
-                    date: match.date,
-                    result: resultText,
-                    score: `${score1} : ${score2}`,
-                    teams: [{ name: team1Name, score: score1 }, { name: team2Name, score: score2 }]
-                });
+        const matchParticipants = {};
+        match.quarters[0].teams.forEach(team => {
+          team.players.forEach(player => {
+            if (player.name === captain1 || player.name === captain2) {
+              matchParticipants[player.name] = team.name;
             }
+          });
         });
 
-        setHeadToHeadStats(h2hStats);
-        const recent = h2hStats[pairKey]?.history.slice(0, 5) || [];
-        setRecentMatches(recent);
+        if (matchParticipants[captain1] && matchParticipants[captain2] && matchParticipants[captain1] !== matchParticipants[captain2]) {
+          const { teamStats, winner } = calculateTotalScores(match.quarters);
+          const team1Name = matchParticipants[captain1];
+          const team2Name = matchParticipants[captain2];
+          const score1 = teamStats[team1Name]?.goals || 0;
+          const score2 = teamStats[team2Name]?.goals || 0;
 
+          let resultText = '';
+          if (winner === team1Name) {
+            h2hStats[pairKey][captain1].wins++;
+            h2hStats[pairKey][captain2].losses++;
+            resultText = `${captain1} 승`;
+          } else if (winner === team2Name) {
+            h2hStats[pairKey][captain2].wins++;
+            h2hStats[pairKey][captain1].losses++;
+            resultText = `${captain2} 승`;
+          } else {
+            h2hStats[pairKey][captain1].draws++;
+            h2hStats[pairKey][captain2].draws++;
+            resultText = '무승부';
+          }
+
+          h2hStats[pairKey].history.push({
+            date: match.date,
+            result: resultText,
+            score: `${score1} : ${score2}`,
+            teams: [{ name: team1Name, score: score1 }, { name: team2Name, score: score2 }]
+          });
+        }
+      });
+
+      setHeadToHeadStats(h2hStats);
+      const recent = h2hStats[pairKey]?.history.slice(0, 5) || [];
+      setRecentMatches(recent);
     } catch (err) {
-        console.error('경기 데이터 가져오기 오류:', err.message);
-        setError('경기 기록 불러오기 중 오류가 발생했습니다: ' + err.message);
+      console.error('경기 데이터 가져오기 오류:', err.message);
+      setError('경기 기록 불러오기 중 오류가 발생했습니다: ' + err.message);
     }
   };
 
@@ -399,6 +398,42 @@ const Live = () => {
     };
   };
 
+  const getCompetitionGraphData = () => {
+    const labels = ['득점', '도움', '공격포인트', '클린시트', '파워랭킹', 'MOM 횟수'];
+    const datasets = competitionPoints.topGoalScorer.length > 1 ? [
+      {
+        label: competitionPoints.topGoalScorer[0].id,
+        data: [
+          competitionPoints.topGoalScorer[0].goals,
+          competitionPoints.topAssistProvider[0]?.assists || 0,
+          competitionPoints.topAttackPoints[0]?.attackPoints || 0,
+          competitionPoints.topCleanSheet[0]?.cleanSheets || 0,
+          competitionPoints.topPowerRanking[0]?.powerRanking || 0,
+          competitionPoints.topMomCount[0]?.momTop3Count || 0
+        ],
+        backgroundColor: lineups[0]?.color + '80' || '#ff000080',
+        borderColor: lineups[0]?.color || '#ff0000',
+        borderWidth: 1
+      },
+      {
+        label: competitionPoints.topGoalScorer[1].id,
+        data: [
+          competitionPoints.topGoalScorer[1].goals,
+          competitionPoints.topAssistProvider[1]?.assists || 0,
+          competitionPoints.topAttackPoints[1]?.attackPoints || 0,
+          competitionPoints.topCleanSheet[1]?.cleanSheets || 0,
+          competitionPoints.topPowerRanking[1]?.powerRanking || 0,
+          competitionPoints.topMomCount[1]?.momTop3Count || 0
+        ],
+        backgroundColor: lineups[1]?.color + '80' || '#0000ff80',
+        borderColor: lineups[1]?.color || '#0000ff',
+        borderWidth: 1
+      }
+    ] : [];
+
+    return { labels, datasets };
+  };
+
   const graphOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -408,6 +443,24 @@ const Live = () => {
         labels: { font: { size: 14 } }
       },
       title: { display: true, text: '주장 통계 비교', font: { size: 16 } }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  };
+
+  const competitionGraphOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { font: { size: 14 } }
+      },
+      title: { display: true, text: '관전 포인트 비교', font: { size: 16 } }
     },
     scales: {
       y: {
@@ -429,6 +482,7 @@ const Live = () => {
   const cheerPercentages = cheers.map(team =>
     totalCheers ? ((team.cheers || 0) / totalCheers) * 100 : (100 / (cheers.length || 1))
   );
+  const topCheerTeam = cheers.reduce((max, team) => team.cheers > (max.cheers || 0) ? team : max, { name: '없음', cheers: 0 });
 
   const now = new Date();
   const isLineupVisible = lineupRevealTime && isAfter(now, lineupRevealTime);
@@ -496,6 +550,11 @@ const Live = () => {
             </S.GaugeBar>
           ))}
         </S.CheerGauge>
+        {/* {totalCheers > 0 && (
+          // <S.CheerMessage>
+          //   현재 선두: <strong>{topCheerTeam.name}</strong> ({topCheerTeam.cheers} 응원)
+          // </S.CheerMessage>
+        )} */}
       </S.CheerSection>
 
       <S.Section>
@@ -588,7 +647,7 @@ const Live = () => {
         <S.CompetitionPointsContainer>
           {competitionPoints.topGoalScorer.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>득점왕 경쟁</S.CompetitionTitle>
+              <S.CompetitionTitle>득점왕 경쟁 {Math.abs((competitionPoints.topGoalScorer[0].goals || 0) - (competitionPoints.topGoalScorer[1].goals || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
               <S.CompetitionDetail>
                 {competitionPoints.topGoalScorer[0].id} {competitionPoints.topGoalScorer[0].goals}골 vs {competitionPoints.topGoalScorer[1].id} {competitionPoints.topGoalScorer[1].goals}골
               </S.CompetitionDetail>
@@ -596,15 +655,23 @@ const Live = () => {
           )}
           {competitionPoints.topAssistProvider.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>도움왕 경쟁</S.CompetitionTitle>
+              <S.CompetitionTitle>도움왕 경쟁 {Math.abs((competitionPoints.topAssistProvider[0].assists || 0) - (competitionPoints.topAssistProvider[1].assists || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
               <S.CompetitionDetail>
                 {competitionPoints.topAssistProvider[0].id} {competitionPoints.topAssistProvider[0].assists}도움 vs {competitionPoints.topAssistProvider[1].id} {competitionPoints.topAssistProvider[1].assists}도움
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+          {competitionPoints.topAttackPoints.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>공격포인트 경쟁 {Math.abs((competitionPoints.topAttackPoints[0].attackPoints || 0) - (competitionPoints.topAttackPoints[1].attackPoints || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topAttackPoints[0].id} {competitionPoints.topAttackPoints[0].attackPoints}P vs {competitionPoints.topAttackPoints[1].id} {competitionPoints.topAttackPoints[1].attackPoints}P
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
           {competitionPoints.topWinRate.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>승률 1위 유지</S.CompetitionTitle>
+              <S.CompetitionTitle>승률 1위 유지 {Math.abs((competitionPoints.topWinRate[0].winRate || 0) - (competitionPoints.topWinRate[1].winRate || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
               <S.CompetitionDetail>
                 {competitionPoints.topWinRate[0].id} {competitionPoints.topWinRate[0].winRate}% vs {competitionPoints.topWinRate[1].id} {competitionPoints.topWinRate[1].winRate}%
               </S.CompetitionDetail>
@@ -612,7 +679,7 @@ const Live = () => {
           )}
           {competitionPoints.topCleanSheet.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>클린시트 경쟁</S.CompetitionTitle>
+              <S.CompetitionTitle>클린시트 경쟁 {Math.abs((competitionPoints.topCleanSheet[0].cleanSheets || 0) - (competitionPoints.topCleanSheet[1].cleanSheets || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
               <S.CompetitionDetail>
                 {competitionPoints.topCleanSheet[0].id} {competitionPoints.topCleanSheet[0].cleanSheets}클린시트 vs {competitionPoints.topCleanSheet[1].id} {competitionPoints.topCleanSheet[1].cleanSheets}클린시트
               </S.CompetitionDetail>
@@ -620,42 +687,55 @@ const Live = () => {
           )}
           {competitionPoints.topPowerRanking.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>파워랭킹 경쟁</S.CompetitionTitle>
+              <S.CompetitionTitle>파워랭킹 경쟁 {Math.abs((competitionPoints.topPowerRanking[0].powerRanking || 0) - (competitionPoints.topPowerRanking[1].powerRanking || 0)) <= 0.05 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
               <S.CompetitionDetail>
-                {competitionPoints.topPowerRanking[0].id} {(competitionPoints.topPowerRanking[0].powerRanking * 100).toFixed(2)}점 vs {competitionPoints.topPowerRanking[1].id} {(competitionPoints.topPowerRanking[1].powerRanking * 100).toFixed(2)}점
+                {competitionPoints.topPowerRanking[0].id} {competitionPoints.topPowerRanking[0].powerRanking.toFixed(2)}점 vs {competitionPoints.topPowerRanking[1].id} {competitionPoints.topPowerRanking[1].powerRanking.toFixed(2)}점
+              </S.CompetitionDetail>
+            </S.CompetitionItem>
+          )}
+          {competitionPoints.topMomCount.length > 1 && (
+            <S.CompetitionItem>
+              <S.CompetitionTitle>MOM 경쟁 {Math.abs((competitionPoints.topMomCount[0].momTop3Count || 0) - (competitionPoints.topMomCount[1].momTop3Count || 0)) <= 1 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
+              <S.CompetitionDetail>
+                {competitionPoints.topMomCount[0].id} {competitionPoints.topMomCount[0].momTop3Count}회 vs {competitionPoints.topMomCount[1].id} {competitionPoints.topMomCount[1].momTop3Count}회
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
           {Object.values(competitionPoints).every(arr => arr.length < 2) && (
-            <S.NoCompetitionMessage>현재 치열한 경쟁이 없습니다.</S.NoCompetitionMessage>
+            <S.NoCompetitionMessage>곧 치열한 경쟁이 시작될 예정입니다! 팀을 응원하며 경기를 즐겨보세요!</S.NoCompetitionMessage>
           )}
         </S.CompetitionPointsContainer>
+        {competitionPoints.topGoalScorer.length > 1 && (
+          <S.ChartContainer>
+            <Bar data={getCompetitionGraphData()} options={competitionGraphOptions} />
+          </S.ChartContainer>
+        )}
       </S.Section>
 
       {lineups.length > 1 && (
         <S.Section>
           <S.PreviousMatchesTitle>최근 5경기 맞대결</S.PreviousMatchesTitle>
           {Object.values(headToHeadStats).map((stats, index) => {
-              const captain1Name = Object.keys(stats).find(k => k !== 'history');
-              const captain2Name = Object.keys(stats).find(k => k !== 'history' && k !== captain1Name);
-              if (!captain1Name || !captain2Name) return null;
-              const captain1Stats = stats[captain1Name];
-              const captain2Stats = stats[captain2Name];
+            const captain1Name = Object.keys(stats).find(k => k !== 'history');
+            const captain2Name = Object.keys(stats).find(k => k !== 'history' && k !== captain1Name);
+            if (!captain1Name || !captain2Name) return null;
+            const captain1Stats = stats[captain1Name];
+            const captain2Stats = stats[captain2Name];
 
-              return (
-                  <S.HeadToHead key={index}>
-                      <S.HeadToHeadTitle>상대 전적</S.HeadToHeadTitle>
-                      <S.HeadToHeadStats>
-                          <S.HeadToHeadTeam>
-                              {captain1Name} {captain1Stats.wins}승 {captain1Stats.draws}무 {captain1Stats.losses}패
-                          </S.HeadToHeadTeam>
-                          <S.HeadToHeadVS>vs</S.HeadToHeadVS>
-                          <S.HeadToHeadTeam>
-                              {captain2Name} {captain2Stats.wins}승 {captain2Stats.draws}무 {captain2Stats.losses}패
-                          </S.HeadToHeadTeam>
-                      </S.HeadToHeadStats>
-                  </S.HeadToHead>
-              );
+            return (
+              <S.HeadToHead key={index}>
+                <S.HeadToHeadTitle>상대 전적</S.HeadToHeadTitle>
+                <S.HeadToHeadStats>
+                  <S.HeadToHeadTeam>
+                    {captain1Name} {captain1Stats.wins}승 {captain1Stats.draws}무 {captain1Stats.losses}패
+                  </S.HeadToHeadTeam>
+                  <S.HeadToHeadVS>vs</S.HeadToHeadVS>
+                  <S.HeadToHeadTeam>
+                    {captain2Name} {captain2Stats.wins}승 {captain2Stats.draws}무 {captain2Stats.losses}패
+                  </S.HeadToHeadTeam>
+                </S.HeadToHeadStats>
+              </S.HeadToHead>
+            );
           })}
           <S.MatchList>
             {recentMatches.length > 0 ? recentMatches.map((match, index) => (

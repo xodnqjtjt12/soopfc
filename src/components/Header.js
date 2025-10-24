@@ -144,9 +144,9 @@ const Header = () => {
           파워랭킹<br />TOP10
         </NavLinkStyled> */}
         {/* </NavLinkStyled> */}
-        <NavLinkStyled to="/player-month-award" onClick={handleNavClick}>
+        {/* <NavLinkStyled to="/player-month-award" onClick={handleNavClick}>
           이달의 선수
-        </NavLinkStyled>
+        </NavLinkStyled> */}
         <NavLinkStyled to="/vod" onClick={handleNavClick}>
           주요 경기 기록
         </NavLinkStyled>
