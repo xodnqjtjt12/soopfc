@@ -234,6 +234,16 @@ export const CategoryTitle = styled.h3`
   letter-spacing: -0.5px;
 `;
 
+export const SectionTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  color: #191f28;
+  margin: 0;
+  letter-spacing: -0.5px;
+  padding: 12px 24px;
+  background-color: #f2f4f6;
+`;
+
 export const ModalOverlay = styled.div`
   position: fixed;
   top: 0;

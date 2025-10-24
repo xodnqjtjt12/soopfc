@@ -521,15 +521,9 @@ const calculateTotalScores = (quarters) => {
         winner = topGoalTeams.length === 1 ? topGoalTeams[0] : null;
       }
     } else if (teams.length === 2) {
-      const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
-      const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
-      if (topTeams.length === 1) {
-        winner = topTeams[0];
-      } else if (topTeams.length === 2) {
-        const maxGoals = Math.max(...topTeams.map(t => teamStats[t].goals));
-        const topGoalTeams = topTeams.filter(t => teamStats[t].goals === maxGoals);
-        winner = (maxGoals > 0 && topGoalTeams.length === 1) ? topGoalTeams[0] : null;
-      }
+      const maxGoals = Math.max(...Object.values(teamStats).map(stat => stat.goals));
+      const topTeams = teams.filter(t => teamStats[t].goals === maxGoals);
+      winner = topTeams.length === 1 ? topTeams[0] : null;
     }
   }
 
