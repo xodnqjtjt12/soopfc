@@ -60,7 +60,7 @@ const IntroOverlay = styled.div`
 
 const LogoContainer = styled.div`
   text-align: center;
-  animation: floatUp 3s ease-in-out;
+  animation: floatUp 2s ease-in-out;
 
   img {
     width: 220px;
@@ -167,7 +167,7 @@ const Home = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowIntro(false);
-    }, 3500); // 3.5초 후 인트로 사라짐
+    }, 5500); // 인트로 시간 현재 5.5초
     return () => clearTimeout(timer);
   }, []);
 
