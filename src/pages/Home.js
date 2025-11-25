@@ -628,7 +628,7 @@ const Home = () => {
               value={selectedDate}
               onActiveStartDateChange={({ activeStartDate }) => setActiveStartDate(activeStartDate)}
               onChange={onDateChange}
-              tileContent={({ date, view }) => view === 'month' && schedules.some(s => format(s.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) ? <span>축구</span> : null}
+              tileContent={({ date, view }) => view === 'month' && schedules.some(s => format(s.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) ? <span>⚽</span> : null}
               tileClassName={({ date, view }) => {
                 if (view !== 'month') return;
                 const dayStr = format(date, 'yyyy-MM-dd');
