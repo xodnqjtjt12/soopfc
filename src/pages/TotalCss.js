@@ -55,7 +55,7 @@ export const getRatingColor = (value) => {
 
 // Existing styled components (unchanged)
 export const OuterWrapper = styled.div`
-  background-color: #f9fafb;
+  background-color: #ffffff;
   padding-top: 24px;
 
   @media (max-width: 640px) {

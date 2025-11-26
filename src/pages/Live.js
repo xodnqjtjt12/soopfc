@@ -43,7 +43,7 @@ const normalizeTeamName = (name) => {
   return name ? name.trim().toLowerCase() : '';
 };
 
-// 전체 스코어 계산 함수 (VodPage.js 로직 기반)
+// 전체 스코어 계산 함수
 const calculateTotalScores = (quarters) => {
   const teamStats = {};
 
@@ -80,6 +80,32 @@ const calculateTotalScores = (quarters) => {
   return { teamStats, winner };
 };
 
+/* ------------------- PlayerAvatar 컴포넌트 (공통 사용) ------------------- */
+const PlayerAvatar = ({ nick, size = 32 }) => {
+  const imageUrl = `/players/${nick}.png`;
+  return (
+    <img
+      src={imageUrl}
+      alt={nick}
+      style={{
+        width: size,
+        // height: size,
+        // borderRadius: '50%',
+        objectFit: 'cover',
+        marginRight: '8px',
+        // border: '2px solid #fff',
+        // boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        flexShrink: 0,
+      }}
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = '/logo194.png';
+      }}
+    />
+  );
+};
+/* --------------------------------------------------------------------- */
+
 const Live = () => {
   const [lineups, setLineups] = useState([]);
   const [captainStats, setCaptainStats] = useState({});
@@ -95,8 +121,8 @@ const Live = () => {
     topWinRate: [],
     topCleanSheet: [],
     topPowerRanking: [],
-    topAttackPoints: [], // 추가된 경쟁 항목
-    topMomCount: [],    // 추가된 경쟁 항목
+    topAttackPoints: [],
+    topMomCount: [],
   });
 
   useEffect(() => {
@@ -122,8 +148,6 @@ const Live = () => {
       if (matchDate && !isNaN(matchDate.getTime())) {
         const revealTime = subHours(matchDate, 8);
         setLineupRevealTime(revealTime);
-      } else {
-        console.log('유효한 경기 시간이 없음:', matchDate);
       }
     }
   }, [lineups]);
@@ -180,8 +204,8 @@ const Live = () => {
             draw: data.draw || 0,
             lose: data.lose || 0,
             powerRanking: data.momScore || 0,
-            attackPoints: (data.goals || 0) + (data.assists || 0), // 추가
-            momTop3Count: data.momTop3Count || 0 // 추가
+            attackPoints: (data.goals || 0) + (data.assists || 0),
+            momTop3Count: data.momTop3Count || 0
           };
         } else {
           stats[captain] = {
@@ -214,9 +238,9 @@ const Live = () => {
         .map(doc => ({
           id: doc.id,
           ...doc.data(),
-          attackPoints: (doc.data().goals || 0) + (doc.data().assists || 0), // 추가
+          attackPoints: (doc.data().goals || 0) + (doc.data().assists || 0),
           powerRanking: doc.data().momScore || 0,
-          momTop3Count: doc.data().momTop3Count || 0 // 추가
+          momTop3Count: doc.data().momTop3Count || 0
         }))
         .filter(player => lineupPlayerNicks.includes(player.id));
 
@@ -230,7 +254,7 @@ const Live = () => {
         const diff = Math.abs((topPlayers[0][key] || 0) - (topPlayers[1][key] || 0));
         if (key === 'powerRanking' && diff <= 0.05) {
           return topPlayers;
-        } else if (key === 'momTop3Count' && diff <= 1) { // MOM 횟수 임계값
+        } else if (key === 'momTop3Count' && diff <= 1) {
           return topPlayers;
         } else if (diff <= 2 && key !== 'powerRanking' && key !== 'momTop3Count') {
           return topPlayers;
@@ -243,8 +267,8 @@ const Live = () => {
       const topWinRate = getTopN(playersData, 'winRate');
       const topCleanSheet = getTopN(playersData, 'cleanSheets');
       const topPowerRanking = getTopN(playersData, 'powerRanking');
-      const topAttackPoints = getTopN(playersData, 'attackPoints'); // 추가
-      const topMomCount = getTopN(playersData, 'momTop3Count'); // 추가
+      const topAttackPoints = getTopN(playersData, 'attackPoints');
+      const topMomCount = getTopN(playersData, 'momTop3Count');
 
       setCompetitionPoints({
         topGoalScorer,
@@ -438,36 +462,20 @@ const Live = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'top',
-        labels: { font: { size: 14 } }
-      },
+      legend: { position: 'top', labels: { font: { size: 14 } } },
       title: { display: true, text: '주장 통계 비교', font: { size: 16 } }
     },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1 }
-      }
-    }
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
   };
 
   const competitionGraphOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'top',
-        labels: { font: { size: 14 } }
-      },
+      legend: { position: 'top', labels: { font: { size: 14 } } },
       title: { display: true, text: '관전 포인트 비교', font: { size: 16 } }
     },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1 }
-      }
-    }
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
   };
 
   if (error) {
@@ -489,6 +497,7 @@ const Live = () => {
 
   return (
     <S.Container>
+      {/* === 기존 상단 부분 (VS, 응원, 라인업) 그대로 유지 === */}
       <S.MatchHeader>
         <h2>경기 라인업</h2>
       </S.MatchHeader>
@@ -550,11 +559,6 @@ const Live = () => {
             </S.GaugeBar>
           ))}
         </S.CheerGauge>
-        {/* {totalCheers > 0 && (
-          // <S.CheerMessage>
-          //   현재 선두: <strong>{topCheerTeam.name}</strong> ({topCheerTeam.cheers} 응원)
-          // </S.CheerMessage>
-        )} */}
       </S.CheerSection>
 
       <S.Section>
@@ -569,14 +573,17 @@ const Live = () => {
                 <S.PlayerList>
                   {team.players.map((player, playerIndex) => (
                     <S.PlayerItem key={player.id} index={playerIndex}>
-                      <S.PlayerName isCaptain={player.nick === team.captain}>
-                        {player.nick}
-                        {!allExistingPlayers.includes(player.nick) && (
-                          <span style={{ marginLeft: '5px', color: '#FF4500', fontWeight: 'bold' }}>
-                            (데뷔) 🔥
-                          </span>
-                        )}
-                      </S.PlayerName>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <PlayerAvatar nick={player.nick} size={34} />
+                        <S.PlayerName isCaptain={player.nick === team.captain}>
+                          {player.nick}
+                          {!allExistingPlayers.includes(player.nick) && (
+                            <span style={{ marginLeft: '5px', color: '#FF4500', fontWeight: 'bold' }}>
+                              (데뷔) [Fire]
+                            </span>
+                          )}
+                        </S.PlayerName>
+                      </div>
                       <S.PlayerPosition>{POSITIONS[player.position]}</S.PlayerPosition>
                     </S.PlayerItem>
                   ))}
@@ -591,6 +598,7 @@ const Live = () => {
         )}
       </S.Section>
 
+      {/* === 주장 비교 섹션 (기존 그대로) === */}
       {lineups.length > 0 && Object.keys(captainStats).length > 0 && (
         <S.Section>
           <S.SectionTitle>주장 비교</S.SectionTitle>
@@ -642,69 +650,169 @@ const Live = () => {
         </S.Section>
       )}
 
+      {/* === 관전 포인트 (여기만 사진 추가됨) === */}
       <S.Section>
         <S.SectionTitle>관전 포인트</S.SectionTitle>
         <S.CompetitionPointsContainer>
           {competitionPoints.topGoalScorer.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>득점왕 경쟁 {Math.abs((competitionPoints.topGoalScorer[0].goals || 0) - (competitionPoints.topGoalScorer[1].goals || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topGoalScorer[0].id} {competitionPoints.topGoalScorer[0].goals}골 vs {competitionPoints.topGoalScorer[1].id} {competitionPoints.topGoalScorer[1].goals}골
+              <S.CompetitionTitle>
+                득점왕 경쟁{' '}
+                {Math.abs((competitionPoints.topGoalScorer[0].goals || 0) - (competitionPoints.topGoalScorer[1].goals || 0)) <= 2 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topGoalScorer[0].id} size={38} />
+                  <strong>{competitionPoints.topGoalScorer[0].id}</strong> {competitionPoints.topGoalScorer[0].goals}골
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topGoalScorer[1].id} size={38} />
+                  <strong>{competitionPoints.topGoalScorer[1].id}</strong> {competitionPoints.topGoalScorer[1].goals}골
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {competitionPoints.topAssistProvider.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>도움왕 경쟁 {Math.abs((competitionPoints.topAssistProvider[0].assists || 0) - (competitionPoints.topAssistProvider[1].assists || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topAssistProvider[0].id} {competitionPoints.topAssistProvider[0].assists}도움 vs {competitionPoints.topAssistProvider[1].id} {competitionPoints.topAssistProvider[1].assists}도움
+              <S.CompetitionTitle>
+                도움왕 경쟁{' '}
+                {Math.abs((competitionPoints.topAssistProvider[0].assists || 0) - (competitionPoints.topAssistProvider[1].assists || 0)) <= 2 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topAssistProvider[0].id} size={38} />
+                  <strong>{competitionPoints.topAssistProvider[0].id}</strong> {competitionPoints.topAssistProvider[0].assists}도움
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topAssistProvider[1].id} size={38} />
+                  <strong>{competitionPoints.topAssistProvider[1].id}</strong> {competitionPoints.topAssistProvider[1].assists}도움
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {competitionPoints.topAttackPoints.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>공격포인트 경쟁 {Math.abs((competitionPoints.topAttackPoints[0].attackPoints || 0) - (competitionPoints.topAttackPoints[1].attackPoints || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topAttackPoints[0].id} {competitionPoints.topAttackPoints[0].attackPoints}P vs {competitionPoints.topAttackPoints[1].id} {competitionPoints.topAttackPoints[1].attackPoints}P
+              <S.CompetitionTitle>
+                공격포인트 경쟁{' '}
+                {Math.abs((competitionPoints.topAttackPoints[0].attackPoints || 0) - (competitionPoints.topAttackPoints[1].attackPoints || 0)) <= 2 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topAttackPoints[0].id} size={38} />
+                  <strong>{competitionPoints.topAttackPoints[0].id}</strong> {competitionPoints.topAttackPoints[0].attackPoints}P
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topAttackPoints[1].id} size={38} />
+                  <strong>{competitionPoints.topAttackPoints[1].id}</strong> {competitionPoints.topAttackPoints[1].attackPoints}P
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {competitionPoints.topWinRate.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>승률 1위 유지 {Math.abs((competitionPoints.topWinRate[0].winRate || 0) - (competitionPoints.topWinRate[1].winRate || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topWinRate[0].id} {competitionPoints.topWinRate[0].winRate}% vs {competitionPoints.topWinRate[1].id} {competitionPoints.topWinRate[1].winRate}%
+              <S.CompetitionTitle>
+                승률 1위 유지{' '}
+                {Math.abs((competitionPoints.topWinRate[0].winRate || 0) - (competitionPoints.topWinRate[1].winRate || 0)) <= 2 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topWinRate[0].id} size={38} />
+                  <strong>{competitionPoints.topWinRate[0].id}</strong> {competitionPoints.topWinRate[0].winRate}%
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topWinRate[1].id} size={38} />
+                  <strong>{competitionPoints.topWinRate[1].id}</strong> {competitionPoints.topWinRate[1].winRate}%
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {competitionPoints.topCleanSheet.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>클린시트 경쟁 {Math.abs((competitionPoints.topCleanSheet[0].cleanSheets || 0) - (competitionPoints.topCleanSheet[1].cleanSheets || 0)) <= 2 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topCleanSheet[0].id} {competitionPoints.topCleanSheet[0].cleanSheets}클린시트 vs {competitionPoints.topCleanSheet[1].id} {competitionPoints.topCleanSheet[1].cleanSheets}클린시트
+              <S.CompetitionTitle>
+                클린시트 경쟁{' '}
+                {Math.abs((competitionPoints.topCleanSheet[0].cleanSheets || 0) - (competitionPoints.topCleanSheet[1].cleanSheets || 0)) <= 2 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topCleanSheet[0].id} size={38} />
+                  <strong>{competitionPoints.topCleanSheet[0].id}</strong> {competitionPoints.topCleanSheet[0].cleanSheets}회
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topCleanSheet[1].id} size={38} />
+                  <strong>{competitionPoints.topCleanSheet[1].id}</strong> {competitionPoints.topCleanSheet[1].cleanSheets}회
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {competitionPoints.topPowerRanking.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>파워랭킹 경쟁 {Math.abs((competitionPoints.topPowerRanking[0].powerRanking || 0) - (competitionPoints.topPowerRanking[1].powerRanking || 0)) <= 0.05 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topPowerRanking[0].id} {competitionPoints.topPowerRanking[0].powerRanking.toFixed(2)}점 vs {competitionPoints.topPowerRanking[1].id} {competitionPoints.topPowerRanking[1].powerRanking.toFixed(2)}점
+              <S.CompetitionTitle>
+                파워랭킹 경쟁{' '}
+                {Math.abs((competitionPoints.topPowerRanking[0].powerRanking || 0) - (competitionPoints.topPowerRanking[1].powerRanking || 0)) <= 0.05 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topPowerRanking[0].id} size={38} />
+                  <strong>{competitionPoints.topPowerRanking[0].id}</strong> {competitionPoints.topPowerRanking[0].powerRanking.toFixed(2)}점
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topPowerRanking[1].id} size={38} />
+                  <strong>{competitionPoints.topPowerRanking[1].id}</strong> {competitionPoints.topPowerRanking[1].powerRanking.toFixed(2)}점
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {competitionPoints.topMomCount.length > 1 && (
             <S.CompetitionItem>
-              <S.CompetitionTitle>MOM 경쟁 {Math.abs((competitionPoints.topMomCount[0].momTop3Count || 0) - (competitionPoints.topMomCount[1].momTop3Count || 0)) <= 1 && <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>}</S.CompetitionTitle>
-              <S.CompetitionDetail>
-                {competitionPoints.topMomCount[0].id} {competitionPoints.topMomCount[0].momTop3Count}회 vs {competitionPoints.topMomCount[1].id} {competitionPoints.topMomCount[1].momTop3Count}회
+              <S.CompetitionTitle>
+                MOM 경쟁{' '}
+                {Math.abs((competitionPoints.topMomCount[0].momTop3Count || 0) - (competitionPoints.topMomCount[1].momTop3Count || 0)) <= 1 && (
+                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
+                )}
+              </S.CompetitionTitle>
+              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topMomCount[0].id} size={38} />
+                  <strong>{competitionPoints.topMomCount[0].id}</strong> {competitionPoints.topMomCount[0].momTop3Count}회
+                </div>
+                <span style={{ color: '#666' }}>vs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PlayerAvatar nick={competitionPoints.topMomCount[1].id} size={38} />
+                  <strong>{competitionPoints.topMomCount[1].id}</strong> {competitionPoints.topMomCount[1].momTop3Count}회
+                </div>
               </S.CompetitionDetail>
             </S.CompetitionItem>
           )}
+
           {Object.values(competitionPoints).every(arr => arr.length < 2) && (
             <S.NoCompetitionMessage>곧 치열한 경쟁이 시작될 예정입니다! 팀을 응원하며 경기를 즐겨보세요!</S.NoCompetitionMessage>
           )}
         </S.CompetitionPointsContainer>
+
         {competitionPoints.topGoalScorer.length > 1 && (
           <S.ChartContainer>
             <Bar data={getCompetitionGraphData()} options={competitionGraphOptions} />
@@ -712,6 +820,7 @@ const Live = () => {
         )}
       </S.Section>
 
+      {/* === 최근 맞대결 섹션 (기존 그대로) === */}
       {lineups.length > 1 && (
         <S.Section>
           <S.PreviousMatchesTitle>최근 5경기 맞대결</S.PreviousMatchesTitle>

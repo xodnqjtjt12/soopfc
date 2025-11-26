@@ -779,11 +779,11 @@ export const FullRankingContainer = styled.div`
       left: 0;
       width: 220px;
       pointer-events: none;
-      background: linear-gradient(
-        to right,
-        #fff 0%,
-        rgba(255, 255, 255, 0) 100%
-      );
+      // background: linear-gradient(
+      //   to right,
+      //   #fff 0%,
+      //   rgba(255, 255, 255, 0) 100%
+      // );
       z-index: 2;
     }
   }
