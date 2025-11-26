@@ -1,4 +1,4 @@
-// src/pages/King.js - 완전 최종본 (모든 색상 #3182f6 블루 테마로 통일)
+// src/pages/King.js - 완전 최종본 (댓글 닉네임 캐시 적용 + 블루 테마 유지)
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,11 +14,12 @@ import {
 
 const POSTS_PER_PAGE = 6;
 const randomNicknames = [
-  '숲리거1', '숲리거2', '호날두킴', '메좋알', '이강인짱', '손흥민신',
-  '김민재탱크', '박지성전설', '차붐후예', '골때리는녀석', '패스마스터',
-  '드리블천재', '프리킥장인', '골키퍼괴물', '수비의신', '미드필더왕',
-  '윙어바람', '스트라이커킬러', '캡틴숲', '숲FC레전드', '오프사이드트랩',
-  '태클의달인', '헤딩마왕', '슛돌이', '크로스마스터', '숲의전설'
+  '숲리거', '드멘', '뎀바바', '메시', '이강인짱', '손흥민신',
+  '김민재탱크', '2002전설', '차붐후예', '탁구의신', '패스마스터',
+  '드리블천재', '지성박', '골키퍼괴물', '수비의신', '미드필더왕',
+  '이누', '리중딱', '맨시티의전설 쑨지하이', '숲FC레전드', '홍명보나가',
+  '아스날은빅클럽', '구너', '슛돌이', '크로스마스터', '숲의전설','맹전드',
+  '훔바훔바','제라드처럼 기어가기'
 ];
 
 // 메인 블루 색상 정의
@@ -28,7 +29,17 @@ const DARK_BLUE = '#2563eb';
 const BG_LIGHT = '#f0f5ff';
 const BG_SOFT = '#e0ecff';
 
-// ===================== 랜딩 페이지 (블루 테마) =====================
+// ===================== 닉네임 캐시 함수 (핵심 추가!) =====================
+const getOrCreateNickname = () => {
+  let nickname = localStorage.getItem('kingVoteNickname');
+  if (!nickname) {
+    nickname = randomNicknames[Math.floor(Math.random() * randomNicknames.length)];
+    localStorage.setItem('kingVoteNickname', nickname);
+  }
+  return nickname;
+};
+
+// ===================== 랜딩 페이지 (그대로) =====================
 const LandingContainer = styled.div`
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -100,7 +111,7 @@ const LandingPage = () => {
           transition={{ delay: 4 }}
           style={{ marginTop: '70px', fontSize: '19px', color: '#666', fontWeight: 500 }}
         >
-          잠시 후 자동으로 시작됩니다...
+          잠시 후 SOOP FC 비밀의장으로 이동됩니다...
         </motion.p>
       </motion.div>
     </LandingContainer>
@@ -134,7 +145,7 @@ const King = () => {
   const [listSearchTerm, setListSearchTerm] = useState('');
   const [playerStats, setPlayerStats] = useState({});
 
-  // ===== 모든 useEffect (완전 동일) =====
+  // ===== 모든 useEffect (그대로) =====
   useEffect(() => {
     const fetchPlayerStats = async () => {
       const snapshot = await getDocs(collection(db, 'players'));
@@ -235,8 +246,6 @@ const King = () => {
 
   useEffect(() => setCurrentPage(1), [listSearchTerm, sortBy]);
 
-  const generateRandomNickname = () => randomNicknames[Math.floor(Math.random() * randomNicknames.length)];
-
   const searchPlayerStats = async () => {
     if (!searchTerm.trim()) return;
     setLoadingPlayer(true);
@@ -285,13 +294,20 @@ const King = () => {
     });
   };
 
+  // ===== 댓글 추가 시 고정된 닉네임 사용 (핵심 수정!) =====
   const handleAddComment = async (postId) => {
     if (!isHomeExposed || isVotingEnded) return;
     const text = (commentInputs[postId] || '').trim();
     if (!text) return;
-    const nickname = generateRandomNickname();
+
+    const nickname = getOrCreateNickname(); // ← 여기서 캐시된 닉네임 가져옴!
+
     await updateDoc(doc(db, 'kingRecommendations', postId), {
-      comments: arrayUnion({ text, author: nickname, createdAt: new Date().toISOString() })
+      comments: arrayUnion({ 
+        text, 
+        author: nickname, 
+        createdAt: new Date().toISOString() 
+      })
     });
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
   };
@@ -436,7 +452,7 @@ const King = () => {
   );
 };
 
-// ===================== 모든 스타일 (색상만 블루로 변경) =====================
+// ===================== 모든 스타일 (100% 그대로) =====================
 const UnifiedSearchBox = styled.div`position:relative;width:100%;`;
 const SearchIconLeft = styled.div`position:absolute;left:18px;top:50%;transform:translateY(-50%);color:${MAIN_BLUE};pointer-events:none;z-index:10;`;
 const SearchBtn = styled.button`position:absolute;right:8px;top:50%;transform:translateY(-50%);background:${MAIN_BLUE};color:white;border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;`;
