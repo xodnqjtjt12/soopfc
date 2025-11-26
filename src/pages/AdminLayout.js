@@ -36,6 +36,7 @@ export default function AdminLayout({ children }) {
         <StyledLink to="/admin/live">라인업 관리</StyledLink>
         <StyledLink to="/admin/score">스코어 관리</StyledLink>
         <StyledLink to="/admin/player-month-award">이달의 선수상 관리</StyledLink>
+               <StyledLink to="/admin/King">회장선출투표</StyledLink>
       </Sidebar>
       <main style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
         {children}

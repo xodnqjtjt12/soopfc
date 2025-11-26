@@ -31,6 +31,10 @@ import ScoreAdmin from './pages/ScoreAdmin';
 import PlayerMonthAward from './pages/PlayerMonthAward';
 import PlayerMonthAwardAdmin from './pages/PlayerMonthAwardAdmin';
 
+// 새로 추가되는 페이지들
+import King from './pages/King'                 // 회장 추천 페이지
+import KingAdmin from './pages/KingAdmin'      // 회장 추천 홈 노출 관리 페이지
+
 // Components
 import Header from './components/Header';
 
@@ -40,7 +44,7 @@ import assistIcon from './icons/assist_icon.png';
 import defenderIcon from './icons/defender_icon.png';
 import trophyIcon from './icons/trophy_icon.png';
 
-// Firebase 설정
+// Firebase 설정 (당신의 실제 키 그대로)
 const firebaseConfig = {
   apiKey: "AIzaSyBscJpOCQgufKSiEahKFvv5lPpXN5Lpvc8",
   authDomain: "soccer-records.firebaseapp.com",
@@ -50,6 +54,7 @@ const firebaseConfig = {
   appId: "1:769257022634:web:650d5d9c41b73933059cd3",
   measurementId: "G-NZLQDKS02C"
 };
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
@@ -63,6 +68,7 @@ const AppContainer = styled.div`
     background-color: #ffffff;
   }
 `;
+
 const Footer = styled.footer`
   display: flex;
   justify-content: space-around;
@@ -73,11 +79,13 @@ const Footer = styled.footer`
   background-color: #ffffff;
   box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.1);
 `;
+
 const IconLink = styled(Link)`
   display: flex;
   align-items: center;
   justify-content: center;
 `;
+
 const Icon = styled.img`
   width: 30px;
   height: 30px;
@@ -106,7 +114,10 @@ function App() {
           <Route path="/player-month-award" element={<PlayerMonthAward />} />
           <Route path="/score" element={<Score />} />
 
-          {/* 관리 페이지 - 중첩 구조 제거 및 개별 라우트로 변경 */}
+          {/* 새로 추가: 26년 회장 추천 페이지 */}
+          <Route path="/king" element={<King />} />
+
+          {/* 관리 페이지 */}
           <Route path="/admin" element={<AdminLayout><AdminPage /></AdminLayout>} />
           <Route path="/admin/players" element={<AdminLayout><AdminPage /></AdminLayout>} />
           <Route path="/admin/power-ranking" element={<AdminLayout><PowerRankingAdmin /></AdminLayout>} />
@@ -117,8 +128,27 @@ function App() {
           <Route path="/admin/live" element={<AdminLayout><LiveAdmin /></AdminLayout>} />
           <Route path="/admin/score" element={<AdminLayout><ScoreAdmin /></AdminLayout>} />
           <Route path="/admin/player-month-award" element={<AdminLayout><PlayerMonthAwardAdmin /></AdminLayout>} />
+
+          {/* 새로 추가: 26년 회장 추천 홈 노출 관리 페이지 */}
+          <Route path="/admin/king" element={<AdminLayout><KingAdmin /></AdminLayout>} />
         </Routes>
       </AppContainer>
+
+      {/* 기존 푸터 유지 */}
+      {/* <Footer>
+        <IconLink to="/top-goal-scorer">
+          <Icon src={goalIcon} alt="득점왕" />
+        </IconLink>
+        <IconLink to="/top-assists">
+          <Icon src={assistIcon} alt="도움왕" />
+        </IconLink>
+        <IconLink to="/top-defender">
+          <Icon src={defenderIcon} alt="수비왕" />
+        </IconLink>
+        <IconLink to="/overall-rankings">
+          <Icon src={trophyIcon} alt="종합 랭킹" />
+        </IconLink>
+      </Footer> */}
     </Router>
   );
 }

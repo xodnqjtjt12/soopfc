@@ -42,7 +42,7 @@ const IntroOverlay = styled.div`
 
   /* 모바일에서는 크게! (768px 이하) */
   @media (max-width: 768px) {
-    background-size: 88% auto;   /* ← 모바일에서 크게 보이게! */
+    background-size: 88% auto;
   }
 
   /* 아주 작은 폰에서도 예쁘게 (예: 아이폰 SE) */
@@ -167,7 +167,7 @@ const Home = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowIntro(false);
-    }, 5500); // 인트로 시간 현재 5.5초
+    }, 5500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -202,7 +202,40 @@ const Home = () => {
   const [holidays, setHolidays] = useState([]);
   const [anniversaries, setAnniversaries] = useState([]);
 
-  // 투표 및 라인업 노출 데이터
+  // ★★★★★ 새로 추가: 26년 회장 추천 버튼 노출 상태 ★★★★★
+  const [kingExposure, setKingExposure] = useState(false);
+
+  // ★★★★★ 26년 회장 추천 실시간 감지 (라인업/MOM과 똑같은 방식) ★★★★★
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'kingVoteStatus', '2026'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (
+          data.isHomeExposed &&
+          data.exposeStartDateTime &&
+          data.exposeEndDateTime
+        ) {
+          const start = data.exposeStartDateTime.toDate();
+          const end = data.exposeEndDateTime.toDate();
+          const now = new Date();
+
+          if (isWithinInterval(now, { start, end })) {
+            setKingExposure(true);
+          } else {
+            setKingExposure(false);
+          }
+        } else {
+          setKingExposure(false);
+        }
+      } else {
+        setKingExposure(false);
+      }
+    });
+
+    return () => unsub && unsub();
+  }, []);
+
+  // 기존 투표 및 라인업 노출 데이터 (완전 그대로 유지)
   useEffect(() => {
     const fetchVoteExposures = async () => {
       const unsubscribe = onSnapshot(doc(db, 'voteStatus', todayStr), async (voteStatusDoc) => {
@@ -299,9 +332,7 @@ const Home = () => {
     fetchVoteExposures();
   }, [todayStr]);
 
-  // 나머지 useEffect들 (공지, 기념일, 공휴일, players, MOM, 스케줄 등)
-  // (기존 코드 그대로 복사)
-
+  // 나머지 기존 useEffect들 (100% 그대로 유지)
   useEffect(() => {
     const fetchNotes = async () => {
       try {
@@ -507,9 +538,9 @@ const Home = () => {
       {showIntro && (
         <IntroOverlay>
           <LogoContainer>
-            <img src={`${process.env.PUBLIC_URL}/Logo2.png`} alt="SOOP FC" />
+            <img src={`${process.env.PUBLIC_URL}/SOOPLOGO.png`} alt="SOOP FC" />
           </LogoContainer>
-          <IntroText>SOOP FC</IntroText>
+          {/* <IntroText>SOOP FC</IntroText>
           <div style={{
             position: 'absolute',
             bottom: '80px',
@@ -519,7 +550,7 @@ const Home = () => {
             letterSpacing: '1px'
           }}>
             축구를 더 쉽게, 더 즐겁게
-          </div>
+          </div> */}
         </IntroOverlay>
       )}
 
@@ -534,6 +565,8 @@ const Home = () => {
               </S.HeroSubtitle>
               <S.ButtonGroup>
                 <S.PrimaryButton href="/total">내 스탯 보기</S.PrimaryButton>
+                
+                {/* MOM 투표 & 라인업 버튼 */}
                 {voteExposures.map(exposure => {
                   const { visible, type, to, text } = getButtonState(
                     exposure.matchDate,
@@ -549,6 +582,22 @@ const Home = () => {
                     </MatchButton>
                   );
                 })}
+
+                {/* ★★★★★ 26년 회장 추천 버튼 – 주황색으로 화려하게! ★★★★★ */}
+                {kingExposure && (
+                  <MatchButton
+                    to="/king"
+                    style={{
+                      background: 'linear-gradient(135deg, #ff5e00, #e64a00)',
+                      boxShadow: '0 8px 25px rgba(255, 94, 0, 0.5)',
+                      fontWeight: '700',
+                      fontSize: '19px',
+                      animation: 'float 3s ease-in-out infinite',
+                    }}
+                  >
+                    26년 회장 추천
+                  </MatchButton>
+                )}
               </S.ButtonGroup>
             </S.HeroContent>
             <S.HeroImageContainer>
@@ -556,6 +605,7 @@ const Home = () => {
             </S.HeroImageContainer>
           </S.HeroSection>
 
+          {/* 나머지 모든 기존 섹션 그대로 유지 */}
           <S.StatsContainer>
             <S.StatItem>
               <S.StatValue>{stats.totalGoals}</S.StatValue>
