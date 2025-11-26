@@ -7,17 +7,14 @@ import * as S from './recordCss';
 // 포지션 통일 함수
 const unifyPosition = (position) => {
   const positionMap = {
-    'CB1': 'CB',
-    'CB2': 'CB',
-    'CDM1': 'CDM',
-    'CDM2': 'CDM',
-    'CM1': 'CM',
-    'CM2': 'CM',
+    'CB1': 'CB', 'CB2': 'CB',
+    'CDM1': 'CDM', 'CDM2': 'CDM',
+    'CM1': 'CM', 'CM2': 'CM',
   };
   return positionMap[position] || position;
 };
 
-// 가장 많이 사용한 포지션 계산 (캐싱된 포지션 사용)
+// 가장 많이 사용한 포지션 계산
 const calculateMostFrequentPosition = (playerName, playerPositionsCache) => {
   const positions = playerPositionsCache[playerName] || {};
   const positionCounts = Object.entries(positions);
@@ -30,21 +27,44 @@ const calculateMostFrequentPosition = (playerName, playerPositionsCache) => {
   return mostFrequent.join(', ');
 };
 
-// 선수 데이터 가져오기 (최적화된 버전)
+// 선수 아바타 컴포넌트 (TOP 페이지와 동일하게 사진만 딱!)
+const PlayerAvatar = ({ name, size = 48 }) => {
+  return (
+    <img
+      src={`/players/${name}.png`}
+      alt={name}
+      style={{
+        width: size,
+        // height: size,
+        // borderRadius: '50%',
+        objectFit: 'cover',
+        border: 'none',
+        boxShadow: 'none',
+        margin: 0,
+        padding: 0,
+        background: 'transparent',
+      }}
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = '/logo194.png';
+      }}
+    />
+  );
+};
+
+// 나머지 fetch 함수들 그대로 유지 (변경 없음)
 const fetchPlayerData = async () => {
   const years = ['2022', '2023', '2024', '2025'];
   const playerStats = {};
   const yearlyStats = {};
   const careerStats = {};
-  const playerPositionsCache = {}; // 포지션 캐싱
+  const playerPositionsCache = {};
   const statsToRank = ['goals', 'assists', 'cleanSheets', 'matches', 'momScore', 'personalPoints'];
 
-  // 선수 기본 데이터와 포지션 캐싱
   const playersRef = collection(db, 'players');
   const playersSnapshot = await getDocs(playersRef);
   const playerDocs = playersSnapshot.docs;
 
-  // 포지션 데이터 수집 (matches 컬렉션에서)
   const quartersQuery = collection(db, 'matches');
   const quartersSnapshot = await getDocs(quartersQuery);
   quartersSnapshot.forEach((matchDoc) => {
@@ -61,34 +81,20 @@ const fetchPlayerData = async () => {
     });
   });
 
-  // 연도별 및 통산 데이터 초기화
   playerDocs.forEach((playerDoc) => {
     const pid = playerDoc.id;
     const pos = playerDoc.data().position || 'N/A';
     careerStats[pid] = {
-      goals: 0,
-      assists: 0,
-      cleanSheets: 0,
-      matches: 0,
-      momScore: 0,
-      personalPoints: 0,
-      position: pos,
+      goals: 0, assists: 0, cleanSheets: 0, matches: 0, momScore: 0, personalPoints: 0, position: pos,
     };
     years.forEach((year) => {
       yearlyStats[year] = yearlyStats[year] || {};
       yearlyStats[year][pid] = {
-        goals: 0,
-        assists: 0,
-        cleanSheets: 0,
-        matches: 0,
-        momScore: 0,
-        personalPoints: 0,
-        position: pos,
+        goals: 0, assists: 0, cleanSheets: 0, matches: 0, momScore: 0, personalPoints: 0, position: pos,
       };
     });
   });
 
-  // 2025년 데이터 수집
   playerDocs.forEach((playerDoc) => {
     const pid = playerDoc.id;
     const data = playerDoc.data();
@@ -109,7 +115,6 @@ const fetchPlayerData = async () => {
     careerStats[pid].personalPoints += data.personalPoints || 0;
   });
 
-  // 과거 연도 데이터 병렬 수집
   const historyPromises = years
     .filter((year) => year !== '2025')
     .flatMap((year) =>
@@ -139,7 +144,6 @@ const fetchPlayerData = async () => {
     }
   });
 
-  // 연도별 랭킹 계산
   for (const year of years) {
     playerStats[year] = {};
     statsToRank.forEach((stat) => {
@@ -167,7 +171,6 @@ const fetchPlayerData = async () => {
     });
   }
 
-  // 통산 랭킹 계산
   const careerRankings = {};
   statsToRank.forEach((stat) => {
     const rankings = Object.entries(careerStats)
@@ -194,7 +197,6 @@ const fetchPlayerData = async () => {
     careerRankings[stat] = rankings;
   });
 
-  // 단일 시즌 최다 기록 계산
   const seasonRankings = {};
   statsToRank.forEach((stat) => {
     let allSeasonStats = [];
@@ -218,9 +220,8 @@ const fetchPlayerData = async () => {
     seasonRankings[stat] = topStats;
   });
 
-  // 기타 기록 생성 (명예의 전당)
   const otherRecords = [];
-  const  topByYear = {};
+  const topByYear = {};
   years.forEach((y) => {
     topByYear[y] = {};
     ['goals', 'matches'].forEach((stat) => {
@@ -230,7 +231,6 @@ const fetchPlayerData = async () => {
   });
   const labelMap = { goals: '득점왕', matches: '출장왕' };
 
-  // 연속 기록 자동화
   ['goals', 'matches'].forEach((stat) => {
     const players = new Set(Object.values(topByYear).map((yearData) => yearData[stat]).filter(Boolean));
     players.forEach((player) => {
@@ -265,13 +265,11 @@ const fetchPlayerData = async () => {
     });
   });
 
-  // 새로운 클럽 기록 추가 (10-10, 20-20, 30-30 등)
   const clubs = [
     { min: 10, title: '10-10 클럽 가입' },
     { min: 20, title: '20-20 클럽 가입' },
     { min: 30, title: '30-30 클럽 가입' },
   ];
-
   clubs.forEach((club) => {
     Object.entries(careerStats).forEach(([pid, stats]) => {
       if (stats.goals >= club.min && stats.assists >= club.min) {
@@ -280,19 +278,13 @@ const fetchPlayerData = async () => {
           title: `${club.title} (${pid})`,
           player: pid,
           period: '2022~2025',
-          stats: {
-            matches: stats.matches,
-            goals: stats.goals,
-            assists: stats.assists,
-          },
+          stats: { matches: stats.matches, goals: stats.goals, assists: stats.assists },
         });
       }
     });
   });
 
-  // 수비 클럽 기록 추가
   const defenseClubs = [{ min: 50, title: '50 클린시트 클럽 가입' }];
-
   defenseClubs.forEach((club) => {
     Object.entries(careerStats).forEach(([pid, stats]) => {
       if (stats.cleanSheets >= club.min) {
@@ -301,29 +293,20 @@ const fetchPlayerData = async () => {
           title: `${club.title} (${pid})`,
           player: pid,
           period: '2022~2025',
-          stats: {
-            matches: stats.matches,
-            goals: stats.goals,
-            assists: stats.assists,
-            cleanSheets: stats.cleanSheets,
-          },
+          stats: { matches: stats.matches, goals: stats.goals, assists: stats.assists, cleanSheets: stats.cleanSheets },
         });
       }
     });
   });
 
-  // 클럽 입성 직전 선수 추가
   const nearClubs = [
     { min: 10, near: 7, title: '10-10 클럽 입성 직전' },
     { min: 20, near: 17, title: '20-20 클럽 입성 직전' },
     { min: 30, near: 27, title: '30-30 클럽 입성 직전' },
   ];
-
   nearClubs.forEach((near) => {
     Object.entries(careerStats).forEach(([pid, stats]) => {
-      const isMember = otherRecords.some(
-        (r) => r.player === pid && r.title.includes(near.title.replace('입성 직전', '가입'))
-      );
+      const isMember = otherRecords.some((r) => r.player === pid && r.title.includes(near.title.replace('입성 직전', '가입')));
       if (
         !isMember &&
         ((stats.goals >= near.min && stats.assists >= near.near && stats.assists < near.min) ||
@@ -334,36 +317,23 @@ const fetchPlayerData = async () => {
           title: `${near.title} (${pid})`,
           player: pid,
           period: '2022~2025',
-          stats: {
-            matches: stats.matches,
-            goals: stats.goals,
-            assists: stats.assists,
-          },
+          stats: { matches: stats.matches, goals: stats.goals, assists: stats.assists },
         });
       }
     });
   });
 
-  // 수비 입성 직전 추가
   const nearDefenseClubs = [{ min: 50, near: 47, title: '50 클린시트 클럽 입성 직전' }];
-
   nearDefenseClubs.forEach((near) => {
     Object.entries(careerStats).forEach(([pid, stats]) => {
-      const isMember = otherRecords.some(
-        (r) => r.player === pid && r.title.includes(near.title.replace('입성 직전', '가입'))
-      );
+      const isMember = otherRecords.some((r) => r.player === pid && r.title.includes(near.title.replace('입성 직전', '가입')));
       if (!isMember && stats.cleanSheets >= near.near && stats.cleanSheets < near.min) {
         otherRecords.push({
           position: stats.position,
           title: `${near.title} (${pid})`,
           player: pid,
           period: '2022~2025',
-          stats: {
-            matches: stats.matches,
-            goals: stats.goals,
-            assists: stats.assists,
-            cleanSheets: stats.cleanSheets,
-          },
+          stats: { matches: stats.matches, goals: stats.goals, assists: stats.assists, cleanSheets: stats.cleanSheets },
         });
       }
     });
@@ -383,12 +353,10 @@ const fetchPlayerData = async () => {
   };
 };
 
-// 선수별 기록 검색 함수
 const fetchPlayerRecords = (playerName, recordData) => {
   const statsToRank = ['goals', 'assists', 'cleanSheets', 'matches', 'momScore', 'personalPoints'];
   const playerRecords = { career: [], season: [], other: [] };
 
-  // 통산 기록
   statsToRank.forEach((stat) => {
     const allCareerStats = Object.entries(recordData.careerStats)
       .map(([id, st]) => ({
@@ -409,9 +377,7 @@ const fetchPlayerRecords = (playerName, recordData) => {
       }
       previousCount = item.count;
     });
-    const careerRecord = allCareerStats.find(
-      (record) => record.player.toLowerCase() === playerName.toLowerCase()
-    );
+    const careerRecord = allCareerStats.find((record) => record.player.toLowerCase() === playerName.toLowerCase());
     if (careerRecord && careerRecord.count > 0) {
       playerRecords.career.push({
         stat,
@@ -422,7 +388,6 @@ const fetchPlayerRecords = (playerName, recordData) => {
     }
   });
 
-  // 단일 시즌 기록
   statsToRank.forEach((stat) => {
     Object.keys(recordData.yearlyStats).forEach((year) => {
       const allSeasonStats = Object.entries(recordData.yearlyStats[year])
@@ -444,9 +409,7 @@ const fetchPlayerRecords = (playerName, recordData) => {
         }
         previousCount = item.count;
       });
-      const seasonRecord = allSeasonStats.find(
-        (record) => record.player.toLowerCase() === playerName.toLowerCase()
-      );
+      const seasonRecord = allSeasonStats.find((record) => record.player.toLowerCase() === playerName.toLowerCase());
       if (seasonRecord && seasonRecord.count > 0) {
         playerRecords.season.push({
           stat,
@@ -458,7 +421,6 @@ const fetchPlayerRecords = (playerName, recordData) => {
     });
   });
 
-  // 기타 기록 (클럽 기록 포함)
   playerRecords.other = recordData.other.filter(
     (record) => record.player.toLowerCase() === playerName.toLowerCase()
   );
@@ -468,7 +430,7 @@ const fetchPlayerRecords = (playerName, recordData) => {
 
 const Record = () => {
   const [activeTab, setActiveTab] = useState('goals');
-  const [subTab, setSubTab] = useState('attack'); // attack, defense, near
+  const [subTab, setSubTab] = useState('attack');
   const [searchQuery, setSearchQuery] = useState('');
   const [modalData, setModalData] = useState(null);
   const [modalType, setModalType] = useState(null);
@@ -526,7 +488,7 @@ const Record = () => {
     setModalType(type);
     setModalData(data);
     if (type === 'player' || type === 'search') {
-      const position = calculateMostFrequentPosition(data.player, recordData.playerPositionsCache);
+      const position = calculateMostFrequentPosition(data.player || data.player, recordData.playerPositionsCache);
       setModalPosition(position);
     } else {
       setModalPosition('N/A');
@@ -558,35 +520,26 @@ const Record = () => {
       );
       let displayRecords = [];
       if (subTab === 'attack') {
-        displayRecords = filtered.filter(
-          (r) => r.title.includes('클럽 가입') && !r.title.includes('클린시트')
-        );
+        displayRecords = filtered.filter((r) => r.title.includes('클럽 가입') && !r.title.includes('클린시트'));
       } else if (subTab === 'defense') {
         displayRecords = filtered.filter((r) => r.title.includes('클린시트 클럽 가입'));
       } else if (subTab === 'near') {
         displayRecords = filtered.filter((r) => r.title.includes('입성 직전'));
       }
-
       return (
         <>
           <S.TabContainer>
-            <S.Tab active={subTab === 'attack'} onClick={() => handleSubTabChange('attack')}>
-              공격
-            </S.Tab>
-            <S.Tab active={subTab === 'defense'} onClick={() => handleSubTabChange('defense')}>
-              수비
-            </S.Tab>
-            <S.Tab active={subTab === 'near'} onClick={() => handleSubTabChange('near')}>
-              입성 직전자
-            </S.Tab>
+            <S.Tab active={subTab === 'attack'} onClick={() => handleSubTabChange('attack')}>공격</S.Tab>
+            <S.Tab active={subTab === 'defense'} onClick={() => handleSubTabChange('defense')}>수비</S.Tab>
+            <S.Tab active={subTab === 'near'} onClick={() => handleSubTabChange('near')}>입성 직전</S.Tab>
           </S.TabContainer>
           {displayRecords.length > 0 ? (
             displayRecords.map((record, index) => (
-              <S.CategoryCard
-                key={`${record.player}-${record.title}-${record.period}`}
-                onClick={() => openModal('player', record)}
-              >
+              <S.CategoryCard key={`${record.player}-${record.title}`} onClick={() => openModal('player', record)}>
                 <S.CategoryTitle>{record.title}</S.CategoryTitle>
+                <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
+                  {record.player}
+                </div>
               </S.CategoryCard>
             ))
           ) : (
@@ -595,8 +548,10 @@ const Record = () => {
         </>
       );
     }
+
     const careerTitle = `통산 최다 ${getLabel(activeTab)}`;
     const seasonTitle = `단일 시즌 최다 ${getLabel(activeTab)}`;
+
     return (
       <>
         <S.CategoryCard onClick={() => openModal('career', recordData[activeTab].career)}>
@@ -629,67 +584,50 @@ const Record = () => {
           </S.SearchIconWrapper>
           <S.SearchInput
             type="text"
-            placeholder="선수 이름을 검색하세요"
+            placeholder="선수 이름 검색"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
         </S.SearchContainer>
+
         <S.TabContainer>
-          <S.Tab active={activeTab === 'goals'} onClick={() => handleTabChange('goals')}>
-            득점
-          </S.Tab>
-          <S.Tab active={activeTab === 'assists'} onClick={() => handleTabChange('assists')}>
-            어시스트
-          </S.Tab>
-          <S.Tab active={activeTab === 'cleanSheets'} onClick={() => handleTabChange('cleanSheets')}>
-            클린시트
-          </S.Tab>
-          <S.Tab active={activeTab === 'matches'} onClick={() => handleTabChange('matches')}>
-            출장
-          </S.Tab>
-          <S.Tab active={activeTab === 'momScore'} onClick={() => handleTabChange('momScore')}>
-            MOM
-          </S.Tab>
-          <S.Tab
-            active={activeTab === 'personalPoints'}
-            onClick={() => handleTabChange('personalPoints')}
-          >
-            개인 승점
-          </S.Tab>
-          <S.Tab active={activeTab === 'other'} onClick={() => handleTabChange('other')}>
-            명예의 전당
-          </S.Tab>
+          <S.Tab active={activeTab === 'goals'} onClick={() => handleTabChange('goals')}>득점</S.Tab>
+          <S.Tab active={activeTab === 'assists'} onClick={() => handleTabChange('assists')}>어시스트</S.Tab>
+          <S.Tab active={activeTab === 'cleanSheets'} onClick={() => handleTabChange('cleanSheets')}>클린시트</S.Tab>
+          <S.Tab active={activeTab === 'matches'} onClick={() => handleTabChange('matches')}>출장</S.Tab>
+          <S.Tab active={activeTab === 'momScore'} onClick={() => handleTabChange('momScore')}>MOM</S.Tab>
+          <S.Tab active={activeTab === 'personalPoints'} onClick={() => handleTabChange('personalPoints')}>개인 승점</S.Tab>
+          <S.Tab active={activeTab === 'other'} onClick={() => handleTabChange('other')}>명예의 전당</S.Tab>
         </S.TabContainer>
       </S.Header>
+
       <S.CategoryContainer>{renderCategoryCards()}</S.CategoryContainer>
 
-      {/* ---------- 명예의 전당 → 통산 → 시즌 순서 ---------- */}
+      {/* 선수 검색 모달 */}
       {modalData && modalType === 'search' && (
         <S.ModalOverlay onClick={closeModal}>
           <S.ModalContent onClick={(e) => e.stopPropagation()}>
-            <S.CloseButton onClick={closeModal}>x</S.CloseButton>
-            <h2 style={{ marginBottom: '16px' }}>{modalData.player}의 기록</h2>
-            <p>포지션: {modalPosition}</p>
+            <S.CloseButton onClick={closeModal}>×</S.CloseButton>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <PlayerAvatar name={modalData.player} size={80} />
+              <h2 style={{ margin: '16px 0 8px' }}>{modalData.player}의 기록</h2>
+              <p style={{ color: '#666' }}>주 포지션: {modalPosition}</p>
+            </div>
 
-            {/* 1. 명예의 전당 */}
             {modalData.records.other.length > 0 && (
               <S.PlayerRecordSection>
                 <S.PlayerRecordTitle>명예의 전당</S.PlayerRecordTitle>
-                {modalData.records.other.map((record, index) => (
-                  <S.PlayerRecordItem
-                    key={`${record.player}-${record.title}-${record.period}`}
-                  >
+                {modalData.records.other.map((record) => (
+                  <S.PlayerRecordItem key={record.title}>
                     <S.WinnerRecord>
                       {record.title} ({record.period})
                       {record.stats && (
                         <S.StatsContainer>
-                          <S.StatItem>경기수: {record.stats.matches}경기</S.StatItem>
-                          <S.StatItem>득점: {record.stats.goals}골</S.StatItem>
-                          <S.StatItem>어시스트: {record.stats.assists}어시스트</S.StatItem>
-                          {record.stats.cleanSheets !== undefined && (
-                            <S.StatItem>클린시트: {record.stats.cleanSheets}개</S.StatItem>
-                          )}
+                          <S.StatItem>경기: {record.stats.matches}</S.StatItem>
+                          <S.StatItem>득점: {record.stats.goals}</S.StatItem>
+                          <S.StatItem>어시: {record.stats.assists}</S.StatItem>
+                          {record.stats.cleanSheets !== undefined && <S.StatItem>클린: {record.stats.cleanSheets}</S.StatItem>}
                         </S.StatsContainer>
                       )}
                     </S.WinnerRecord>
@@ -698,100 +636,77 @@ const Record = () => {
               </S.PlayerRecordSection>
             )}
 
-            {/* 2. 통산 기록 */}
             <S.PlayerRecordSection>
               <S.PlayerRecordTitle>통산 기록</S.PlayerRecordTitle>
-              {modalData.records.career.length > 0 ? (
-                modalData.records.career.map((record, index) => (
-                  <S.PlayerRecordItem key={index}>
-                    {getLabel(record.stat)}: {record.count} {getLabel(record.stat)} (
-                    {record.rank}위, {record.period})
-                  </S.PlayerRecordItem>
-                ))
-              ) : (
-                <S.PlayerRecordItem>기록 없음</S.PlayerRecordItem>
-              )}
+              {modalData.records.career.length > 0 ? modalData.records.career.map((r) => (
+                <S.PlayerRecordItem key={r.stat}>
+                  {getLabel(r.stat)}: {r.count} ({r.rank}위)
+                </S.PlayerRecordItem>
+              )) : <S.PlayerRecordItem>통산 기록 없음</S.PlayerRecordItem>}
             </S.PlayerRecordSection>
 
-            {/* 3. 단일 시즌 기록 */}
             <S.PlayerRecordSection>
               <S.PlayerRecordTitle>단일 시즌 기록</S.PlayerRecordTitle>
-              {modalData.records.season.length > 0 ? (
-                modalData.records.season.map((record, index) => (
-                  <S.PlayerRecordItem key={index}>
-                    {getLabel(record.stat)}: {record.count} {getLabel(record.stat)} (
-                    {record.rank}위, {record.season}
-                    {record.season === '2025' ? ' (현재 시즌)' : ''})
-                  </S.PlayerRecordItem>
-                ))
-              ) : (
-                <S.PlayerRecordItem>기록 없음</S.PlayerRecordItem>
-              )}
+              {modalData.records.season.length > 0 ? modalData.records.season.map((r) => (
+                <S.PlayerRecordItem key={`${r.season}-${r.stat}`}>
+                  {r.season}시즌 {getLabel(r.stat)}: {r.count} ({r.rank}위)
+                </S.PlayerRecordItem>
+              )) : <S.PlayerRecordItem>시즌 기록 없음</S.PlayerRecordItem>}
             </S.PlayerRecordSection>
           </S.ModalContent>
         </S.ModalOverlay>
       )}
 
-      {/* 기타 모달 (player, career, season) */}
-      {modalData && modalType === 'player' && (
-        <S.ModalOverlay onClick={closeModal}>
-          <S.ModalContent isOther={activeTab === 'other'} onClick={(e) => e.stopPropagation()}>
-            <S.CloseButton onClick={closeModal}>x</S.CloseButton>
-           <S.WinnerBadge>🎖️🎖️</S.WinnerBadge> 
-            <h2 style={{ marginBottom: '16px' }}>{modalData.title}</h2>
-            <p>선수: <strong>{modalData.player}</strong></p>
-            <p>포지션: {modalPosition}</p>
-            <p>기간: {modalData.period}</p>
-            {modalData.stats && (
-              <S.StatsContainer>
-                <S.StatItem>경기수: {modalData.stats.matches}경기</S.StatItem>
-                <S.StatItem>득점: {modalData.stats.goals}골</S.StatItem>
-                <S.StatItem>어시스트: {modalData.stats.assists}어시스트</S.StatItem>
-                {modalData.stats.cleanSheets !== undefined && (
-                  <S.StatItem>클린시트: {modalData.stats.cleanSheets}개</S.StatItem>
-                )}
-              </S.StatsContainer>
-            )}
-            {modalData.count !== undefined && (
-              <p>
-                기록: <strong>{modalData.count} {getLabel(activeTab)}</strong>
-              </p>
-            )}
-          </S.ModalContent>
-        </S.ModalOverlay>
-      )}
-
-      {modalData && (modalType === 'career' || modalType === 'season') && (
+      {/* 명예의 전당, 통산, 시즌 모달 */}
+      {modalData && (modalType === 'player' || modalType === 'career' || modalType === 'season') && (
         <S.ModalOverlay onClick={closeModal}>
           <S.ModalContent onClick={(e) => e.stopPropagation()}>
-            <S.CloseButton onClick={closeModal}>x</S.CloseButton>
-            <h2 style={{ marginBottom: '16px' }}>
-              {modalType === 'career'
-                ? `통산 최다 ${getLabel(activeTab)}`
-                : `단일 시즌 최다 ${getLabel(activeTab)}`}
-            </h2>
-            <S.RankingList>
-              {modalData.map((record, index) => (
-                <S.RankingItem
-                  key={index}
-                  onClick={() =>
-                    openModal('player', {
-                      ...record,
-                      title: `${record.rank}위 - ${record.player}`,
-                    })
-                  }
-                >
-                  <S.RankingPlayer>
-                    {record.rank}위 - {record.player} (
-                    {modalType === 'season'
-                      ? `${record.season}${record.season === '2025' ? ' (현재 시즌)' : ''}`
-                      : record.period}
-                    )
-                  </S.RankingPlayer>
-                  <S.RankingCount>{record.count} {getLabel(activeTab)}</S.RankingCount>
-                </S.RankingItem>
-              ))}
-            </S.RankingList>
+            <S.CloseButton onClick={closeModal}>×</S.CloseButton>
+
+            {modalType === 'player' && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <PlayerAvatar name={modalData.player} size={80} />
+                  <h2 style={{ margin: '16px 0 8px' }}>{modalData.title}</h2>
+                  <p><strong>{modalData.player}</strong> · {modalPosition}</p>
+                  <p>{modalData.period}</p>
+                </div>
+                {modalData.stats && (
+                  <S.StatsContainer>
+                    <S.StatItem>경기: {modalData.stats.matches}</S.StatItem>
+                    <S.StatItem>득점: {modalData.stats.goals}</S.StatItem>
+                    <S.StatItem>어시: {modalData.stats.assists}</S.StatItem>
+                    {modalData.stats.cleanSheets !== undefined && <S.StatItem>클린시트: {modalData.stats.cleanSheets}</S.StatItem>}
+                  </S.StatsContainer>
+                )}
+              </>
+            )}
+
+            {(modalType === 'career' || modalType === 'season') && (
+              <>
+                <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>
+                  {modalType === 'career' ? `통산 최다 ${getLabel(activeTab)}` : `단일 시즌 최다 ${getLabel(activeTab)}`}
+                </h2>
+                <S.RankingList>
+                  {modalData.map((record, index) => (
+                    <S.RankingItem key={index} onClick={() => openModal('player', record)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <PlayerAvatar name={record.player} size={40} />
+                        <div>
+                          <S.RankingPlayer>
+                            {record.rank}위 - {record.player}
+                          </S.RankingPlayer>
+                          <div style={{ fontSize: '14px', color: '#666' }}>
+                            {modalType === 'season' ? `${record.season} 시즌` : '통산'}
+                          </div>
+                        </div>
+                      </div>
+                      <S.RankingCount>{record.count} {getLabel(activeTab)}</S.RankingCount>
+                    </S.RankingItem>
+                  ))}
+                </S.RankingList>
+              </>
+            )}
           </S.ModalContent>
         </S.ModalOverlay>
       )}

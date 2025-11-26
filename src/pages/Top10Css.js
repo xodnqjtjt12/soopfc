@@ -897,7 +897,7 @@ export const FixedTableCell = styled.td`
   font-size: 14px;
   white-space: nowrap;
   background-color: inherit;
-  position: sticky;
+  // position: sticky;
   z-index: 5;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 
