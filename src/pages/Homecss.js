@@ -37,7 +37,7 @@ export const HeroSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 80px 0 120px;
+  // margin: 80px 0 120px;
   gap: 60px;
   width: 100%;
   @media (max-width: 1080px) {
@@ -78,10 +78,10 @@ export const HeroSubtitle = styled.p`
 export const HeroImageContainer = styled.div`
   flex: 1;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  // aspect-ratio: 16 / 9;
   border-radius: 24px;
-  overflow: hidden;
-  margin-left: -10px;
+  // overflow: hidden;
+  // margin-left: -10px;
 
   @media (max-width: 640px) {
     aspect-ratio: 4 / 3;
@@ -89,8 +89,8 @@ export const HeroImageContainer = styled.div`
 `;
 
 export const HeroImage = styled.img`
-  width: 120%;
-  height: 110%;
+  width: 110%;
+  height: 90%;
   object-fit: cover;
   display: block;
   margin: 0;
