@@ -30,6 +30,7 @@ import Score from './pages/Score';
 import ScoreAdmin from './pages/ScoreAdmin';
 import PlayerMonthAward from './pages/PlayerMonthAward';
 import PlayerMonthAwardAdmin from './pages/PlayerMonthAwardAdmin';
+import My from './pages/My';
 
 // 새로 추가되는 페이지들
 import King from './pages/King'                 // 회장 추천 페이지
@@ -113,6 +114,7 @@ function App() {
           <Route path="/record" element={<Record />} />
           <Route path="/player-month-award" element={<PlayerMonthAward />} />
           <Route path="/score" element={<Score />} />
+          <Route path="/my" element={<My />} />
 
           {/* 새로 추가: 26년 회장 추천 페이지 */}
           <Route path="/king" element={<King />} />
