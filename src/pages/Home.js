@@ -11,7 +11,7 @@ import {
 import { db } from '../App';
 import { format, isWithinInterval } from 'date-fns';
 import moment from 'moment';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import * as S from './Homecss';
 
 // ========================
@@ -20,12 +20,9 @@ import * as S from './Homecss';
 const IntroOverlay = styled.div`
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #000 url('${process.env.PUBLIC_URL}/intro-bg.png') center center no-repeat;
+  // background: #000 url('${process.env.PUBLIC_URL}/intro-bg.png') center center no-repeat;
   background-color: #000;
-  
-  /* PC 기본값: 35% (너가 지금 딱 맞다고 한 사이즈) */
   background-size: 35% auto;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -40,12 +37,10 @@ const IntroOverlay = styled.div`
     background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
   }
 
-  /* 모바일에서는 크게! (768px 이하) */
   @media (max-width: 768px) {
     background-size: 88% auto;
   }
 
-  /* 아주 작은 폰에서도 예쁘게 (예: 아이폰 SE) */
   @media (max-width: 480px) {
     background-size: 92% auto;
   }
@@ -81,19 +76,103 @@ const LogoContainer = styled.div`
   }
 `;
 
-const IntroText = styled.div`
-  margin-top: 36px;
-  color: white;
-  font-size: 36px;
-  font-weight: 900;
-  letter-spacing: 6px;
-  text-shadow: 0 6px 30px rgba(0,0,0,0.9);
-  animation: textAppear 2.2s ease-in-out 1s forwards;
-  opacity: 0;
+// ========================
+// MOM 플립 카드 전용 스타일 (Home.js 내부)
+// ========================
+const PlayerCardWrapper = styled.div`
+  perspective: 1200px;
+  width: 240px;
+  height: 420px;
+  cursor: pointer;
+  flex-shrink: 0;
+  scroll-snap-align: start;
 
-  @keyframes textAppear {
-    to { opacity: 1; transform: translateY(-12px); }
+  @media (max-width: 640px) {
+    width: 85%;
+    height: 460px;
   }
+`;
+
+const PlayerCardInner = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+
+  &.flipped {
+    transform: rotateY(180deg);
+  }
+`;
+
+const CardFace = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+`;
+
+const PlayerCardFront = styled(CardFace)`
+  background: linear-gradient(135deg, #ffffff, #f8faff);
+  border: 2px solid transparent;
+  transition: border 0.3s;
+
+  &:hover {
+    border-color: rgba(49, 130, 246, 0.3);
+  }
+`;
+
+const PlayerCardBack = styled(CardFace)`
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  transform: rotateY(180deg);
+  color: white;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.3), transparent 60%);
+    pointer-events: none;
+  }
+`;
+
+const PlayerPhoto = styled.img`
+  width: 200px;
+  // height: 240px;
+  object-fit: cover;
+  border-radius: 16px;
+  // border: 5px solid rgba(255, 255, 255, 0.25);
+  // box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  // margin-bottom: 16px;
+  z-index: 1;
+`;
+
+const PlayerNameBack = styled.h3`
+  font-size: 28px;
+  font-weight: 800;
+  margin: 12px 0 8px;
+  text-shadow: 0 3px 10px rgba(0,0,0,0.6);
+  z-index: 1;
+`;
+
+const PlayerQuote = styled.p`
+  font-size: 15px;
+  opacity: 0.9;
+  font-style: italic;
+  z-index: 1;
+  margin: 0;
 `;
 
 // ========================
@@ -161,9 +240,16 @@ function useLocalStorage(key, initialValue) {
 // Home 컴포넌트 시작
 // ========================
 const Home = () => {
-  // 인트로 제어
   const [showIntro, setShowIntro] = useState(true);
 
+  // 여기 추가!
+  const [flippedCards, setFlippedCards] = useState({});
+  const toggleFlip = (index) => {
+    setFlippedCards(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowIntro(false);
@@ -171,7 +257,6 @@ const Home = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // 기존 상태들
   const [players, setPlayers] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [momPlayers, setMomPlayers] = useState([]);
@@ -201,11 +286,9 @@ const Home = () => {
   const [hideToday, setHideToday] = useLocalStorage('hideAnnouncementsDate', null);
   const [holidays, setHolidays] = useState([]);
   const [anniversaries, setAnniversaries] = useState([]);
-
-  // ★★★★★ 새로 추가: 26년 회장 추천 버튼 노출 상태 ★★★★★
   const [kingExposure, setKingExposure] = useState(false);
 
-  // ★★★★★ 26년 회장 추천 실시간 감지 (라인업/MOM과 똑같은 방식) ★★★★★
+  // 26년 회장 추천 실시간 감지
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'kingVoteStatus', '2026'), (snap) => {
       if (snap.exists()) {
@@ -235,7 +318,7 @@ const Home = () => {
     return () => unsub && unsub();
   }, []);
 
-  // 기존 투표 및 라인업 노출 데이터 (완전 그대로 유지)
+  // 기존 투표 및 라인업 노출 데이터
   useEffect(() => {
     const fetchVoteExposures = async () => {
       const unsubscribe = onSnapshot(doc(db, 'voteStatus', todayStr), async (voteStatusDoc) => {
@@ -332,7 +415,6 @@ const Home = () => {
     fetchVoteExposures();
   }, [todayStr]);
 
-  // 나머지 기존 useEffect들 (100% 그대로 유지)
   useEffect(() => {
     const fetchNotes = async () => {
       try {
@@ -534,27 +616,14 @@ const Home = () => {
 
   return (
     <>
-      {/* 인트로 화면 */}
       {showIntro && (
         <IntroOverlay>
           <LogoContainer>
             <img src={`${process.env.PUBLIC_URL}/SOOPLOGO.png`} alt="SOOP FC" />
           </LogoContainer>
-          {/* <IntroText>SOOP FC</IntroText>
-          <div style={{
-            position: 'absolute',
-            bottom: '80px',
-            color: 'rgba(255,255,255,0.85)',
-            fontSize: '16px',
-            fontWeight: '500',
-            letterSpacing: '1px'
-          }}>
-            축구를 더 쉽게, 더 즐겁게
-          </div> */}
         </IntroOverlay>
       )}
 
-      {/* 본 홈페이지 */}
       <S.HomeContainer>
         <S.ContentWrapper>
           <S.HeroSection>
@@ -566,7 +635,6 @@ const Home = () => {
               <S.ButtonGroup>
                 <S.PrimaryButton href="/total">내 스탯 보기</S.PrimaryButton>
                 
-                {/* MOM 투표 & 라인업 버튼 */}
                 {voteExposures.map(exposure => {
                   const { visible, type, to, text } = getButtonState(
                     exposure.matchDate,
@@ -583,7 +651,6 @@ const Home = () => {
                   );
                 })}
 
-                {/*  26년 회장 추천 버튼 – 주황색으로 화려하게!  */}
                 {kingExposure && (
                   <MatchButton
                     to="/king"
@@ -605,7 +672,6 @@ const Home = () => {
             </S.HeroImageContainer>
           </S.HeroSection>
 
-          {/* 나머지 모든 기존 섹션 그대로 유지 */}
           <S.StatsContainer>
             <S.StatItem>
               <S.StatValue>{stats.totalGoals}</S.StatValue>
@@ -635,41 +701,106 @@ const Home = () => {
             </div>
           )}
 
-          <div style={{ marginBottom: '60px', width: '100%' }}>
-            <S.MomSectionTitle>
-              <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어
-            </S.MomSectionTitle>
-            {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요!</S.SwipeHint>}
-            <S.MomPlayersContainer ref={momRef}>
-              {momPlayers.length > 0 ? momPlayers.map((p, i) => (
-                <S.PlayerCard key={i}>
-                  <S.PlayerHeader>
-                    <S.PlayerContainer>
-                      <S.PlayerRankBadge>
-                        <S.TrophyIcon src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy Icon" />
-                        <S.PlayerRank>{p.rankText || '순위 미정'}</S.PlayerRank>
-                      </S.PlayerRankBadge>
-                      <S.PlayerScore title="누적 MOM점수">{p.momScore}</S.PlayerScore>
-                    </S.PlayerContainer>
-                    <S.PlayerName>{p.name}</S.PlayerName>
-                  </S.PlayerHeader>
-                  <S.PositionTags>
-                    {p.formations?.map((pos, idx) => <S.PositionTag key={idx} position={pos}>{pos}</S.PositionTag>)}
-                  </S.PositionTags>
-                  <S.WhiteDivider />
-                  <S.StatRow><S.StatLabel>골</S.StatLabel><S.StatLabel>{p.goals}</S.StatLabel></S.StatRow>
-                  <S.StatRow><S.StatLabel>도움</S.StatLabel><S.StatLabel>{p.assists}</S.StatLabel></S.StatRow>
-                  <S.StatRow><S.StatLabel>클린시트</S.StatLabel><S.StatLabel>{p.cleanSheets}</S.StatLabel></S.StatRow>
-                  <S.StatRow><S.StatLabel>경기수</S.StatLabel><S.StatLabel>{p.matches}</S.StatLabel></S.StatRow>
-                  <S.StatRow><S.StatLabel>승률</S.StatLabel><S.StatLabel>{p.winRate}%</S.StatLabel></S.StatRow>
-                  <S.StatRow><S.StatLabel>승점</S.StatLabel><S.StatLabel>{p.personalPoints}</S.StatLabel></S.StatRow>
-                  <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.war}</S.StatLabel></S.StatRow>
-                </S.PlayerCard>
-              )) : <p>MOM 플레이어가 없습니다.</p>}
-            </S.MomPlayersContainer>
-            {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
-          </div>
 
+<div style={{ marginBottom: '60px', width: '100%' }}>
+  <S.MomSectionTitle>
+    <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어
+  </S.MomSectionTitle>
+  {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요!</S.SwipeHint>}
+  
+  <S.MomPlayersContainer ref={momRef}>
+    {momPlayers.length > 0 ? momPlayers.map((p, i) => {
+      const isFlipped = flippedCards[i] !== false;
+      const photoName = p.name.trim().replace(/\s+/g, '') + '.png';
+      const photoPath = `${process.env.PUBLIC_URL}/card/${photoName}`;
+
+      return (
+     <PlayerCardWrapper 
+  key={i} 
+  onClick={() => toggleFlip(i)}
+  style={{
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    transform: 'translateY(0)',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)',
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = 'translateY(-16px) scale(1.03)';
+    e.currentTarget.style.boxShadow = '0 25px 50px rgba(251, 191, 36, 0.5)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
+  }}
+>
+          <PlayerCardInner className={isFlipped ? 'flipped' : ''}>
+            
+            {/* 앞면 - 통계 */}
+            <PlayerCardFront>
+              <S.PlayerHeader>
+                <S.PlayerContainer>
+                  <S.PlayerRankBadge>
+                    <S.TrophyIcon src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy Icon" />
+                    <S.PlayerRank>{p.rankText || '순위 미정'}</S.PlayerRank>
+                  </S.PlayerRankBadge>
+                  <S.PlayerScore title="누적 MOM점수">{p.momScore}</S.PlayerScore>
+                </S.PlayerContainer>
+                <S.PlayerName>{p.name}</S.PlayerName>
+              </S.PlayerHeader>
+              <S.PositionTags>
+                {p.formations?.map((pos, idx) => <S.PositionTag key={idx} position={pos}>{pos}</S.PositionTag>)}
+              </S.PositionTags>
+              <S.WhiteDivider />
+              <S.StatRow><S.StatLabel>골</S.StatLabel><S.StatLabel>{p.goals}</S.StatLabel></S.StatRow>
+              <S.StatRow><S.StatLabel>도움</S.StatLabel><S.StatLabel>{p.assists}</S.StatLabel></S.StatRow>
+              <S.StatRow><S.StatLabel>클린시트</S.StatLabel><S.StatLabel>{p.cleanSheets}</S.StatLabel></S.StatRow>
+              <S.StatRow><S.StatLabel>경기수</S.StatLabel><S.StatLabel>{p.matches}</S.StatLabel></S.StatRow>
+              <S.StatRow><S.StatLabel>승률</S.StatLabel><S.StatLabel>{p.winRate}%</S.StatLabel></S.StatRow>
+              <S.StatRow><S.StatLabel>승점</S.StatLabel><S.StatLabel>{p.personalPoints}</S.StatLabel></S.StatRow>
+              <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.war}</S.StatLabel></S.StatRow>
+            </PlayerCardFront>
+
+            {/* 뒷면 - 사진 + 순위 */}
+            <PlayerCardBack>
+              <PlayerPhoto 
+                src={photoPath}
+                alt={p.name}
+                onError={(e) => {
+                  e.target.src = `${process.env.PUBLIC_URL}/card/nomal.png`;
+                }}
+              />
+
+              <div style={{
+                marginTop: '12px',
+                borderRadius: '20px',
+                backdropFilter: 'blur(8px)',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  color: '#fbbf24',
+                  fontSize: '32px',
+                  fontWeight: '900',
+                }}>
+                  <img src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy" style={{ width: '40px', height: '40px' }} />
+                  {p.rankText || '순위 미정'}
+                </div>
+              </div>
+
+              <PlayerNameBack style={{ marginTop: '16px', fontSize: '26px' }}>
+                {p.name}
+              </PlayerNameBack>
+            </PlayerCardBack>
+
+          </PlayerCardInner>
+        </PlayerCardWrapper>
+      );
+    }) : <p style={{color: '#666', textAlign: 'center', width: '100%'}}>MOM 플레이어가 없습니다.</p>}
+  </S.MomPlayersContainer>
+  
+  {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
+</div>
           <S.ScheduleSection>
             <S.ScheduleHeader>축구 일정 보기</S.ScheduleHeader>
             <S.StyledCalendar
