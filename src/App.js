@@ -114,7 +114,7 @@ function App() {
           <Route path="/record" element={<Record />} />
           <Route path="/player-month-award" element={<PlayerMonthAward />} />
           <Route path="/score" element={<Score />} />
-          <Route path="/my" element={<My />} />
+        <Route path="/my/:playerName" element={<My />} />
 
           {/* 새로 추가: 26년 회장 추천 페이지 */}
           <Route path="/king" element={<King />} />

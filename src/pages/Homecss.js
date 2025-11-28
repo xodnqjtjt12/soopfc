@@ -89,7 +89,7 @@ export const HeroImageContainer = styled.div`
 `;
 
 export const HeroImage = styled.img`
-  width: 110%;
+  width: 100%;
   height: 90%;
   object-fit: cover;
   display: block;

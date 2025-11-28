@@ -153,9 +153,9 @@ const Header = () => {
         <NavLinkStyled to="/total" onClick={handleNavClick}>
           내 스탯
         </NavLinkStyled>
-        <NavLinkStyled to="/my" onClick={handleNavClick}>
+        {/* <NavLinkStyled to="/my" onClick={handleNavClick}>
           My<br />페이지
-        </NavLinkStyled>
+        </NavLinkStyled> */}
         <NavLinkStyled to="/admin" onClick={handleNavClick}>
           관리자<br />페이지
         </NavLinkStyled>

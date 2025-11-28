@@ -786,6 +786,31 @@ const Total = () => {
             <ToggleHistoryButton as={Link} to={`/player-history/${playerInfo.name}`}>
               선수 기록 더보기
             </ToggleHistoryButton>
+            {/* 이 버튼이 핵심! */}
+              {/* <Button
+                as={Link}
+                to={`/my/${playerInfo.name}`}
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  padding: '16px 32px',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  borderRadius: '50px',
+                  boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.3s ease',
+                  animation: 'pulse 2s infinite'
+                }}
+                onMouseEnter={(e) => e.target.style.transform = 'translateY(-3px)'}
+                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+              >
+                내 전용 우주 카드 보기
+              </Button> */}
           </PlayerData>
         )}
       </Container>
