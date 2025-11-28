@@ -182,7 +182,7 @@ const calculateMostFrequentFormation = async (playerName) => {
 
 const Total = () => {
   const [playerName, setPlayerName] = useState('');
-  const [playerInfo, setPlayerInfo] = useState(null);
+  const [playerInfo, setPlayerInfo] = useState(null); // 여기서 isFlipped 추가
   const [playerRankings, setPlayerRankings] = useState(null);
   const [error, setError] = useState('');
   const [mostFrequentFormation, setMostFrequentFormation] = useState('N/A');
@@ -198,14 +198,13 @@ const Total = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch top searched players with real-time listener
+  // Fetch top searched players with real-time listener (완전히 그대로)
   useEffect(() => {
     const fetchTopSearchedPlayers = async () => {
       setTopPlayersLoading(true);
       setTopPlayersError('');
 
       try {
-        // Get current top 3 by search count
         const searchQuery = query(
           collection(db, 'searchCounts'),
           orderBy('count', 'desc'),
@@ -232,7 +231,6 @@ const Total = () => {
             return data;
           });
 
-          // Get previous ranking from searchHistory (latest entry)
           const historyQuery = query(
             collection(db, 'searchHistory'),
             orderBy('timestamp', 'desc'),
@@ -247,7 +245,6 @@ const Total = () => {
             console.warn('No searchHistory found');
           }
 
-          // Calculate rank changes
           const topPlayersWithChange = newTopPlayers.map((player) => {
             const prevPlayer = prevPlayers.find((p) => p.name === player.name);
             if (!prevPlayer) {
@@ -264,7 +261,6 @@ const Total = () => {
           });
           console.log('Top players with change:', topPlayersWithChange);
 
-          // Update searchHistory every 30 minutes
           const now = new Date();
           const lastUpdate = historySnapshot.empty ? null : historySnapshot.docs[0].data().timestamp.toDate();
           const shouldUpdateHistory = !lastUpdate || (now - lastUpdate) / (1000 * 60) > 30;
@@ -299,7 +295,7 @@ const Total = () => {
     fetchTopSearchedPlayers();
   }, []);
 
-  // Fetch rankings
+  // Fetch rankings (완전히 그대로)
   useEffect(() => {
     const fetchRankings = async () => {
       try {
@@ -372,7 +368,6 @@ const Total = () => {
       return;
     }
 
-    // Increment search count in Firestore
     const searchRef = doc(db, 'searchCounts', playerName);
     try {
       const searchDoc = await getDoc(searchRef);
@@ -386,7 +381,6 @@ const Total = () => {
         });
       }
 
-      // Fetch player data
       const playerRef = doc(db, 'players', playerName);
       const playerDoc = await getDoc(playerRef);
 
@@ -411,14 +405,15 @@ const Total = () => {
         const playerInMomRank = playerRankings.rankedByMom.find(p => p.id === playerDoc.id);
         const playerInWinRateRank = playerRankings.rankedByWinRate.find(p => p.id === playerDoc.id);
 
-        // Check if player is in top 3 searched
         const trendingRank = topSearchedPlayers.find(p => p.name === playerName)?.rank || null;
 
         const formation = await calculateMostFrequentFormation(playerName);
         setMostFrequentFormation(formation);
 
+        // isFlipped: false로 초기화해서 항상 앞면에서 시작
         setPlayerInfo({
           ...playerData,
+          isFlipped: true,
           goalsRank: playerInGoalsRank ? playerInGoalsRank.goalsRank : '-',
           assistsRank: playerInAssistsRank ? playerInAssistsRank.assistsRank : '-',
           cleanSheetsRank: playerInCleanSheetsRank ? playerInCleanSheetsRank.cleanSheetsRank : '-',
@@ -448,7 +443,7 @@ const Total = () => {
   };
 
   const renderRankBanner = () => {
-    if (!playerInfo) return null;
+    if (!playerInfo || playerInfo.isFlipped) return null;
     const messages = [];
 
     if (playerInfo.goalsRank <= 3 && (playerInfo.goals || 0) > 0) {
@@ -518,11 +513,11 @@ const Total = () => {
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
-        {/* 인기 급상승 선수 TOP 3 (검색 전 표시) */}
+        {/* 인기 급상승 선수 TOP 3 */}
         {!playerInfo && (
           <TopPlayersContainer windowWidth={windowWidth}>
             <TopPlayersTitle>
-              <FaFire /> 인기 급상승 선수 TOP 3
+              인기 급상승 선수 TOP 3
             </TopPlayersTitle>
             {topPlayersLoading && <p>인기 급상승 선수 데이터를 로딩 중입니다...</p>}
             {topPlayersError && <p style={{ color: 'red' }}>{topPlayersError}</p>}
@@ -540,12 +535,12 @@ const Total = () => {
                       {player.change === 'NEW' && <NewBadge>NEW</NewBadge>}
                       {player.change && player.change.startsWith('UP_') && (
                         <RankChangeIndicator direction="up">
-                          ↑ {player.change.split('_')[1]}단계 UP
+                          {player.change.split('_')[1]}단계 UP
                         </RankChangeIndicator>
                       )}
                       {player.change && player.change.startsWith('DOWN_') && (
                         <RankChangeIndicator direction="down">
-                          ↓ {player.change.split('_')[1]}단계 DOWN
+                          {player.change.split('_')[1]}단계 DOWN
                         </RankChangeIndicator>
                       )}
                     </PlayerNameText>
@@ -559,259 +554,272 @@ const Total = () => {
 
         {playerInfo && renderRankBanner()}
 
+        {/* 핵심: 뒤집히는 카드 */}
         {playerInfo && (
-          <PlayerData>
-            <PlayerCardHeader>
-              <PlayerRating>
-                {playerInfo.backNumber || '-'}
-              </PlayerRating>
-              <PlayerName>
-                {playerInfo.name}
-                {playerInfo.trendingRank && (
-                  <TrendingBadge rank={playerInfo.trendingRank}>
-                    #인기 급상승 선수 {playerInfo.trendingRank}위
-                  </TrendingBadge>
-                )}
-              </PlayerName>
-              <PlayerPosition>
-                {mostFrequentFormation.toUpperCase()}
-                <div style={{ marginLeft: '10px' }}>
-                  {playerInfo.team && (
-                    <PositionBadge>
-                      {playerInfo.team.toUpperCase()}
-                    </PositionBadge>
-                  )}
-                </div>
-              </PlayerPosition>
-            </PlayerCardHeader>
-
-            <StatsGrid>
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaFutbol /> 2025 득점</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.goalsRank)}>
-                    {playerInfo.goals || 0} 골 ({playerInfo.goalsRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.goals || 0, 30)}
-                    color={getRankColor(playerInfo.goalsRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaShoePrints /> 2025 어시스트</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.assistsRank)}>
-                    {playerInfo.assists || 0} 어시 ({playerInfo.assistsRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.assists || 0, 20)}
-                    color={getRankColor(playerInfo.assistsRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaShieldAlt /> 2025 클린시트</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.cleanSheetsRank)}>
-                    {playerInfo.cleanSheets || 0} ({playerInfo.cleanSheetsRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.cleanSheets || 0, 15)}
-                    color={getRankColor(playerInfo.cleanSheetsRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaTrophy /> 승/무/패</StatLabel>
-                  <StatValue>
-                    <span style={{ color: '#f8c058' }}>{playerInfo.win || 0}</span> /
-                    <span style={{ color: '#acb0b9' }}>{playerInfo.draw || 0}</span> /
-                    <span style={{ color: '#f44336' }}>{playerInfo.lose || 0}</span>
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-                    <StatBar
-                      percentage={playerInfo.matches > 0 ? ((playerInfo.win || 0) / playerInfo.matches) * 100 : 0}
-                      color="#FFD700"
-                    />
-                    <div style={{
-                      height: '100%',
-                      width: `${playerInfo.matches > 0 ? ((playerInfo.draw || 0) / playerInfo.matches) * 100 : 0}%`,
-                      backgroundColor: '#acb0b9'
-                    }}></div>
-                    <div style={{
-                      height: '100%',
-                      width: `${playerInfo.matches > 0 ? ((playerInfo.lose || 0) / playerInfo.matches) * 100 : 0}%`,
-                      backgroundColor: '#f44336'
-                    }}></div>
-                  </div>
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaTrophy /> 승률</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.winRateRank)}>
-                    {(playerInfo.winRate || 0).toFixed(0)}% ({playerInfo.winRateRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.winRate || 0, 100)}
-                    color={getRankColor(playerInfo.winRateRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaStar /> 개인승점</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.pointsRank)}>
-                    {playerInfo.personalPoints || 0} ({playerInfo.pointsRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.personalPoints || 0, 30)}
-                    color={getRankColor(playerInfo.pointsRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaMedal /> MOM점수</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.momRank)}>
-                    {playerInfo.momScore || 0} ({playerInfo.momRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.momScore || 0, 1000)}
-                    color={getRankColor(playerInfo.momRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-
-              <StatRow>
-                <StatHeader>
-                  <StatLabel><FaRunning /> 출장수</StatLabel>
-                  <StatValue color={getRankColor(playerInfo.matchesRank)}>
-                    {playerInfo.matches || 0} ({playerInfo.matchesRank}위)
-                  </StatValue>
-                </StatHeader>
-                <StatBarContainer>
-                  <StatBar
-                    percentage={getStatPercentage(playerInfo.matches || 0, 38)}
-                    color={getRankColor(playerInfo.matchesRank)}
-                  />
-                </StatBarContainer>
-              </StatRow>
-            </StatsGrid>
-
-            <AdvancedStatsSection>
-              <AdvancedStatsTitle>
-                <FaChartLine /> 세부 스탯
-              </AdvancedStatsTitle>
-              <AdvancedStatsGrid>
-                <AdvancedStatCard title="경기당 도움 기대값 (숫자가 높을수록 좋음)">
-                  <AdvancedStatValue>{playerInfo.xA}</AdvancedStatValue>
-                  <AdvancedStatLabel>xA</AdvancedStatLabel>
-                </AdvancedStatCard>
-                <AdvancedStatCard title="경기당 골 기대값 (숫자가 높을수록 좋음)">
-                  <AdvancedStatValue>{playerInfo.war}</AdvancedStatValue>
-                  <AdvancedStatLabel>xG</AdvancedStatLabel>
-                </AdvancedStatCard>
-                <AdvancedStatCard title="종합 기여도 (숫자가 높을수록 좋음)">
-                  <AdvancedStatValue>{playerInfo.xG}</AdvancedStatValue>
-                  <AdvancedStatLabel>WAR</AdvancedStatLabel>
-                </AdvancedStatCard>
-              </AdvancedStatsGrid>
-            </AdvancedStatsSection>
-
-            {getLevelUpMessage(playerInfo.goals || 0, [5, 10, 15], ['골잡이', '득점기계', 'SOOP FC 메시'], '골') && (
-              <LevelUpMessage>
-                {getLevelUpMessage(playerInfo.goals || 0, [5, 10, 15], ['골잡이', '득점기계', 'SOOP FC 메시'], '골')}
-              </LevelUpMessage>
-            )}
-
-            {getLevelUpMessage(playerInfo.assists || 0, [5, 10], ['키패서', 'SOOP FC 이니에스타'], '개의 어시스트') && (
-              <LevelUpMessage>
-                {getLevelUpMessage(playerInfo.assists || 0, [5, 10], ['키패서', 'SOOP FC 이니에스타'], '개의 어시스트')}
-              </LevelUpMessage>
-            )}
-
-            {getLevelUpMessage(playerInfo.cleanSheets || 0, [5, 10, 15], ['뒷공간 지킴이', '수비의 리더', '클린 시트의 주역'], '클린시트') && (
-              <LevelUpMessage>
-                {getLevelUpMessage(playerInfo.cleanSheets || 0, [5, 10, 15], ['뒷공간 지킴이', '수비의 리더', '클린 시트의 주역'], '클린시트')}
-              </LevelUpMessage>
-            )}
-
-            {getLevelUpMessage(playerInfo.matches || 0, [5, 10, 20], ['꾸준함의 아이콘', 'SOOP FC 참석왕', 'SOOP FC 레전드'], '경기') && (
-              <LevelUpMessage>
-                {getLevelUpMessage(playerInfo.matches || 0, [5, 10, 20], ['꾸준함의 아이콘', 'SOOP FC 참석왕', 'SOOP FC 레전드'], '경기')}
-              </LevelUpMessage>
-            )}
-
-            {getLevelUpMessage(playerInfo.personalPoints || 0, [10, 20], ['팀의 핵심', '승점의 화신'], '승점') && (
-              <LevelUpMessage>
-                {getLevelUpMessage(playerInfo.personalPoints || 0, [10, 20], ['팀의 핵심', '승점의 화신'], '승점')}
-              </LevelUpMessage>
-            )}
-
-            {getLevelUpMessage(playerInfo.momScore || 0, [800, 900, 1000], ['경기의 MVP', 'MOM의 제왕', 'GOAT'], '점') && (
-              <LevelUpMessage>
-                {getLevelUpMessage(playerInfo.momScore || 0, [800, 900, 1000], ['경기의 MVP', 'MOM의 제왕', 'GOAT'], '점')}
-              </LevelUpMessage>
-            )}
-
-            <TitleContainer>
-              {getPlayerTitles(playerInfo).map((title, index) => (
-                <Title key={index}>{title}</Title>
-              ))}
-            </TitleContainer>
-
-            <ToggleHistoryButton as={Link} to={`/player-history/${playerInfo.name}`}>
-              선수 기록 더보기
-            </ToggleHistoryButton>
-            {/* 이 버튼이 핵심! */}
-              {/* <Button
-                as={Link}
-                to={`/my/${playerInfo.name}`}
+          <>
+            {/* 1. 뒤집히는 카드 (버튼 제거) */}
+            <div style={{ perspective: '1500px', margin: '40px auto', }}>
+              <div
                 style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  padding: '16px 32px',
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  border: 'none',
-                  borderRadius: '50px',
-                  boxShadow: '0 10px 30px rgba(102, 126, 234, 0.4)',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  transition: 'all 0.3s ease',
-                  animation: 'pulse 2s infinite'
+                  position: 'relative',
+                  width: '100%',
+                  minHeight: '720px',  // ← 높이 고정 → minHeight로 변경 (중요!)
+                  transformStyle: 'preserve-3d',
+                  transition: 'transform 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  transform: playerInfo.isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                 }}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-3px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                onClick={() => setPlayerInfo(prev => ({ ...prev, isFlipped: !prev.isFlipped }))}
+                onMouseEnter={(e) => {
+                  if (!playerInfo.isFlipped) {
+                    e.currentTarget.style.transform = 'translateY(-15px) scale(1.02) rotateY(0deg)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!playerInfo.isFlipped) {
+                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  }
+                }}
               >
-                내 전용 우주 카드 보기
-              </Button> */}
-          </PlayerData>
+                {/* 앞면: 스탯 카드 */}
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  // height: '100%',
+                  backfaceVisibility: 'hidden',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                }}>
+                  <PlayerData>
+                    <PlayerCardHeader>
+                      <PlayerRating>{playerInfo.backNumber || '-'}</PlayerRating>
+                      <PlayerName>
+                        {playerInfo.name}
+                        {playerInfo.trendingRank && (
+                          <TrendingBadge rank={playerInfo.trendingRank}>
+                            #인기 급상승 선수 {playerInfo.trendingRank}위
+                          </TrendingBadge>
+                        )}
+                      </PlayerName>
+                      <PlayerPosition>
+                        {mostFrequentFormation.toUpperCase()}
+                        {playerInfo.team && (
+                          <div style={{ marginLeft: '10px' }}>
+                            <PositionBadge>{playerInfo.team.toUpperCase()}</PositionBadge>
+                          </div>
+                        )}
+                      </PlayerPosition>
+                    </PlayerCardHeader>
+
+                    <StatsGrid>
+                      {/* 모든 스탯 그대로 유지 (생략 없음) */}
+                       <StatRow>
+                        <StatHeader>
+                          <StatLabel>매치 수</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.matchesRank)}>
+                            {playerInfo.matches || 0} ({playerInfo.matchesRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.matches || 0, 38)} color={getRankColor(playerInfo.matchesRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>2025 득점</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.goalsRank)}>
+                            {playerInfo.goals || 0} 골 ({playerInfo.goalsRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.goals || 0, 30)} color={getRankColor(playerInfo.goalsRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>2025 어시스트</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.assistsRank)}>
+                            {playerInfo.assists || 0} 어시 ({playerInfo.assistsRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.assists || 0, 20)} color={getRankColor(playerInfo.assistsRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>2025 클린시트</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.cleanSheetsRank)}>
+                            {playerInfo.cleanSheets || 0} ({playerInfo.cleanSheetsRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.cleanSheets || 0, 15)} color={getRankColor(playerInfo.cleanSheetsRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>승/무/패</StatLabel>
+                          <StatValue>
+                            <span style={{ color: '#f8c058' }}>{playerInfo.win || 0}</span> /
+                            <span style={{ color: '#acb0b9' }}>{playerInfo.draw || 0}</span> /
+                            <span style={{ color: '#f44336' }}>{playerInfo.lose || 0}</span>
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+                            <StatBar percentage={playerInfo.matches > 0 ? ((playerInfo.win || 0) / playerInfo.matches) * 100 : 0} color="#FFD700" />
+                            <div style={{ height: '100%', width: `${playerInfo.matches > 0 ? ((playerInfo.draw || 0) / playerInfo.matches) * 100 : 0}%`, backgroundColor: '#acb0b9' }}></div>
+                            <div style={{ height: '100%', width: `${playerInfo.matches > 0 ? ((playerInfo.lose || 0) / playerInfo.matches) * 100 : 0}%`, backgroundColor: '#f44336' }}></div>
+                          </div>
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>승률</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.winRateRank)}>
+                            {(playerInfo.winRate || 0).toFixed(0)}% ({playerInfo.winRateRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.winRate || 0, 100)} color={getRankColor(playerInfo.winRateRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>개인승점</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.pointsRank)}>
+                            {playerInfo.personalPoints || 0} ({playerInfo.pointsRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.personalPoints || 0, 30)} color={getRankColor(playerInfo.pointsRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                      <StatRow>
+                        <StatHeader>
+                          <StatLabel>MOM점수</StatLabel>
+                          <StatValue color={getRankColor(playerInfo.momRank)}>
+                            {playerInfo.momScore || 0} ({playerInfo.momRank}위)
+                          </StatValue>
+                        </StatHeader>
+                        <StatBarContainer>
+                          <StatBar percentage={getStatPercentage(playerInfo.momScore || 0, 1000)} color={getRankColor(playerInfo.momRank)} />
+                        </StatBarContainer>
+                      </StatRow>
+                     
+                    </StatsGrid>
+
+                    <AdvancedStatsSection>
+                      <AdvancedStatsTitle>세부 스탯</AdvancedStatsTitle>
+                      <AdvancedStatsGrid>
+                        <AdvancedStatCard title="경기당 도움 기대값 (숫자가 높을수록 좋음)">
+                          <AdvancedStatValue>{playerInfo.xA}</AdvancedStatValue>
+                          <AdvancedStatLabel>xA</AdvancedStatLabel>
+                        </AdvancedStatCard>
+                        <AdvancedStatCard title="경기당 골 기대값 (숫자가 높을수록 좋음)">
+                          <AdvancedStatValue>{playerInfo.war}</AdvancedStatValue>
+                          <AdvancedStatLabel>xG</AdvancedStatLabel>
+                        </AdvancedStatCard>
+                        <AdvancedStatCard title="종합 기여도 (숫자가 높을수록 좋음)">
+                          <AdvancedStatValue>{playerInfo.xG}</AdvancedStatValue>
+                          <AdvancedStatLabel>WAR</AdvancedStatLabel>
+                        </AdvancedStatCard>
+                      </AdvancedStatsGrid>
+                    </AdvancedStatsSection>
+
+                    {/* 레벨업 메시지들 */}
+                    {getLevelUpMessage(playerInfo.goals || 0, [5, 10, 15], ['골잡이', '득점기계', 'SOOP FC 메시'], '골') && (
+                      <LevelUpMessage>{getLevelUpMessage(playerInfo.goals || 0, [5, 10, 15], ['골잡이', '득점기계', 'SOOP FC 메시'], '골')}</LevelUpMessage>
+                    )}
+                    {getLevelUpMessage(playerInfo.assists || 0, [5, 10], ['키패서', 'SOOP FC 이니에스타'], '개의 어시스트') && (
+                      <LevelUpMessage>{getLevelUpMessage(playerInfo.assists || 0, [5, 10], ['키패서', 'SOOP FC 이니에스타'], '개의 어시스트')}</LevelUpMessage>
+                    )}
+                    {getLevelUpMessage(playerInfo.cleanSheets || 0, [5, 10, 15], ['뒷공간 지킴이', '수비의 리더', '클린 시트의 주역'], '클린시트') && (
+                      <LevelUpMessage>{getLevelUpMessage(playerInfo.cleanSheets || 0, [5, 10, 15], ['뒷공간 지킴이', '수비의 리더', '클린 시트의 주역'], '클린시트')}</LevelUpMessage>
+                    )}
+                    {getLevelUpMessage(playerInfo.matches || 0, [5, 10, 20], ['꾸준함의 아이콘', 'SOOP FC 참석왕', 'SOOP FC 레전드'], '경기') && (
+                      <LevelUpMessage>{getLevelUpMessage(playerInfo.matches || 0, [5, 10, 20], ['꾸준함의 아이콘', 'SOOP FC 참석왕', 'SOOP FC 레전드'], '경기')}</LevelUpMessage>
+                    )}
+                    {getLevelUpMessage(playerInfo.personalPoints || 0, [10, 20], ['팀의 핵심', '승점의 화신'], '승점') && (
+                      <LevelUpMessage>{getLevelUpMessage(playerInfo.personalPoints || 0, [10, 20], ['팀의 핵심', '승점의 화신'], '승점')}</LevelUpMessage>
+                    )}
+                    {getLevelUpMessage(playerInfo.momScore || 0, [800, 900, 1000], ['경기의 MVP', 'MOM의 제왕', 'GOAT'], '점') && (
+                      <LevelUpMessage>{getLevelUpMessage(playerInfo.momScore || 0, [800, 900, 1000], ['경기의 MVP', 'MOM의 제왕', 'GOAT'], '점')}</LevelUpMessage>
+                    )}
+
+                    <TitleContainer>
+                      {getPlayerTitles(playerInfo).map((title, index) => (
+                        <Title key={index}>{title}</Title>
+                      ))}
+                    </TitleContainer>
+
+                    {/* 안내 문구 */}
+                   
+                  </PlayerData>
+                </div>
+
+                {/* 뒷면: 사진 */}
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  backfaceVisibility: 'hidden',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                  transform: 'rotateY(180deg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '40px',
+                  boxSizing: 'border-box',
+                }}>
+                  <img
+                    src={`${process.env.PUBLIC_URL}/card/${playerInfo.name.trim().replace(/\s+/g, '')}.png`}
+                    alt={playerInfo.name}
+                    onError={(e) => e.target.src = `${process.env.PUBLIC_URL}/card/nomal.png`}
+                    style={{
+                      width: '320px',
+                      // height: '450px',
+                      objectFit: 'cover',
+                      borderRadius: '24px',
+                      marginBottom: '30px',
+                    }}
+                  />
+                  <h2 style={{
+                    fontSize: '40px',
+                    fontWeight: '900',
+                    color: 'white',
+                    margin: 0,
+                    letterSpacing: '2px',
+                  }}>
+                    {playerInfo.name}
+                  </h2>
+                  <p style={{
+                    margin: '10px 0 0',
+                    fontSize: '20px',
+                    color: '#ffffff',
+                    fontWeight: '600',
+                  }}>
+                    SOOP FC
+                  </p>
+                </div>
+           
+              </div>
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#00000', fontSize: '17px' }}>
+                      카드를 클릭하면 본인 스탯을 볼수있습니다 
+                    </div>
+            </div>
+
+            {/* 2. 버튼은 카드 밖으로 빼서 항상 보이게! */}
+            <div style={{ textAlign: 'center', marginTop: '30px' }}>
+            <ToggleHistoryButton as={Link} to={`/player-history/${playerInfo.name}`}>
+                선수 기록 더보기
+              </ToggleHistoryButton>
+            </div>
+          </>
         )}
       </Container>
     </OuterWrapper>
