@@ -97,6 +97,18 @@ export const HeroImage = styled.img`
   padding: 0;
   position: relative;
   left: -4%;
+
+  /* 📱 모바일 전용 스타일 */
+  @media (max-width: 768px) {
+    width: 60%;
+    height: 100%;
+    left: 18%; /* 필요하면 모바일에서 위치도 조절 가능 */
+      display: block;
+  margin: 0;
+  padding: 0;
+  position: relative;
+     top: -50px; /* 🔼 위로 10px 올림 */
+  }
 `;
 
 export const ButtonGroup = styled.div`
