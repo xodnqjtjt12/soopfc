@@ -30,7 +30,6 @@ import Score from './pages/Score';
 import ScoreAdmin from './pages/ScoreAdmin';
 import PlayerMonthAward from './pages/PlayerMonthAward';
 import PlayerMonthAwardAdmin from './pages/PlayerMonthAwardAdmin';
-import My from './pages/My';
 
 // 새로 추가되는 페이지들
 import King from './pages/King'                 // 회장 추천 페이지
@@ -38,12 +37,6 @@ import KingAdmin from './pages/KingAdmin'      // 회장 추천 홈 노출 관�
 
 // Components
 import Header from './components/Header';
-
-// Icons
-import goalIcon from './icons/goal_icon.png';
-import assistIcon from './icons/assist_icon.png';
-import defenderIcon from './icons/defender_icon.png';
-import trophyIcon from './icons/trophy_icon.png';
 
 // Firebase 설정 (당신의 실제 키 그대로)
 const firebaseConfig = {
@@ -70,28 +63,6 @@ const AppContainer = styled.div`
   }
 `;
 
-const Footer = styled.footer`
-  display: flex;
-  justify-content: space-around;
-  padding: 10px;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background-color: #ffffff;
-  box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const IconLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Icon = styled.img`
-  width: 30px;
-  height: 30px;
-`;
-
 function App() {
   return (
     <Router>
@@ -114,7 +85,6 @@ function App() {
           <Route path="/record" element={<Record />} />
           <Route path="/player-month-award" element={<PlayerMonthAward />} />
           <Route path="/score" element={<Score />} />
-        <Route path="/my/:playerName" element={<My />} />
 
           {/* 새로 추가: 26년 회장 추천 페이지 */}
           <Route path="/king" element={<King />} />
@@ -135,22 +105,6 @@ function App() {
           <Route path="/admin/king" element={<AdminLayout><KingAdmin /></AdminLayout>} />
         </Routes>
       </AppContainer>
-
-      {/* 기존 푸터 유지 */}
-      {/* <Footer>
-        <IconLink to="/top-goal-scorer">
-          <Icon src={goalIcon} alt="득점왕" />
-        </IconLink>
-        <IconLink to="/top-assists">
-          <Icon src={assistIcon} alt="도움왕" />
-        </IconLink>
-        <IconLink to="/top-defender">
-          <Icon src={defenderIcon} alt="수비왕" />
-        </IconLink>
-        <IconLink to="/overall-rankings">
-          <Icon src={trophyIcon} alt="종합 랭킹" />
-        </IconLink>
-      </Footer> */}
     </Router>
   );
 }
