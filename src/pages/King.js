@@ -1,4 +1,4 @@
-// src/pages/King.js - 완전 최종본 (댓글 닉네임 캐시 + 블루 테마 + 선수 사진 추가)
+// src/pages/King.js - 완전 최종본 (댓글 닉네임 캐시 + 블루 테마 + 선수 사진 + 실제 파워랭킹 순위 표시)
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,7 +19,7 @@ const randomNicknames = [
   '드리블천재', '지성박', '골키퍼괴물', '수비의신', '미드필더왕',
   '이누', '리중딱', '맨시티의전설 쑨지하이', '숲FC레전드', '홍명보나가',
   '아스날은빅클럽', '구너', '슛돌이', '크로스마스터', '숲의전설','맹전드',
-  '훔바훔바','제라ioc드처럼 기어가기'
+  '훔바훔바','제라드처럼 기어가기'
 ];
 
 // 메인 블루 색상 정의
@@ -54,63 +54,28 @@ const LandingContainer = styled.div`
 const LandingPage = () => {
   return (
     <LandingContainer>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 1 }}
-        style={{ textAlign: 'center' }}
-      >
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1.15, rotate: 0 }}
-          transition={{ duration: 1.2, type: "spring", stiffness: 80 }}
-        >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1 }} style={{ textAlign: 'center' }}>
+        <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1.15, rotate: 0 }} transition={{ duration: 1.2, type: "spring", stiffness: 80 }}>
           <Trophy size={140} color="#4f46e5" strokeWidth={2.8} />
         </motion.div>
-
-        <motion.h1
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.8, duration: 1 }}
-          style={{ fontSize: '54px', fontWeight: 900, color: MAIN_BLUE, margin: '30px 0 8px', letterSpacing: '3px' }}
-        >
+        <motion.h1 initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8, duration: 1 }}
+          style={{ fontSize: '54px', fontWeight: 900, color: MAIN_BLUE, margin: '30px 0 8px', letterSpacing: '3px' }}>
           2026 SOOP FC
         </motion.h1>
-
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: 1.6, duration: 0.9 }}
-          style={{ height: 8, width: 300, background: `linear-gradient(90deg, ${MAIN_BLUE}, ${LIGHT_BLUE})`, borderRadius: 4, margin: '0 auto' }}
-        />
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.2, duration: 1 }}
-          style={{ fontSize: '32px', fontWeight: 700, color: '#333', margin: '24px 0' }}
-        >
+        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.6, duration: 0.9 }}
+          style={{ height: 8, width: 300, background: `linear-gradient(90deg, ${MAIN_BLUE}, ${LIGHT_BLUE})`, borderRadius: 4, margin: '0 auto' }} />
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2, duration: 1 }}
+          style={{ fontSize: '32px', fontWeight: 700, color: '#333', margin: '24px 0' }}>
           2026년 회장 후보 추천
         </motion.p>
-
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: 2.8 }}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}
-        >
+        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 2.8 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
           <Crown size={42} color="#4f46e5" />
           <span style={{ fontSize: '23px', color: MAIN_BLUE, fontWeight: 800 }}>공식 투표 이벤트</span>
           <Crown size={42} color="#4f46e5" />
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 4 }}
-          style={{ marginTop: '70px', fontSize: '19px', color: '#666', fontWeight: 500 }}
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4 }}
+          style={{ marginTop: '70px', fontSize: '19px', color: '#666', fontWeight: 500 }}>
           잠시 후 SOOP FC 비밀의장으로 이동됩니다...
         </motion.p>
       </motion.div>
@@ -121,11 +86,7 @@ const LandingPage = () => {
 // ===================== 메인 컴포넌트 =====================
 const King = () => {
   const [showLanding, setShowLanding] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowLanding(false), 5000);
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => { const timer = setTimeout(() => setShowLanding(false), 5000); return () => clearTimeout(timer); }, []);
 
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -145,31 +106,40 @@ const King = () => {
   const [listSearchTerm, setListSearchTerm] = useState('');
   const [playerStats, setPlayerStats] = useState({});
 
-  // ===== 모든 useEffect (그대로) =====
+  // ===== 파워랭킹 실제 순위 계산 (핵심 변경!) =====
   useEffect(() => {
     const fetchPlayerStats = async () => {
       const snapshot = await getDocs(collection(db, 'players'));
       const players = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
       const sortedGoals = [...players].sort((a, b) => (b.goals || 0) - (a.goals || 0));
       const sortedAssists = [...players].sort((a, b) => (b.assists || 0) - (a.assists || 0));
       const sortedCleanSheets = [...players].sort((a, b) => (b.cleanSheets || 0) - (a.cleanSheets || 0));
 
+      // 상위 8명 후보 추출 (중복 제거)
+      const topSet = new Set();
+      [sortedGoals, sortedAssists, sortedCleanSheets].forEach(arr => {
+        arr.slice(0, 8).forEach(p => topSet.add(p.id));
+      });
+
+      // 종합 점수로 정확한 순위 정렬 (골3점, 어시2점, 클린2점)
+      const topPlayers = players
+        .filter(p => topSet.has(p.id))
+        .map(p => ({
+          ...p,
+          score: (p.goals || 0) * 3 + (p.assists || 0) * 2 + (p.cleanSheets || 0) * 2
+        }))
+        .sort((a, b) => b.score - a.score);
+
       const stats = {};
       players.forEach(p => {
-        const top3 = sortedGoals.slice(0, 3).some(x => x.id === p.id) ||
-                     sortedAssists.slice(0, 3).some(x => x.id === p.id) ||
-                     sortedCleanSheets.slice(0, 3).some(x => x.id === p.id);
-        const top8 = sortedGoals.slice(0, 8).some(x => x.id === p.id) ||
-                     sortedAssists.slice(0, 8).some(x => x.id === p.id) ||
-                     sortedCleanSheets.slice(0, 8).some(x => x.id === p.id);
-
+        const rank = topPlayers.findIndex(x => x.id === p.id) + 1;
         stats[p.id] = {
           goals: p.goals || 0,
           assists: p.assists || 0,
           cleanSheets: p.cleanSheets || 0,
           matches: p.matches || 0,
-          isTop3: top3,
-          isTop8: top8 && !top3
+          powerRank: rank > 0 ? rank : null  // 1~8위만 순위 있음
         };
       });
       setPlayerStats(stats);
@@ -177,6 +147,7 @@ const King = () => {
     fetchPlayerStats();
   }, []);
 
+  // 나머지 useEffect들은 그대로
   useEffect(() => {
     const statusRef = doc(db, 'kingVoteStatus', '2026');
     const unsubscribe = onSnapshot(statusRef, (docSnap) => {
@@ -243,7 +214,6 @@ const King = () => {
 
   const totalPages = Math.ceil(filteredAndSortedPosts.length / POSTS_PER_PAGE);
   const paginatedPosts = filteredAndSortedPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
-
   useEffect(() => setCurrentPage(1), [listSearchTerm, sortBy]);
 
   const searchPlayerStats = async () => {
@@ -298,24 +268,16 @@ const King = () => {
     if (!isHomeExposed || isVotingEnded) return;
     const text = (commentInputs[postId] || '').trim();
     if (!text) return;
-
     const nickname = getOrCreateNickname();
-
     await updateDoc(doc(db, 'kingRecommendations', postId), {
-      comments: arrayUnion({ 
-        text, 
-        author: nickname, 
-        createdAt: new Date().toISOString() 
-      })
+      comments: arrayUnion({ text, author: nickname, createdAt: new Date().toISOString() })
     });
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
   };
 
   return (
     <>
-      <AnimatePresence>
-        {showLanding && <LandingPage />}
-      </AnimatePresence>
+      <AnimatePresence>{showLanding && <LandingPage />}</AnimatePresence>
 
       {!showLanding && (
         <Container>
@@ -335,9 +297,10 @@ const King = () => {
 
               <Header><Trophy size={36} color={MAIN_BLUE} /><Title>2026 SOOP FC 회장 후보 추천</Title></Header>
 
-            <AddButton onClick={() => !isVotingEnded && setShowForm(!showForm)}>
-  {isVotingEnded ? '투표 마감됨' : (showForm ? '취소하기' : '+ 회장 후보 추천하기')}
-</AddButton>
+              <AddButton onClick={() => !isVotingEnded && setShowForm(!showForm)}>
+                {isVotingEnded ? '투표 마감됨' : (showForm ? '취소하기' : '+ 회장 후보 추천하기')}
+              </AddButton>
+
               {showForm && !isVotingEnded && (
                 <FormCard>
                   <UnifiedSearchBox>
@@ -385,12 +348,11 @@ const King = () => {
                     const userId = localStorage.getItem('kingVoteUser') || 'guest_' + Date.now();
                     localStorage.setItem('kingVoteUser', userId);
                     const isLiked = post.likedBy?.includes(userId);
-                    const stats = playerStats[post.candidate] || { goals:0, assists:0, cleanSheets:0, matches:0, isTop3:false, isTop8:false };
+                    const stats = playerStats[post.candidate] || { goals:0, assists:0, cleanSheets:0, matches:0, powerRank: null };
 
                     return (
                       <PostCard key={post.id}>
                         <CandidateHeader>
-                          {/* 사진 추가 */}
                           <PlayerImg 
                             src={`/players/${post.candidate}.png`}
                             alt={post.candidate}
@@ -398,8 +360,12 @@ const King = () => {
                           />
                           <CandidateName>
                             후보: {post.candidate}
-                            {stats.isTop3 && <PowerBadge top3>파워랭킹 TOP3</PowerBadge>}
-                            {stats.isTop8 && <PowerBadge top8>파워랭킹 TOP8</PowerBadge>}
+                            {stats.powerRank && (
+                              <PowerRankBadge rank={stats.powerRank}>
+                                <Crown size={14} />
+                                파워랭킹 {stats.powerRank}위
+                              </PowerRankBadge>
+                            )}
                           </CandidateName>
                         </CandidateHeader>
 
@@ -458,7 +424,7 @@ const King = () => {
   );
 };
 
-// ===================== 스타일 (사진 관련만 추가) =====================
+// ===================== 스타일 (당신이 수정한 그대로 + 순위 배지만 추가) =====================
 const PlayerImg = styled.img`
   width: 72px;
   // height: 72px;
@@ -475,7 +441,6 @@ const CandidateHeader = styled.div`
   margin-bottom: 14px;
 `;
 
-// 기존 CandidateName은 그대로 사용 (flex-wrap 유지)
 const CandidateName = styled.h3`
   color: ${MAIN_BLUE};
   font-size: 22px;
@@ -488,7 +453,26 @@ const CandidateName = styled.h3`
   flex: 1;
 `;
 
-// 나머지 스타일은 완전히 그대로
+// 새로 추가된 파워랭킹 순위 배지 (1위 금색, 2위 은색, 3위 동색, 나머지 블루)
+const PowerRankBadge = styled.span`
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: ${p => {
+    if (p.rank === 1) return 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+    if (p.rank === 2) return 'linear-gradient(135deg, #94a3b8, #64748b)';
+    if (p.rank === 3) return 'linear-gradient(135deg, #dc8a58, #c05621)';
+    return MAIN_BLUE;
+  }};
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+`;
+
+// 기존 스타일들 (완전히 그대로)
 const UnifiedSearchBox = styled.div`position:relative;width:100%;`;
 const SearchIconLeft = styled.div`position:absolute;left:18px;top:50%;transform:translateY(-50%);color:${MAIN_BLUE};pointer-events:none;z-index:10;`;
 const SearchBtn = styled.button`position:absolute;right:8px;top:50%;transform:translateY(-50%);background:${MAIN_BLUE};color:white;border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;`;
@@ -510,7 +494,6 @@ const SubmitButton = styled.button`width:100%;padding:20px;background:linear-gra
 const PostsList = styled.div`display:flex;flex-direction:column;gap:24px;margin-bottom:40px;`;
 const PostCard = styled.div`background:white;padding:24px;border-radius:20px;box-shadow:0 6px 20px rgba(0,0,0,0.08);`;
 const Reason = styled.p`font-size:17px;line-height:1.8;color:#333;margin:0 0 20px 0;white-space:pre-wrap;`;
-const PowerBadge = styled.span`padding:5px 12px;border-radius:14px;font-size:12px;font-weight:bold;color:white;background:${p=>p.top3?'#dc2626':'#2563eb'};box-shadow:0 2px 6px rgba(0,0,0,0.3);`;
 const StatsPreview = styled.div`display:grid;gap:12px;margin:16px 0;padding:16px;background:${BG_LIGHT};border-radius:20px;border:3px dashed ${LIGHT_BLUE};grid-template-columns:repeat(4,1fr);@media(max-width:768px)and(min-width:481px){grid-template-columns:repeat(2,1fr)}@media(max-width:480px){grid-template-columns:1fr}`;
 const Stat = styled.div`display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:bold;background:white;border-radius:14px;padding:12px 8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);`;
 const Actions = styled.div`display:flex;align-items:center;gap:20px;margin-top:16px;padding-top:16px;border-top:1px solid #eee;`;
