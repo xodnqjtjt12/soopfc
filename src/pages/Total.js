@@ -9,7 +9,7 @@ import {
   StatsGrid, StatRow, StatHeader, StatLabel, StatValue, StatBarContainer, StatBar,
   AdvancedStatsSection, AdvancedStatsTitle, AdvancedStatsGrid, AdvancedStatCard,
   AdvancedStatValue, AdvancedStatLabel, LevelUpMessage, TitleContainer, Title,
-  getRankColor, getRatingColor, ToggleHistoryButton, TopPlayersContainer, TopPlayersTitle,
+  getRankColor, getRatingColor, ToggleHistoryButton, TopPlayersContainer, TopPlayersTitle,FixedBottomButton,
   TopPlayerItem, PlayerRank, PlayerNameText, TrendingBadge, LastUpdate, RankChangeIndicator, NewBadge
 } from './TotalCss';
 
@@ -618,7 +618,7 @@ const Total = () => {
                         <StatHeader>
                           <StatLabel>매치 수</StatLabel>
                           <StatValue color={getRankColor(playerInfo.matchesRank)}>
-                            {playerInfo.matches || 0} ({playerInfo.matchesRank}위)
+                            {playerInfo.matches || 0}경기 ({playerInfo.matchesRank}위)
                           </StatValue>
                         </StatHeader>
                         <StatBarContainer>
@@ -753,6 +753,31 @@ const Total = () => {
                       {getPlayerTitles(playerInfo).map((title, index) => (
                         <Title key={index}>{title}</Title>
                       ))}
+{!playerInfo.isFlipped && (
+    <div style={{ 
+      marginTop: '30px', 
+      textAlign: 'center',
+      padding: '0 20px'
+    }}>
+      <ToggleHistoryButton
+        as={Link}
+        to={`/player-history/${playerInfo.name}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        선수 기록 더보기
+      </ToggleHistoryButton>
+
+      <div style={{
+        marginTop: '12px',
+        color: '#94a3b8',
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        다시 탭하면 카드로 돌아갑니다
+      </div>
+    </div>
+  )}
+                      
                     </TitleContainer>
 
                     {/* 안내 문구 */}
@@ -808,20 +833,30 @@ const Total = () => {
                 </div>
            
               </div>
-                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#00000', fontSize: '17px' }}>
-                      카드를 클릭하면 본인 스탯을 볼수있습니다 
-                    </div>
-            </div>
+                {/* 스탯 카드일 때만 하단에 "선수 기록 더보기" 버튼 보이게 + 클릭하면 이동만! */}
+             {/* 스탯 카드(뒷면)일 때만 버튼 + 안내 문구 보이게 */}
+          
 
-            {/* 2. 버튼은 카드 밖으로 빼서 항상 보이게! */}
-            <div style={{ textAlign: 'center', marginTop: '30px' }}>
-            <ToggleHistoryButton as={Link} to={`/player-history/${playerInfo.name}`}>
-                선수 기록 더보기
-              </ToggleHistoryButton>
+              {/* 사진 카드(앞면)일 때만 안내 문구만 */}
+              {!playerInfo.isFlipped && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '20px 0',
+                  color: '#e2e8f0',
+                  fontSize: '17px',
+                  marginTop: '10px',
+                  fontWeight: '600'
+                }}>
+                  카드를 탭하면 스탯을 확인할 수 있습니다
+                </div>
+                
+              )}
             </div>
+ 
+            
           </>
         )}
-      </Container>
+   </Container>
     </OuterWrapper>
   );
 };

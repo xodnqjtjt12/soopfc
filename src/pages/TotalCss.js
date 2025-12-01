@@ -415,11 +415,28 @@ export const Title = styled.div`
     font-size: 16px;
   }
 `;
+export const FixedBottomButton = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 24px max(30px, env(safe-area-inset-bottom));
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  z-index: 9999;
+  pointer-events: none;
+
+  & > div {
+    pointer-events: auto;
+  }
+`;
 
 export const ToggleHistoryButton = styled.button`
   display: block;
-  margin: 16px 16px;
-  padding: 15px 30px;
+  margin: 0px 34px 20px;
+  padding: 11px 30px;
   font-size: 18px;
   color: white;
   background-color: #0182ff;
@@ -438,10 +455,13 @@ export const ToggleHistoryButton = styled.button`
     transform: translateY(-2px);
   }
 
-  @media (max-width: 640px) {
-    font-size: 16px;
-    padding: 12px 24px;
-  }
+@media (max-width: 640px) {
+  font-size: 16px;
+  padding: 16px 27px;
+  width: 80%;
+  margin: 0 auto; /* 가운데 정렬 */
+  display: block; /* margin auto가 적용되도록 block 또는 inline-block 필요 */
+}
 `;
 
 export const HistorySection = styled.div`
