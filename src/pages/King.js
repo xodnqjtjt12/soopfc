@@ -1,4 +1,4 @@
-// src/pages/King.js - 완전 최종본 (댓글 닉네임 캐시 적용 + 블루 테마 유지)
+// src/pages/King.js - 완전 최종본 (댓글 닉네임 캐시 + 블루 테마 + 선수 사진 추가)
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,7 +19,7 @@ const randomNicknames = [
   '드리블천재', '지성박', '골키퍼괴물', '수비의신', '미드필더왕',
   '이누', '리중딱', '맨시티의전설 쑨지하이', '숲FC레전드', '홍명보나가',
   '아스날은빅클럽', '구너', '슛돌이', '크로스마스터', '숲의전설','맹전드',
-  '훔바훔바','제라드처럼 기어가기'
+  '훔바훔바','제라ioc드처럼 기어가기'
 ];
 
 // 메인 블루 색상 정의
@@ -29,7 +29,7 @@ const DARK_BLUE = '#2563eb';
 const BG_LIGHT = '#f0f5ff';
 const BG_SOFT = '#e0ecff';
 
-// ===================== 닉네임 캐시 함수 (핵심 추가!) =====================
+// ===================== 닉네임 캐시 함수 =====================
 const getOrCreateNickname = () => {
   let nickname = localStorage.getItem('kingVoteNickname');
   if (!nickname) {
@@ -95,8 +95,8 @@ const LandingPage = () => {
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
           transition={{ delay: 2.8 }}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}
         >
@@ -294,13 +294,12 @@ const King = () => {
     });
   };
 
-  // ===== 댓글 추가 시 고정된 닉네임 사용 (핵심 수정!) =====
   const handleAddComment = async (postId) => {
     if (!isHomeExposed || isVotingEnded) return;
     const text = (commentInputs[postId] || '').trim();
     if (!text) return;
 
-    const nickname = getOrCreateNickname(); // ← 여기서 캐시된 닉네임 가져옴!
+    const nickname = getOrCreateNickname();
 
     await updateDoc(doc(db, 'kingRecommendations', postId), {
       comments: arrayUnion({ 
@@ -336,10 +335,9 @@ const King = () => {
 
               <Header><Trophy size={36} color={MAIN_BLUE} /><Title>2026 SOOP FC 회장 후보 추천</Title></Header>
 
-              <AddButton onClick={() => !isVotingEnded && setShowForm(!showForm)}>
-                {isVotingEnded ? '투표 마감됨' : (showForm ? '취소하기' : '+ 회장 후보 추천하기')}
-              </AddButton>
-
+            <AddButton onClick={() => !isVotingEnded && setShowForm(!showForm)}>
+  {isVotingEnded ? '투표 마감됨' : (showForm ? '취소하기' : '+ 회장 후보 추천하기')}
+</AddButton>
               {showForm && !isVotingEnded && (
                 <FormCard>
                   <UnifiedSearchBox>
@@ -391,11 +389,19 @@ const King = () => {
 
                     return (
                       <PostCard key={post.id}>
-                        <CandidateName>
-                          후보: {post.candidate}
-                          {stats.isTop3 && <PowerBadge top3>파워랭킹 TOP3</PowerBadge>}
-                          {stats.isTop8 && <PowerBadge top8>파워랭킹 TOP8</PowerBadge>}
-                        </CandidateName>
+                        <CandidateHeader>
+                          {/* 사진 추가 */}
+                          <PlayerImg 
+                            src={`/players/${post.candidate}.png`}
+                            alt={post.candidate}
+                            onError={(e) => { e.target.src = '/logo194.png'; }}
+                          />
+                          <CandidateName>
+                            후보: {post.candidate}
+                            {stats.isTop3 && <PowerBadge top3>파워랭킹 TOP3</PowerBadge>}
+                            {stats.isTop8 && <PowerBadge top8>파워랭킹 TOP8</PowerBadge>}
+                          </CandidateName>
+                        </CandidateHeader>
 
                         <StatsPreview>
                           <Stat><Star size={18} /> {stats.matches}경기</Stat>
@@ -452,7 +458,37 @@ const King = () => {
   );
 };
 
-// ===================== 모든 스타일 (100% 그대로) =====================
+// ===================== 스타일 (사진 관련만 추가) =====================
+const PlayerImg = styled.img`
+  width: 72px;
+  // height: 72px;
+  // border-radius: 50%;
+  object-fit: cover;
+  // border: 4px solid ${MAIN_BLUE};
+  flex-shrink: 0;
+`;
+
+const CandidateHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+`;
+
+// 기존 CandidateName은 그대로 사용 (flex-wrap 유지)
+const CandidateName = styled.h3`
+  color: ${MAIN_BLUE};
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+`;
+
+// 나머지 스타일은 완전히 그대로
 const UnifiedSearchBox = styled.div`position:relative;width:100%;`;
 const SearchIconLeft = styled.div`position:absolute;left:18px;top:50%;transform:translateY(-50%);color:${MAIN_BLUE};pointer-events:none;z-index:10;`;
 const SearchBtn = styled.button`position:absolute;right:8px;top:50%;transform:translateY(-50%);background:${MAIN_BLUE};color:white;border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;`;
@@ -473,7 +509,6 @@ const LoadingText = styled.p`text-align:center;color:${MAIN_BLUE};font-weight:bo
 const SubmitButton = styled.button`width:100%;padding:20px;background:linear-gradient(135deg,${MAIN_BLUE},${DARK_BLUE});color:white;border:none;border-radius:18px;font-size:20px;font-weight:bold;margin-top:8px;`;
 const PostsList = styled.div`display:flex;flex-direction:column;gap:24px;margin-bottom:40px;`;
 const PostCard = styled.div`background:white;padding:24px;border-radius:20px;box-shadow:0 6px 20px rgba(0,0,0,0.08);`;
-const CandidateName = styled.h3`color:${MAIN_BLUE};font-size:22px;font-weight:bold;margin:0 0 14px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;`;
 const Reason = styled.p`font-size:17px;line-height:1.8;color:#333;margin:0 0 20px 0;white-space:pre-wrap;`;
 const PowerBadge = styled.span`padding:5px 12px;border-radius:14px;font-size:12px;font-weight:bold;color:white;background:${p=>p.top3?'#dc2626':'#2563eb'};box-shadow:0 2px 6px rgba(0,0,0,0.3);`;
 const StatsPreview = styled.div`display:grid;gap:12px;margin:16px 0;padding:16px;background:${BG_LIGHT};border-radius:20px;border:3px dashed ${LIGHT_BLUE};grid-template-columns:repeat(4,1fr);@media(max-width:768px)and(min-width:481px){grid-template-columns:repeat(2,1fr)}@media(max-width:480px){grid-template-columns:1fr}`;
