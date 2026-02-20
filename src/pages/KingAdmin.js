@@ -1,8 +1,8 @@
 // src/pages/KingAdmin.js - 기존 홈 노출 기능 그대로 + 비밀번호 + 후보/댓글 관리 추가
 import React, { useState, useEffect } from 'react';
-import { 
-  collection, doc, setDoc, deleteDoc, getDoc, query, 
-  onSnapshot, updateDoc, arrayRemove, serverTimestamp 
+import {
+  collection, doc, setDoc, deleteDoc, getDoc, query,
+  onSnapshot, updateDoc, arrayRemove, serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../App';
 import styled from 'styled-components';
@@ -172,36 +172,18 @@ const CommentItem = styled.div`
 `;
 
 const KingAdmin = () => {
-  // 인증 관련
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-
-  // 기존 홈 노출 설정 관련 (완전 그대로!)
   const [isEnabled, setIsEnabled] = useState(false);
   const [startDateTime, setStartDateTime] = useState('');
   const [endDateTime, setEndDateTime] = useState('');
-  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
-  // 후보자 관리 관련
+  const [message, setMessage] = useState('');
   const [posts, setPosts] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editReason, setEditReason] = useState('');
 
-  // 비밀번호 인증
-  const handlePasswordSubmit = () => {
-    if (passwordInput === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-    } else {
-      alert('비밀번호가 틀렸습니다! (힌트: 당신의 이름)');
-      setPasswordInput('');
-    }
-  };
-
-  // 기존 설정 불러오기
+  // 기존  // 상태 로드
   useEffect(() => {
-    if (!isAuthenticated) return;
-
+    setIsLoading(true);
     const loadSettings = async () => {
       try {
         const docRef = doc(db, 'kingVoteStatus', '2026');
@@ -221,12 +203,10 @@ const KingAdmin = () => {
     };
 
     loadSettings();
-  }, [isAuthenticated]);
+  }, []);
 
   // 후보자 실시간 불러오기
   useEffect(() => {
-    if (!isAuthenticated) return;
-
     const q = query(collection(db, 'kingRecommendations'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
@@ -238,7 +218,7 @@ const KingAdmin = () => {
     });
 
     return () => unsubscribe();
-  }, [isAuthenticated]);
+  }, []);
 
   // 기존 저장 기능 (완전 그대로!)
   const handleSave = async () => {
@@ -295,28 +275,6 @@ const KingAdmin = () => {
     });
   };
 
-  // 비밀번호 입력 화면
-  if (!isAuthenticated) {
-    return (
-      <PasswordModal>
-        <PasswordBox>
-          <Trophy size={70} color="#ff5e00" style={{ marginBottom: '20px' }} />
-          <h2 style={{ fontSize: '30px', color: '#ff5e00', marginBottom: '30px', fontWeight: '900' }}>
-            관리자 로그인
-          </h2>
-          <Input
-            type="password"
-            placeholder="비밀번호 입력 (힌트: 당신 이름)"
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-          />
-          <Button onClick={handlePasswordSubmit}>로그인</Button>
-        </PasswordBox>
-      </PasswordModal>
-    );
-  }
-
   return (
     <Container>
       {/* 기존 홈 노출 관리 기능 그대로 */}
@@ -369,7 +327,7 @@ const KingAdmin = () => {
                 </>
               ) : (
                 <>
-                  <Edit2 size={20} color="#ff5e00" style={{ cursor: 'pointer', marginRight: '16px' }} 
+                  <Edit2 size={20} color="#ff5e00" style={{ cursor: 'pointer', marginRight: '16px' }}
                     onClick={() => { setEditingId(post.id); setEditReason(post.reason); }} />
                   <Trash2 size={20} color="#d4380d" style={{ cursor: 'pointer' }} onClick={() => handleDelete(post.id)} />
                 </>
@@ -392,7 +350,7 @@ const KingAdmin = () => {
             {post.comments.map((c, i) => (
               <CommentItem key={i}>
                 <span><strong style={{ color: '#ff5e00' }}>{c.author}</strong> {c.text}</span>
-                <Trash2 size={16} color="#d4380d" style={{ cursor: 'pointer' }} 
+                <Trash2 size={16} color="#d4380d" style={{ cursor: 'pointer' }}
                   onClick={() => handleDeleteComment(post.id, i)} />
               </CommentItem>
             ))}

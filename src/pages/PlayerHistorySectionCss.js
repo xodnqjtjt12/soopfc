@@ -1,5 +1,5 @@
 import styled, { keyframes } from 'styled-components';
-import { Trophy } from 'react-feather'; // 트로피 아이콘 사용 (react-feather 패키지 필요)
+import { Trophy } from 'lucide-react';
 
 // 애니메이션 키프레임 정의
 export const fadeIn = keyframes`
@@ -19,154 +19,186 @@ export const expand = keyframes`
 
 // 스타일 컴포넌트 정의
 export const OuterWrapper = styled.div`
-  background-color: #f9fafb;
-  padding-top: 24px;
-
-  @media (max-width: 640px) {
-    background-color: #ffffff;
-  }
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 0;
 `;
 
 export const Container = styled.div`
-  padding: 20px;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  background-color: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  overflow-x: hidden;
-
-  @media (max-width: 640px) {
-    padding: 15px;
-    margin: -70px 16px 0 16px;
-  }
-`;
-
-export const Button = styled.button`
-  background-color: #ffffff; /* 배경색을 흰색으로 설정 */
-  border: 1px solid #e0e0e0; /* 테두리 추가로 버튼 경계 명확히 */
-  border-radius: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
+  padding: 30px 20px 80px;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #333d4b;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #f5f5f5; /* 호버 시 약간 회색빛 배경 */
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    background-color: #e0e0e0;
-    transform: translateY(0);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 100, 255, 0.3);
-  }
+  flex-direction: column;
+  gap: 32px;
 
   @media (max-width: 768px) {
-    padding: 6px 10px;
+    padding: 20px 16px 60px;
+    gap: 24px;
   }
 `;
 
-export const Header = styled.h2`
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  color: #1a1a1a;
-  animation: ${fadeIn} 0.5s ease-out;
-
-  @media (max-width: 640px) {
-    font-size: 20px;
-  }
-`;
-
-// 수상 기록 섹션 컨테이너
-export const AwardsContainer = styled.div`
+export const HeaderSection = styled.header`
   display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  
-
-  @media (max-width: 640px) {
-    margin-left: -15px; 
-    margin-left: -5px; /* 모바일에서는 덜 이동시키고 싶다면 값 변경 */
-  }
-`;
-
-// 연도별 수상 기록 카드
-export const YearlyAwardCard = styled.div`
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  padding: 12px;
-  width: 200px;
-  flex-shrink: 0;
-  backdrop-filter: blur(5px);
-  transition: transform 0.2s ease;
-  
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-// 수상 기록 제목 컴포넌트
-export const AwardSectionTitle = styled.div`
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-end;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 4px;
-  
-  .trophy-icon {
-    margin-right: 6px;
-    color: #ffc107; /* 트로피는 금색으로 */
-    filter: drop-shadow(0 0 3px rgba(255, 193, 7, 0.3));
-    animation: float 1.5s ease-in-out infinite;
-  }
+  flex-wrap: wrap;
+  gap: 20px;
 
-  @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-5px);
-    }
-    100% {
-      transform: translateY(0px);
-    }
-  }
-  
-  h4 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 `;
 
-// 수상 기록 아이템 컴포넌트
-export const AwardItem = styled.div`
+export const HeaderLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+export const TitleContainer = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
+  gap: 16px;
+`;
+
+export const BackButton = styled.button`
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4e5968;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+  &:hover {
+    background-color: #f1f3f5;
+    transform: translateX(-2px);
+  }
+`;
+
+export const Title = styled.h1`
+  font-size: 28px;
+  font-weight: 800;
+  color: #191f28;
+  margin: 0;
+  letter-spacing: -0.5px;
+`;
+
+export const Subtitle = styled.p`
+  font-size: 16px;
+  color: #8b95a1;
+  margin: 0;
+  font-weight: 500;
+`;
+
+export const Section = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: ${fadeIn} 0.6s ease-out;
+`;
+
+export const SectionTitleWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333d4b;
+    margin: 0;
+  }
+
+  svg {
+    color: #3182f6;
+  }
+`;
+
+export const AwardsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const AwardCard = styled.div`
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f2f4f6;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-4px);
+  }
+`;
+
+export const AwardYearHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f2f4f6;
+
+  span {
+    font-size: 17px;
+    font-weight: 700;
+    color: #191f28;
+  }
+`;
+
+export const AwardBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: ${props => props.bgColor || '#f8f9fa'};
+  border-radius: 12px;
   
-  .award-icon {
-    margin-right: 6px;
+  .icon-box {
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    font-size: 18px;
   }
-  
-  .award-text {
-    font-size: 14px;
+
+  .text-stack {
+    display: flex;
+    flex-direction: column;
+    
+    .label {
+      font-size: 12px;
+      color: #8b95a1;
+      font-weight: 500;
+    }
+    
+    .value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #333d4b;
+    }
   }
 `;
 
@@ -264,115 +296,70 @@ export const Form = styled.form`
   }
 `;
 
-export const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  background-color: #ffffff;
-  border-radius: 10px;
+export const TableCard = styled.div`
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f2f4f6;
   overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  animation: ${fadeIn} 0.5s ease-out;
-`;
 
-export const Th = styled.th`
-  padding: 15px;
-  background-color: #1a1a1a;
-  color: #f8f8f8;
-  font-size: 16px;
-  font-weight: 600;
-  text-align: left;
-
-  border-bottom: 1px solid #3a3a3a;
-
-  @media (max-width: 640px) {
-    font-size: 14px;
-    padding: 10px;
+  @media (max-width: 768px) {
+    padding: 16px;
+    margin: 0 -4px;
   }
 `;
 
-export const Td = styled.td`
-  padding: 15px;
-  color: #1a1a1a;
-  font-size: 16px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-
-  @media (max-width: 640px) {
-    font-size: 14px;
-    padding: 10px;
-  }
+export const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
-export const HistoryTable = styled.table`
+export const ModernTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  background-color: #1a1a1a;
-  border-radius: 10px;
-  overflow-x: auto;      /* 기본: 스크롤 허용 */
-  display: block;
-  animation: ${fadeIn} 0.5s ease-out;
-
-  @media (max-width: 640px) {
-    /* 모바일: 컨테이너 폭만큼 축소, 필요 시 스크롤 */
-    min-width: 0;         /* 고정 최소 너비 제거 */
-    overflow-x: auto;     /* 스크롤 허용 */
-    table-layout: auto;   /* 유동 레이아웃 */
-    display: block;
-  }
+  min-width: 800px;
 `;
 
-export const HistoryTableHeader = styled.th`
-  padding: 15px;
-  background-color: #303030;
-  color: #f8f8f8;
-  font-size: 16px;
+export const ModernTh = styled.th`
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 14px;
   font-weight: 600;
-  text-align: center;
-  border-bottom: 1px solid #3a3a3a;
+  color: #8b95a1;
+  border-bottom: 1px solid #f2f4f6;
+  background-color: #fcfdfe;
   white-space: nowrap;
-  width: ${props => {
-    if (['승률', '개인승점', 'MOM점수'].includes(props.children)) return '100px';
-    return '90px';
-  }};
 
-  @media (max-width: 640px) {
-    font-size: 11px;
-    padding: 6px;
-    width: ${props => {
-      if (['승률', '개인승점', 'MOM점수'].includes(props.children)) return '70px';
-      return '60px';
-    }};
-  }
+  &:first-child { text-align: left; padding-left: 20px; }
+  &:last-child { padding-right: 20px; }
 `;
 
-export const HistoryTableRow = styled.tr`
-  &:nth-child(even) {
-    background-color: #252525;
-  }
-`;
-
-export const HistoryTableCell = styled.td`
-  padding: 15px;
-  color: #f8f8f8;
-  font-size: 16px;
+export const ModernTd = styled.td`
+  padding: 20px 12px;
   text-align: center;
-  border-bottom: 1px solid #3a3a3a;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333d4b;
+  border-bottom: 1px solid #f2f4f6;
   white-space: nowrap;
-  width: ${props => {
-    if (['승률', '개인승점', 'MOM점수'].includes(props.children?.toString().split('%')[0])) return '100px';
-    return '90px';
-  }};
 
-  @media (max-width: 640px) {
-    font-size: 11px;
-    padding: 6px;
-    width: ${props => {
-      if (['승률', '개인승점', 'MOM점수'].includes(props.children?.toString().split('%')[0])) return '70px';
-      return '60px';
-    }};
+  &:first-child { 
+    text-align: left; 
+    padding-left: 20px;
+    font-weight: 700;
+    color: #191f28;
   }
+  &:last-child { padding-right: 20px; }
+
+  &.highlight-year {
+    color: #3182f6;
+  }
+
+  &.win { color: #3182f6; font-weight: 600; }
+  &.draw { color: #adb5bd; }
+  &.lose { color: #f04452; font-weight: 600; }
 `;
 // 토스 스타일 변수
 const colors = {
@@ -385,63 +372,48 @@ const colors = {
   axis: '#DFE2E6'
 };
 
-// 그래프 섹션 컴포넌트 - 페이지 내 영역 설정
-export const GraphSection = styled.div`
-  margin: 40px 0;
-  padding: 0;
-  background-color: ${colors.background};
-  
-  @media (max-width: 640px) {
-    margin: 24px 0;
+export const ChartCard = styled.div`
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f2f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #191f28;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    padding: 24px 16px;
   }
 `;
 
-// 그래프 컨테이너 - 카드 형태 디자인
-export const GraphContainer = styled.div`
-  margin: 24px 0;
-  background-color: ${colors.cardBackground};
-  border-radius: 18px;
-  padding: 24px 20px;
-  box-shadow: 0 1px 12px rgba(10, 30, 66, 0.08);
-  transition: all 0.2s ease;
-  
-  @media (max-width: 640px) {
-    margin: 16px 0;
-    padding: 20px 16px;
-    border-radius: 14px;
-  }
-`;
-
-export const GraphToggleButton = styled(Button)`
-  margin-top: 20px;
-  background-color: #2a2a2a;
-  color: #f8f9fa;
+export const GraphToggleButton = styled.button`
+  background-color: white;
+  color: #4e5968;
   width: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 12px;
+  gap: 10px;
+  padding: 16px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  border-radius: 8px;
-  border: 1px solid #3d3d3d;
-  transition: all 0.2s ease-in-out;
+  border-radius: 16px;
+  border: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   
   &:hover {
-    background-color: #383838;
-    border-color: #4d4d4d;
+    background-color: #f8f9fa;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  }
-  
-  &:active {
-    background-color: #222222;
-    transform: translateY(1px);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  @media (max-width: 640px) {
-    margin-top: 15px;
-    padding: 10px;
-    font-size: 0.9rem;
   }
 `;
 export const StatSelector = styled.div`
@@ -640,7 +612,7 @@ export const SummaryCardContainer = styled.div`
   margin-top: 20px;
 
   @media (max-width: 1024px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (max-width: 768px) {
@@ -649,60 +621,205 @@ export const SummaryCardContainer = styled.div`
   }
 
   @media (max-width: 480px) {
-    grid-template-columns: repeat(1, 1fr);
-    max-width: 320px;
-    margin: 16px auto 0;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 `;
 
 // 선수 통계 카드
 export const SummaryCard = styled.div`
-  background: ${colors.cardBackground};
-  border-radius: 14px;
-  padding: 20px 2px;
-  width: 100%;
-  box-shadow: ${colors.shadow};
-  text-align: left;
-  transition: all 0.2s ease;
-  border: 1px solid ${colors.border};
+  background: white;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f2f4f6;
   display: flex;
   flex-direction: column;
-  margin-right: 24px;  // 오른쪽 여백 추가
+  gap: 6px;
+  transition: all 0.2s ease;
+
+  .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #8b95a1;
+  }
+
+  .value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #191f28;
+  }
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  @media (max-width: 480px) {
+    padding: 14px 16px;
+
+    .label {
+      font-size: 12px;
+    }
+
+    .value {
+      font-size: 16px;
+    }
   }
 `;
 
-export const PartnerContainer = styled.div`
+export const PartnerGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 16px;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    margin-top: 12px;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
 `;
 
 export const PartnerCard = styled.div`
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  text-align: center;
-  transition: transform 0.2s ease;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f2f4f6;
+  transition: all 0.2s;
 
   &:hover {
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   }
 
-  @media (max-width: 640px) {
-    padding: 10px;
-  }
+  .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid #f2f4f6;
     
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .label {
+      font-size: 13px;
+      color: #8b95a1;
+      font-weight: 500;
+    }
+    
+    .name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #191f28;
+    }
+    
+    .count {
+      font-size: 13px;
+      color: #3182f6;
+      font-weight: 600;
+    }
+  }
+`;
+
+export const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 24px;
+  color: #4e5968;
+  font-weight: 500;
+
+  .spinner-logo {
+    width: 120px;
+    height: 120px;
+    animation: ${keyframes`
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    `} 2s linear infinite;
+  }
+
+  .progress-bar {
+    width: 240px;
+    height: 6px;
+    background-color: #f2f4f6;
+    border-radius: 3px;
+    overflow: hidden;
+
+    .fill {
+      height: 100%;
+      background-color: #3182f6;
+      transition: width 0.1s linear;
+    }
+  }
+`;
+
+// Admin compatibility exports
+export const Header = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #191f28;
+  margin: 24px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f2f4f6;
+`;
+
+export const Button = styled.button`
+  background-color: #3182f6;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #1b64da;
+  }
+
+  &:disabled {
+    background-color: #e9ecef;
+    cursor: default;
+  }
+`;
+
+export const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+`;
+
+export const Th = styled.th`
+  background-color: #f8f9fa;
+  color: #4e5968;
+  font-weight: 600;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #f2f4f6;
+  font-size: 14px;
+`;
+
+export const Td = styled.td`
+  padding: 12px;
+  border-bottom: 1px solid #f2f4f6;
+  color: #333d4b;
+  font-size: 14px;
 `;
 

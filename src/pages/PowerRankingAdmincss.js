@@ -205,6 +205,23 @@ export const ErrorMessage = styled.p`
   margin-top: 10px;
 `;
 
+export const Button = styled.button`
+  padding: 10px 20px;
+  background-color: #3182f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  width: 100%;
+  margin: 10px 0;
+  
+  &:hover:not(:disabled) {
+    background-color: #2563eb;
+  }
+`;
+
 export const FormationContainer = styled.div`
   display: flex;
   flex-direction: column;

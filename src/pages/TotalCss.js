@@ -1,655 +1,600 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
+import { Link } from 'react-router-dom';
 
-// Existing keyframes (unchanged)
 export const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-export const CardGlow = keyframes`
-  0% { box-shadow: 0 0 10px rgba(255,215,0,0.3); }
-  50% { box-shadow: 0 0 20px rgba(255,215,0,0.6); }
-  100% { box-shadow: 0 0 10px rgba(255,215,0,0.3); }
-`;
-
 export const slideIn = keyframes`
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-`;
-
-export const bounce = keyframes`
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-`;
-
-export const slideOut = keyframes`
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(-100px); }
-`;
-
-export const expand = keyframes`
-  from { max-height: 0; opacity: 0; }
-  to { max-height: 1000px; opacity: 1; }
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
 `;
 
 export const pulse = keyframes`
   0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.02); }
   100% { transform: scale(1); }
 `;
 
-// Existing getRankColor and getRatingColor (unchanged)
+export const cardFlip = keyframes`
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(180deg); }
+`;
+
 export const getRankColor = (rank) => {
-  if (rank === 1) return '#FFD700'; // 금색
-  else if (rank === 2) return '#C0C0C0'; // 은색
-  else if (rank === 3) return '#CD7F32'; // 동색
-  return '#f8c058'; // 평범한 금색 (4등 이상)
+  if (rank === 1) return '#FFBB00';
+  if (rank === 2) return '#A0AEC0';
+  if (rank === 3) return '#DAA520';
+  return '#3182f6';
 };
 
 export const getRatingColor = (value) => {
-  if (value >= 90) return '#f8c058'; // 금색
-  else if (value >= 80) return '#C0C0C0'; // 은색
-  else if (value >= 70) return '#CD7F32'; // 동색
-  return '#ffffff'; // 흰색
+  if (value >= 90) return '#FFBB00';
+  if (value >= 80) return '#A0AEC0';
+  if (value >= 70) return '#DAA520';
+  return '#3182f6';
 };
 
-// Existing styled components (unchanged)
 export const OuterWrapper = styled.div`
-  background-color: #ffffff;
-  padding-top: 24px;
-
-  @media (max-width: 640px) {
-    background-color: #ffffff;
-  }
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding-bottom: 80px;
 `;
 
 export const Container = styled.div`
-  padding: 20px;
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  background-color: #FFFFFF;
-  border-radius: 20px;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-  @media (max-width: 640px) {
-    padding: 15px;
-    margin: -70px 16px 0 16px;
+  padding: 30px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+
+  @media (max-width: 768px) {
+    padding: 24px 16px;
+    gap: 24px;
   }
+`;
+
+export const TitleContainer = styled.div`
+  padding: 0;
+  text-align: left;
+`;
+
+export const Title = styled.h1`
+  font-size: 28px;
+  font-weight: 800;
+  color: #191f28;
+  margin: 0;
+  letter-spacing: -0.5px;
 `;
 
 export const SearchForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-bottom: 30px;
-  @media (max-width: 640px) {
-    gap: 10px;
-  }
-`;
-
-export const Input = styled.input`
-  padding: 15px;
-  font-size: 18px;
-  border: none;
-  border-radius: 10px;
-  background-color: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  @media (max-width: 640px) {
-    font-size: 16px;
-    padding: 12px;
-  }
-`;
-
-export const Button = styled.button`
-  padding: 15px;
-  font-size: 18px;
-  color: white;
-  background-color: #0182ff;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  &:hover {
-    background-color: #2c5282;
-    transform: translateY(-2px);
-  }
-  @media (max-width: 640px) {
-    font-size: 16px;
-    padding: 12px;
-  }
+  width: 100%;
+  max-width: 440px;
+  margin-bottom: 8px;
 `;
 
 export const RankBannerContainer = styled.div`
-  background: linear-gradient(135deg, #303030, #1a1a1a);
-  color: #f8f8f8;
-  padding: 15px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  font-size: 18px;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 20px;
-  animation: ${fadeIn} 0.5s ease-out;
-  @media (max-width: 600px) {
-    font-size: 16px;
-    gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 `;
 
 export const RankMessage = styled.div`
+  background: white;
+  border: 1px solid #e5e8eb;
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: ${slideIn} 0.5s ease-out;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border-color: #3182f6;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #8b95a1;
+    text-transform: uppercase;
+  }
+
+  .content {
+    font-size: 15px;
+    font-weight: 800;
+    color: #191f28;
+
+    .highlight {
+      color: #3182f6;
+    }
+  }
+
+  .icon {
+    color: #ffd700;
+  }
 `;
 
-export const PlayerData = styled.div`
-  margin-top: 30px;
-  background: linear-gradient(135deg, #303030, #1a1a1a);
-  border-radius: 15px;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-  animation: ${fadeIn} 0.5s ease-out, ${CardGlow} 3s infinite;
-  color: #f8f8f8;
+export const SearchInputWrapper = styled.div`
   position: relative;
   width: 100%;
+
+  .search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+`;
+
+export const Input = styled.input`
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 14px;
+  border: 1px solid #e5e8eb;
+  background-color: #ffffff;
+  color: #191f28;
+  outline: none;
+  transition: all 0.2s;
+
+  &::placeholder {
+    color: #adb5bd;
+  }
+
+  &:focus {
+    border-color: #3182f6;
+    background-color: #ffffff;
+  }
+`;
+
+export const Button = styled.button`
+  background-color: #3182f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #1b64da;
+    transform: translateY(-1px);
+  }
+`;
+
+export const MainLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const FlipCardContainer = styled.div`
+  perspective: 2000px;
+  width: 100%;
+  max-width: 440px;
+  margin: 0;
+  aspect-ratio: 1 / 1.55;
+
+  @media (max-width: 480px) {
+    max-width: 100%;
+    aspect-ratio: 1 / 1.6;
+  }
+`;
+
+export const FlipCardInner = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transform: ${props => props.isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'};
+
+  &:hover {
+    transform: ${props => props.isFlipped ? 'rotateY(180deg) scale(1.02)' : 'rotateY(0deg) scale(1.02)'};
+  }
+
+  @media (max-width: 480px) {
+    &:hover {
+      transform: ${props => props.isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'};
+    }
+  }
+`;
+
+const CardBase = css`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.12);
+`;
+
+export const CardFront = styled.div`
+  ${CardBase}
+  background: #0d121a;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+`;
+
+export const CardBack = styled.div`
+  ${CardBase}
+  background: linear-gradient(135deg, #191f28, #333d4b);
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  color: white;
+  overflow-y: auto;
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  @media (max-width: 480px) {
+    padding: 16px;
+    overflow-y: visible;
+  }
 `;
 
 export const PlayerCardHeader = styled.div`
-  background: linear-gradient(135deg, #f8c058, #c8ff00);
-  padding: 20px;
+  height: 140px;
+  background: linear-gradient(135deg, #3182f6, #4e9afc);
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  color: white;
   position: relative;
-  
+
   &::after {
     content: '';
     position: absolute;
-    bottom: 0;
+    bottom: -1px;
     left: 0;
     right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+    height: 40px;
+    background: linear-gradient(to top, white, transparent);
   }
 `;
 
 export const PlayerRating = styled.div`
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background-color: #1a1a1a;
-  color: #f8c058;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1;
+`;
+
+export const PlayerPosition = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 0.9;
+`;
+
+export const PlayerProfile = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px 24px;
+  z-index: 1;
+`;
+
+export const PlayerAvatarWrapper = styled.div`
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: bold;
-  border: 2px solid #f8c058;
-  animation: ${bounce} 2s infinite;
-  @media (max-width: 640px) {
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 `;
 
 export const PlayerName = styled.h3`
-  color: #1a1a1a;
-  margin: 0 0 5px 80px;
   font-size: 28px;
-  font-weight: 700;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  animation: ${slideIn} 0.5s ease-out;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  @media (max-width: 640px) {
-    font-size: 24px;
-    margin-left: 70px;
-  }
+  font-weight: 800;
+  color: #191f28;
+  margin: 0 0 8px;
 `;
 
-export const PlayerPosition = styled.div`
-  margin-left: 80px;
-  color: #1a1a1a;
-  font-weight: 600;
-  font-size: 20px;
+export const TitleBadgeContainer = styled.div`
   display: flex;
-  gap: 10px;
-  animation: ${slideIn} 0.5s ease-out;
-  @media (max-width: 640px) {
-    font-size: 18px;
-    margin-left: 70px;
-    flex-wrap: wrap;
-  }
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 24px;
 `;
 
-export const PositionBadge = styled.span`
-  background-color: ${props => {
-    switch(props.position) {
-      case 'CB': return '#2196f3';
-      case 'CM': return '#4caf50';
-      case 'LW': return '#f44336';
-      case 'CAM': return '#4caf50';
-      case 'RB': return '#2196f3';
-      case 'RW': return '#e91e63';
-      default: return '#2196f3';
-    }
-  }};
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
+export const TitleBadge = styled.span`
+  background: linear-gradient(135deg, #f2f4f6, #e5e8eb);
+  color: #4e5968;
+  padding: 6px 14px;
+  border-radius: 12px;
   font-size: 14px;
-  @media (max-width: 640px) {
-    font-size: 12px;
-    padding: 1px 6px;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.03);
+  transition: all 0.2s;
+
+  &:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #e5e8eb, #d1d6db);
+    color: #191f28;
   }
 `;
 
-export const StatsGrid = styled.div`
+export const StatsSummaryGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  padding: 20px;
-  gap: 15px;
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: auto;
+  padding: 24px;
+  background: #f9fafb;
+`;
+
+export const SummaryItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8b95a1;
   }
+  .value {
+    font-size: 18px;
+    font-weight: 800;
+    color: #191f28;
+  }
+`;
+
+export const DetailedStats = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
 `;
 
 export const StatRow = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  gap: 6px;
 `;
 
 export const StatHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-`;
 
-export const StatLabel = styled.span`
-  font-weight: 600;
-  color: #f8f8f8;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  @media (max-width: 640px) {
+  .label {
     font-size: 14px;
+    font-weight: 600;
+    color: #adb5bd;
   }
-`;
-
-export const StatValue = styled.span`
-  font-weight: 700;
-  color: ${props => props.color || '#f8c058'};
-  font-size: 18px;
-  animation: ${bounce} 2s infinite;
-  @media (max-width: 640px) {
-    font-size: 16px;
+  .value {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
   }
 `;
 
 export const StatBarContainer = styled.div`
-  position: relative;
-  height: 10px;
-  background-color: #3a3a3a;
-  border-radius: 5px;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
   overflow: hidden;
-  margin-top: 5px;
-`;
-
-export const statAnimation = (percentage) => keyframes`
-  0% { width: 0; }
-  100% { width: ${percentage}%; }
 `;
 
 export const StatBar = styled.div`
   height: 100%;
-  border-radius: 0;
-  background: ${props => props.color || '#f8c058'};
-  animation: ${(props) => statAnimation(props.percentage)} 1.5s ease-out forwards;
-  width: 0;
+  background: #3182f6;
+  width: ${props => props.percentage}%;
+  transition: width 1s ease-out;
 `;
 
-export const AdvancedStatsSection = styled.div`
-  padding: 20px;
-  border-top: 1px solid #3a3a3a;
-`;
-
-export const AdvancedStatsTitle = styled.h4`
-  color: #f9f7ff;
-  margin: 0 0 15px 0;
-  font-size: 18px;
+export const BackCardFooter = styled.div`
+  margin-top: auto;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: ${slideIn} 0.5s ease-out;
-  @media (max-width: 640px) {
-    font-size: 16px;
-  }
+  flex-direction: column;
+  gap: 12px;
 `;
 
-export const AdvancedStatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const AdvancedStatCard = styled.div`
-  background-color: #292929;
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-  animation: ${fadeIn} 0.5s ease-out;
-  @media (max-width: 640px) {
-    padding: 10px;
-  }
-`;
-
-export const AdvancedStatValue = styled.div`
-  font-size: 22px;
-  font-weight: 700;
-  color: #f8c058;
-  margin-bottom: 5px;
-  @media (max-width: 640px) {
-    font-size: 18px;
-  }
-`;
-
-export const AdvancedStatLabel = styled.div`
-  font-size: 14px;
-  color: #a0a0a0;
-  @media (max-width: 640px) {
-    font-size: 12px;
-  }
-`;
-
-export const LevelUpMessage = styled.p`
-  margin-top: 10px;
-  font-size: 16px;
-  color: #f8c058;
-  font-weight: bold;
-  animation: ${fadeIn} 1s ease-out;
-  padding: 10px 20px;
-  background-color: rgba(248, 192, 88, 0.1);
-  border-radius: 8px;
-  margin: 16px 16px;
-  @media (max-width: 640px) {
-    font-size: 14px;
-    padding: 8px 16px;
-  }
-`;
-
-export const TitleContainer = styled.div`
-  padding: 20px;
-  border-top: 1px solid #3a3a3a;
-  animation: ${fadeIn} 0.5s ease-out;
-`;
-
-export const Title = styled.div`
-  margin: 10px 0;
-  font-size: 18px;
-  color: #f8c058;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  
-  &:before {
-    content: '🏆';
-  }
-  @media (max-width: 640px) {
-    font-size: 16px;
-  }
-`;
-export const FixedBottomButton = styled.div`
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 20px 24px max(30px, env(safe-area-inset-bottom));
-  background: rgba(15, 23, 42, 0.98);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  text-align: center;
-  z-index: 9999;
-  pointer-events: none;
-
-  & > div {
-    pointer-events: auto;
-  }
-`;
-
-export const ToggleHistoryButton = styled.button`
-  display: block;
-  margin: 0px 34px 20px;
-  padding: 11px 30px;
-  font-size: 18px;
+export const HistoryButton = styled(Link)`
+  background: #3182f6;
   color: white;
-  background-color: #0182ff;
-  border: none;
-  border-radius: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   text-decoration: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  animation: ${fadeIn} 0.5s ease-out;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  width: 100%;
 
   &:hover {
-    background-color: #2c5282;
+    background: #1b64da;
     transform: translateY(-2px);
   }
-
-@media (max-width: 640px) {
-  font-size: 16px;
-  padding: 16px 27px;
-  width: 80%;
-  margin: 0 auto; /* 가운데 정렬 */
-  display: block; /* margin auto가 적용되도록 block 또는 inline-block 필요 */
-}
 `;
 
-export const HistorySection = styled.div`
-  padding: 20px;
-  background-color: #1a1a1a;
-  border-radius: 10px;
-  margin-top: 20px;
-  animation: ${expand} 0.5s ease-out;
-  overflow: hidden;
-
-  @media (max-width: 640px) {
-    padding: 15px;
-  }
-`;
-
-export const HistoryTable = styled.table`
+export const WinLossBar = styled.div`
+  display: flex;
+  height: 8px;
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  background-color: #1a1a1a;
-  border-radius: 10px;
+  border-radius: 4px;
   overflow: hidden;
-  animation: ${fadeIn} 0.5s ease-out;
+  margin-top: 4px;
 `;
 
-export const HistoryTableHeader = styled.th`
-  padding: 15px;
-  background-color: #303030;
-  color: #f8f8f8;
-  font-size: 16px;
+export const AdvancedStatGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+`;
+
+export const AdvancedStatItem = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 8px;
+  border-radius: 12px;
+  text-align: center;
+
+  .val {
+    font-size: 16px;
+    font-weight: 800;
+    color: #3182f6;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .lab {
+    font-size: 11px;
+    font-weight: 600;
+    color: #adb5bd;
+  }
+`;
+
+export const LevelUpMessage = styled.div`
+  background: rgba(49, 130, 246, 0.1);
+  color: #3182f6;
+  font-size: 12px;
   font-weight: 600;
-  text-align: center;
-  border-bottom: 1px solid #3a3a3a;
-
-  @media (max-width: 640px) {
-    font-size: 14px;
-    padding: 10px;
-  }
-`;
-
-export const HistoryTableRow = styled.tr`
-  &:nth-child(even) {
-    background-color: #252525;
-  }
-`;
-
-export const HistoryTableCell = styled.td`
-  padding: 15px;
-  color: #f8f8f8;
-  font-size: 16px;
-  text-align: center;
-  border-bottom: 1px solid #3a3a3a;
-
-  @media (max-width: 640px) {
-    font-size: 14px;
-    padding: 10px;
-  }
-`;
-
-export const TopPlayersContainer = styled.div`
-  background-color: #1a1a1a;
+  padding: 10px 12px;
   border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  color: #fff;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  z-index: 1000;
-
-  @media (min-width: 641px) {
-    top: 20px;
-    right: 20px;
-
-    @media (max-width: 1100px) {
-      transform: translateX(-${(props) => Math.min((1100 - props.windowWidth) * 0.5, 300)}px);
-    }
-
-    @media (max-width: 900px) {
-      opacity: 0;
-      transform: translateX(-100px);
-      pointer-events: none;
-    }
-  }
-
-  @media (max-width: 640px) {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 82%;
-        max-width: 400px;
-        margin: -70p 16px;
-  }
+  margin-top: 16px;
+  border: 1px solid rgba(49, 130, 246, 0.2);
+  line-height: 1.5;
 `;
 
-export const TopPlayersTitle = styled.div`
-  font-size: 1.5rem;
-  margin-bottom: 15px;
+export const SideSection = styled.aside`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+export const TopPlayersCard = styled.div`
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+`;
+
+export const SectionTitle = styled.h4`
+  font-size: 18px;
+  font-weight: 800;
+  color: #191f28;
+  margin: 0 0 20px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  animation: ${fadeIn} 0.5s ease-out;
+  gap: 8px;
 
-  @media (max-width: 640px) {
-    font-size: 1.2rem;
+  span {
+    color: #3182f6;
+    font-size: 14px;
   }
 `;
 
 export const TopPlayerItem = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #333;
-  animation: ${slideIn} 0.5s ease-out;
-`;
+  padding: 14px 0;
+  border-bottom: 1px solid #f2f4f6;
+  gap: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
 
-export const PlayerRank = styled.span`
-  font-weight: bold;
-  width: 30px;
-`;
+  &:hover {
+    background: #f9fafb;
+    .name { color: #3182f6; }
+  }
 
-export const PlayerNameText = styled.span`
-  flex: 1;
-`;
+  &:last-child {
+    border-bottom: none;
+  }
 
-export const LastUpdate = styled.div`
-  font-size: 0.9rem;
-  color: #aaa;
-  margin-top: 15px;
-  text-align: center;
+  .rank {
+    font-size: 16px;
+    font-weight: 800;
+    color: #3182f6;
+    width: 20px;
+  }
 
-  @media (max-width: 640px) {
-    font-size: 0.8rem;
+  .name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333d4b;
+    flex: 1;
+  }
+
+  .count {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8b95a1;
   }
 `;
 
-export const TrendingBadge = styled.span`
-  background: linear-gradient(135deg, #ff0000, #ff5555);
-  color: #ffffff;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
+export const TrendingBadge = styled.div`
+  background: #fff0f0;
+  color: #f04452;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  animation: ${pulse} 1.5s infinite;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-
-  &:before {
-    content: '🔥';
-  }
-
-  @media (max-width: 640px) {
-    font-size: 12px;
-    padding: 3px 8px;
-  }
+  gap: 6px;
+  margin-top: 12px;
 `;
 
-export const RankChangeIndicator = styled.div`
-  font-size: 12px;
-  font-weight: 500;
-  color: ${props => props.direction === 'up' ? '#28a745' : '#dc3545'};
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  animation: fadeIn 0.5s ease-in;
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-`;
-
-export const NewBadge = styled.span`
-  padding: 5px 10px;
-  background: #28a745;
+export const RatingBadge = styled.div`
+  background: ${props => props.color};
   color: white;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 800;
   display: inline-flex;
   align-items: center;
-  animation: ${pulse} 1.5s infinite;
-  margin-left: 8px;
-
-  @media (max-width: 640px) {
-    font-size: 10px;
-    padding: 3px 8px;
-    margin-left: 6px;
-  }
+  justify-content: center;
 `;

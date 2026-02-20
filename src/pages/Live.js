@@ -6,47 +6,38 @@ import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import * as S from './LiveCss';
 
-// Chart.js 등록
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// 포지션 한글 매핑
 const POSITIONS = {
-  GK: 'GK',
-  RB: 'RB',
-  LB: 'LB',
-  CB: 'CB',
-  CDM: 'CDM',
-  CM: 'CM',
-  CAM: 'CAM',
-  LW: 'LW',
-  RW: 'RW',
-  ST: 'ST',
-  FW: 'FW'
+  GK: '골키퍼',
+  CB: '수비수',
+  CDM: '수비형 미드필더',
+  CM: '중앙 미드필더',
+  CAM: '공격형 미드필더',
+  LW: '왼쪽 윙어',
+  RW: '오른쪽 윙어',
+  ST: '스트라이커',
+  FW: '공격수'
 };
 
-// 날짜 포맷팅 함수
-const formatDate = dateString => {
+const formatDate = (dateString, display = false) => {
   if (!dateString) return '';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} (${['일', '월', '화', '수', '목', '금', '토'][date.getDay()]})`;
+  if (!display) {
+    const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const year = kstDate.getFullYear();
+    const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(kstDate.getDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+  }
+  return format(date, 'yyyy-MM-dd HH:mm');
 };
 
-// 시간 포맷팅 함수 (HH:mm)
-const formatTime = date => {
-  if (!date || isNaN(date.getTime())) return '';
-  return format(date, 'HH:mm');
-};
+const normalizeTeamName = (name) => name ? name.trim().toLowerCase() : '';
 
-// 팀 이름 정규화
-const normalizeTeamName = (name) => {
-  return name ? name.trim().toLowerCase() : '';
-};
-
-// 전체 스코어 계산 함수
 const calculateTotalScores = (quarters) => {
   const teamStats = {};
-
   quarters.forEach(q => {
     if (!q.teams) return;
     const quarterScores = {};
@@ -60,9 +51,7 @@ const calculateTotalScores = (quarters) => {
     });
 
     q.teams.forEach(team => {
-      if (!teamStats[team.name]) {
-        teamStats[team.name] = { goals: 0 };
-      }
+      if (!teamStats[team.name]) teamStats[team.name] = { goals: 0 };
       teamStats[team.name].goals += quarterScores[team.name] || 0;
     });
   });
@@ -71,40 +60,11 @@ const calculateTotalScores = (quarters) => {
   let winner = null;
   if (teams.length === 2) {
     const [team1, team2] = teams;
-    if (teamStats[team1].goals > teamStats[team2].goals) {
-      winner = team1;
-    } else if (teamStats[team2].goals > teamStats[team1].goals) {
-      winner = team2;
-    }
+    if (teamStats[team1].goals > teamStats[team2].goals) winner = team1;
+    else if (teamStats[team2].goals > teamStats[team1].goals) winner = team2;
   }
   return { teamStats, winner };
 };
-
-/* ------------------- PlayerAvatar 컴포넌트 (공통 사용) ------------------- */
-const PlayerAvatar = ({ nick, size = 32 }) => {
-  const imageUrl = `/players/${nick}.png`;
-  return (
-    <img
-      src={imageUrl}
-      alt={nick}
-      style={{
-        width: size,
-        // height: size,
-        // borderRadius: '50%',
-        objectFit: 'cover',
-        marginRight: '8px',
-        // border: '2px solid #fff',
-        // boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-        flexShrink: 0,
-      }}
-      onError={(e) => {
-        e.target.onerror = null;
-        e.target.src = '/logo194.png';
-      }}
-    />
-  );
-};
-/* --------------------------------------------------------------------- */
 
 const Live = () => {
   const [lineups, setLineups] = useState([]);
@@ -124,26 +84,26 @@ const Live = () => {
     topAttackPoints: [],
     topMomCount: [],
   });
+  const [loading, setLoading] = useState(true);
+  const [previousCheers, setPreviousCheers] = useState([]);
+  const [activeTeasers, setActiveTeasers] = useState({}); // { teaserTeamName: { victimCaptain: string, timestamp: number } }
 
   useEffect(() => {
-    fetchLineups();
-    setupCheerListener();
-    fetchAllExistingPlayers();
+    const initialize = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchLineups(),
+        fetchAllExistingPlayers()
+      ]);
+      setLoading(false);
+    };
+    initialize();
   }, []);
-
-  const fetchAllExistingPlayers = async () => {
-    try {
-      const playersSnap = await getDocs(collection(db, 'players'));
-      const existingPlayerNicks = playersSnap.docs.map(doc => doc.id);
-      setAllExistingPlayers(existingPlayerNicks);
-    } catch (err) {
-      console.error('Error fetching all existing players:', err.message);
-    }
-  };
 
   useEffect(() => {
     if (lineups.length > 0) {
       fetchMatches();
+      setupCheerListener();
       const matchDate = lineups[0]?.date ? new Date(lineups[0].date) : null;
       if (matchDate && !isNaN(matchDate.getTime())) {
         const revealTime = subHours(matchDate, 8);
@@ -158,6 +118,16 @@ const Live = () => {
     }
   }, [allExistingPlayers, lineups]);
 
+  const fetchAllExistingPlayers = async () => {
+    try {
+      const playersSnap = await getDocs(collection(db, 'players'));
+      const existingPlayerNicks = playersSnap.docs.map(doc => doc.id);
+      setAllExistingPlayers(existingPlayerNicks);
+    } catch (err) {
+      console.error('Error fetching players:', err.message);
+    }
+  };
+
   const fetchLineups = async () => {
     try {
       const q = query(collection(db, 'live'), orderBy('date', 'desc'));
@@ -169,698 +139,408 @@ const Live = () => {
         lineupsData.push({
           teamName: teamDoc.id,
           captain: teamDoc.data().captain || '',
-          color: teamDoc.data().color || '#000000',
+          color: teamDoc.data().color || '#3182f6',
           date: teamDoc.data().date || '',
           players
         });
       }
       setLineups(lineupsData);
-
-      if (lineupsData.length > 0) {
-        await fetchCaptainStats(lineupsData.map(team => team.captain));
-      }
+      if (lineupsData.length > 0) fetchCaptainStats(lineupsData.map(team => team.captain));
     } catch (err) {
-      console.error('라인업 가져오기 오류:', err.message, err.code);
-      setError('라인업 불러오기 중 오류가 발생했습니다: ' + err.message);
+      setError('라인업 정보를 불러올 수 없습니다.');
     }
   };
 
   const fetchCaptainStats = async (captains) => {
-    try {
-      const stats = {};
-      for (const captain of captains) {
-        if (!captain) continue;
-        const playerRef = doc(db, 'players', captain);
-        const playerDoc = await getDoc(playerRef);
-        if (playerDoc.exists()) {
-          const data = playerDoc.data();
-          stats[captain] = {
-            goals: data.goals || 0,
-            assists: data.assists || 0,
-            cleanSheets: data.cleanSheets || 0,
-            matches: data.matches || 0,
-            winRate: data.winRate || 0,
-            win: data.win || 0,
-            draw: data.draw || 0,
-            lose: data.lose || 0,
-            powerRanking: data.momScore || 0,
-            attackPoints: (data.goals || 0) + (data.assists || 0),
-            momTop3Count: data.momTop3Count || 0
-          };
-        } else {
-          stats[captain] = {
-            goals: 0,
-            assists: 0,
-            cleanSheets: 0,
-            matches: 0,
-            winRate: 0,
-            win: 0,
-            draw: 0,
-            lose: 0,
-            powerRanking: 0,
-            attackPoints: 0,
-            momTop3Count: 0
-          };
-        }
+    const stats = {};
+    for (const captain of captains) {
+      if (!captain) continue;
+      const playerDoc = await getDoc(doc(db, 'players', captain));
+      if (playerDoc.exists()) {
+        const data = playerDoc.data();
+        stats[captain] = {
+          goals: data.goals || 0,
+          assists: data.assists || 0,
+          cleanSheets: data.cleanSheets || 0,
+          matches: data.matches || 0,
+          winRate: data.winRate || 0,
+          win: data.win || 0,
+          draw: data.draw || 0,
+          lose: data.lose || 0,
+          powerRanking: data.momScore || 0,
+          attackPoints: (data.goals || 0) + (data.assists || 0),
+          momTop3Count: data.momTop3Count || 0
+        };
       }
-      setCaptainStats(stats);
-    } catch (err) {
-      console.error('주장 통계 가져오기 오류:', err.message, err.code);
-      setError('주장 통계 불러오기 중 오류가 발생했습니다: ' + err.message);
     }
+    setCaptainStats(stats);
   };
 
   const fetchCompetitionPoints = async () => {
-    try {
-      const lineupPlayerNicks = lineups.flatMap(team => team.players.map(player => player.nick));
-      const playersSnap = await getDocs(collection(db, 'players'));
-      let playersData = playersSnap.docs
-        .map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          attackPoints: (doc.data().goals || 0) + (doc.data().assists || 0),
-          powerRanking: doc.data().momScore || 0,
-          momTop3Count: doc.data().momTop3Count || 0
-        }))
-        .filter(player => lineupPlayerNicks.includes(player.id));
+    const lineupPlayerNicks = lineups.flatMap(team => team.players.map(player => player.nick));
+    const playersSnap = await getDocs(collection(db, 'players'));
+    let playersData = playersSnap.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        attackPoints: (doc.data().goals || 0) + (doc.data().assists || 0),
+        powerRanking: doc.data().momScore || 0,
+        momTop3Count: doc.data().momTop3Count || 0
+      }))
+      .filter(player => lineupPlayerNicks.includes(player.id));
 
-      const getTopN = (arr, key, n = 2, isHigherBetter = true) => {
-        const sorted = [...arr].sort((a, b) => {
-          if (isHigherBetter) return (b[key] || 0) - (a[key] || 0);
-          return (a[key] || 0) - (b[key] || 0);
-        });
-        if (sorted.length < n) return sorted;
-        const topPlayers = sorted.slice(0, n);
-        const diff = Math.abs((topPlayers[0][key] || 0) - (topPlayers[1][key] || 0));
-        if (key === 'powerRanking' && diff <= 0.05) {
-          return topPlayers;
-        } else if (key === 'momTop3Count' && diff <= 1) {
-          return topPlayers;
-        } else if (diff <= 2 && key !== 'powerRanking' && key !== 'momTop3Count') {
-          return topPlayers;
-        }
-        return [];
-      };
+    const getTopN = (arr, key, isHigherBetter = true) => {
+      const sorted = [...arr].sort((a, b) => isHigherBetter ? (b[key] || 0) - (a[key] || 0) : (a[key] || 0) - (b[key] || 0));
+      if (sorted.length === 0) return [];
 
-      const topGoalScorer = getTopN(playersData, 'goals');
-      const topAssistProvider = getTopN(playersData, 'assists');
-      const topWinRate = getTopN(playersData, 'winRate');
-      const topCleanSheet = getTopN(playersData, 'cleanSheets');
-      const topPowerRanking = getTopN(playersData, 'powerRanking');
-      const topAttackPoints = getTopN(playersData, 'attackPoints');
-      const topMomCount = getTopN(playersData, 'momTop3Count');
+      const topPlayers = sorted.slice(0, 2).map(p => ({ ...p, value: p[key] || 0 }));
+      if (topPlayers.length === 2) {
+        const diff = Math.abs(topPlayers[0].value - topPlayers[1].value);
+        const threshold = key === 'powerRanking' ? 0.05 : (key === 'momTop3Count' ? 1 : 2);
+        topPlayers[0].isHot = diff <= threshold;
+      }
+      return topPlayers;
+    };
 
-      setCompetitionPoints({
-        topGoalScorer,
-        topAssistProvider,
-        topWinRate,
-        topCleanSheet,
-        topPowerRanking,
-        topAttackPoints,
-        topMomCount
-      });
-    } catch (err) {
-      console.error('관전 포인트 데이터 가져오기 오류:', err.message);
-    }
+    setCompetitionPoints({
+      topGoalScorer: getTopN(playersData, 'goals'),
+      topAssistProvider: getTopN(playersData, 'assists'),
+      topWinRate: getTopN(playersData, 'winRate'),
+      topCleanSheet: getTopN(playersData, 'cleanSheets'),
+      topPowerRanking: getTopN(playersData, 'powerRanking'),
+      topAttackPoints: getTopN(playersData, 'attackPoints'),
+      topMomCount: getTopN(playersData, 'momTop3Count')
+    });
   };
 
   const fetchMatches = async () => {
-    try {
-      const captains = lineups.map(team => team.captain).filter(Boolean);
-      if (captains.length < 2) {
-        setRecentMatches([]);
-        setHeadToHeadStats({});
-        return;
-      }
+    const captains = lineups.map(team => team.captain).filter(Boolean);
+    if (captains.length < 2) return;
 
-      const matchesQuery = query(collection(db, 'matches'), orderBy('date', 'desc'));
-      const matchesSnapshot = await getDocs(matchesQuery);
+    const matchesSnapshot = await getDocs(query(collection(db, 'matches'), orderBy('date', 'desc')));
+    const h2hStats = {};
+    const [c1, c2] = captains;
+    const pairKey = [c1, c2].sort().join('_vs_');
 
-      const h2hStats = {};
-      const captain1 = captains[0];
-      const captain2 = captains[1];
-      const pairKey = [captain1, captain2].sort().join('_vs_');
+    h2hStats[pairKey] = { [c1]: { wins: 0, draws: 0, losses: 0 }, [c2]: { wins: 0, draws: 0, losses: 0 }, history: [] };
 
-      h2hStats[pairKey] = {
-        [captain1]: { wins: 0, draws: 0, losses: 0 },
-        [captain2]: { wins: 0, draws: 0, losses: 0 },
-        history: []
-      };
+    matchesSnapshot.docs.forEach(doc => {
+      const match = doc.data();
+      if (!match.quarters?.length) return;
+      const participants = {};
+      match.quarters[0].teams.forEach(t => t.players.forEach(p => {
+        if (p.name === c1 || p.name === c2) participants[p.name] = t.name;
+      }));
 
-      matchesSnapshot.docs.forEach(doc => {
-        const match = doc.data();
-        if (!match.quarters || match.quarters.length === 0) return;
+      if (participants[c1] && participants[c2] && participants[c1] !== participants[c2]) {
+        const { teamStats, winner } = calculateTotalScores(match.quarters);
+        const s1 = teamStats[participants[c1]]?.goals || 0;
+        const s2 = teamStats[participants[c2]]?.goals || 0;
+        if (winner === participants[c1]) { h2hStats[pairKey][c1].wins++; h2hStats[pairKey][c2].losses++; }
+        else if (winner === participants[c2]) { h2hStats[pairKey][c2].wins++; h2hStats[pairKey][c1].losses++; }
+        else { h2hStats[pairKey][c1].draws++; h2hStats[pairKey][c2].draws++; }
 
-        const matchParticipants = {};
-        match.quarters[0].teams.forEach(team => {
-          team.players.forEach(player => {
-            if (player.name === captain1 || player.name === captain2) {
-              matchParticipants[player.name] = team.name;
-            }
-          });
+        h2hStats[pairKey].history.push({
+          date: match.date,
+          score: `${s1} : ${s2}`,
+          teams: [{ name: participants[c1], score: s1, captain: c1 }, { name: participants[c2], score: s2, captain: c2 }],
+          winner: winner === participants[c1] ? c1 : winner === participants[c2] ? c2 : null
         });
+      }
+    });
 
-        if (matchParticipants[captain1] && matchParticipants[captain2] && matchParticipants[captain1] !== matchParticipants[captain2]) {
-          const { teamStats, winner } = calculateTotalScores(match.quarters);
-          const team1Name = matchParticipants[captain1];
-          const team2Name = matchParticipants[captain2];
-          const score1 = teamStats[team1Name]?.goals || 0;
-          const score2 = teamStats[team2Name]?.goals || 0;
-
-          let resultText = '';
-          if (winner === team1Name) {
-            h2hStats[pairKey][captain1].wins++;
-            h2hStats[pairKey][captain2].losses++;
-            resultText = `${captain1} 승`;
-          } else if (winner === team2Name) {
-            h2hStats[pairKey][captain2].wins++;
-            h2hStats[pairKey][captain1].losses++;
-            resultText = `${captain2} 승`;
-          } else {
-            h2hStats[pairKey][captain1].draws++;
-            h2hStats[pairKey][captain2].draws++;
-            resultText = '무승부';
-          }
-
-          h2hStats[pairKey].history.push({
-            date: match.date,
-            result: resultText,
-            score: `${score1} : ${score2}`,
-            teams: [{ name: team1Name, score: score1 }, { name: team2Name, score: score2 }]
-          });
-        }
-      });
-
-      setHeadToHeadStats(h2hStats);
-      const recent = h2hStats[pairKey]?.history.slice(0, 5) || [];
-      setRecentMatches(recent);
-    } catch (err) {
-      console.error('경기 데이터 가져오기 오류:', err.message);
-      setError('경기 기록 불러오기 중 오류가 발생했습니다: ' + err.message);
-    }
+    setHeadToHeadStats(h2hStats);
+    setRecentMatches(h2hStats[pairKey]?.history.slice(0, 5) || []);
   };
 
   const setupCheerListener = () => {
     const matchId = `match_${format(new Date(), 'yyyyMMdd')}`;
-    const cheerRef = doc(db, 'cheers', matchId);
-    onSnapshot(cheerRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setCheers(data.teams || []);
+    return onSnapshot(doc(db, 'cheers', matchId), (docSnap) => {
+      if (docSnap.exists()) {
+        const newData = docSnap.data().teams || [];
+
+        setPreviousCheers(prev => {
+          if (prev.length > 0) {
+            newData.forEach(team => {
+              const oldTeam = prev.find(p => p.name === team.name);
+              const otherTeams = newData.filter(o => o.name !== team.name);
+
+              otherTeams.forEach(other => {
+                const oldOther = prev.find(p => p.name === other.name);
+                if (oldTeam && oldOther) {
+                  // If team was behind/equal to other and now is strictly ahead
+                  if (oldTeam.cheers <= oldOther.cheers && team.cheers > other.cheers) {
+                    const victimCaptain = lineups.find(l => l.teamName === other.name)?.captain;
+                    if (victimCaptain) {
+                      setActiveTeasers(teasers => ({
+                        ...teasers,
+                        [team.name]: { victimCaptain, id: Date.now() }
+                      }));
+                      // Automatically remove after 1.5 seconds
+                      setTimeout(() => {
+                        setActiveTeasers(teasers => {
+                          const next = { ...teasers };
+                          delete next[team.name];
+                          return next;
+                        });
+                      }, 1500);
+                    }
+                  }
+                }
+              });
+            });
+          }
+          return newData;
+        });
+        setCheers(newData);
       } else {
-        const defaultCheers = lineups.map(team => ({
-          name: team.teamName,
-          cheers: 0
-        }));
-        setCheers(defaultCheers);
+        const initial = lineups.map(t => ({ name: t.teamName, cheers: 0 }));
+        setCheers(initial);
+        setPreviousCheers(initial);
       }
-    }, (err) => {
-      console.error('응원 데이터 리스너 오류:', err);
-      setError('응원 데이터 불러오기 중 오류가 발생했습니다.');
     });
   };
 
   const cheerForTeam = async (teamName) => {
     const matchId = `match_${format(new Date(), 'yyyyMMdd')}`;
-    const cheerRef = doc(db, 'cheers', matchId);
-    try {
-      const docSnap = await getDoc(cheerRef);
-      const currentCheers = docSnap.exists() && docSnap.data().teams
-        ? docSnap.data().teams
-        : lineups.map(team => ({ name: team.teamName, cheers: 0 }));
-      
-      const updatedCheers = currentCheers.map(team =>
-        team.name === teamName ? { ...team, cheers: (team.cheers || 0) + 1 } : team
-      );
-      
-      await setDoc(cheerRef, { teams: updatedCheers }, { merge: true });
-    } catch (err) {
-      console.error('응원 처리 오류:', err);
-      setError('응원 처리 중 오류가 발생했습니다.');
-    }
+    const docRead = await getDoc(doc(db, 'cheers', matchId));
+    let current = docRead.exists() ? docRead.data().teams : lineups.map(t => ({ name: t.teamName, cheers: 0 }));
+    const updated = current.map(t => t.name === teamName ? { ...t, cheers: (t.cheers || 0) + 1 } : t);
+    await setDoc(doc(db, 'cheers', matchId), { teams: updated }, { merge: true });
   };
 
   const getGraphData = () => {
-    if (lineups.length === 0 || !lineups.every(team => captainStats[team.captain])) {
-      return null;
-    }
-
+    if (!lineups.length || !lineups.every(t => captainStats[t.captain])) return null;
     return {
-      labels: ['골', '어시스트', '클린시트', '출장수'],
-      datasets: lineups.map((team, index) => ({
-        label: team.captain,
-        data: [
-          captainStats[team.captain].goals,
-          captainStats[team.captain].assists,
-          captainStats[team.captain].cleanSheets,
-          captainStats[team.captain].matches
-        ],
-        backgroundColor: team.color + '80',
-        borderColor: team.color,
-        borderWidth: 1
+      labels: ['골', '도움', '클린시트', '출장수'],
+      datasets: lineups.map(t => ({
+        label: t.captain,
+        data: [captainStats[t.captain].goals, captainStats[t.captain].assists, captainStats[t.captain].cleanSheets, captainStats[t.captain].matches],
+        backgroundColor: t.color + 'cc',
+        borderColor: t.color,
+        borderWidth: 0,
+        borderRadius: 8
       }))
     };
   };
 
-  const getCompetitionGraphData = () => {
-    const labels = ['득점', '도움', '공격포인트', '클린시트', '파워랭킹', 'MOM 횟수'];
-    const datasets = competitionPoints.topGoalScorer.length > 1 ? [
-      {
-        label: competitionPoints.topGoalScorer[0].id,
-        data: [
-          competitionPoints.topGoalScorer[0].goals,
-          competitionPoints.topAssistProvider[0]?.assists || 0,
-          competitionPoints.topAttackPoints[0]?.attackPoints || 0,
-          competitionPoints.topCleanSheet[0]?.cleanSheets || 0,
-          competitionPoints.topPowerRanking[0]?.powerRanking || 0,
-          competitionPoints.topMomCount[0]?.momTop3Count || 0
-        ],
-        backgroundColor: lineups[0]?.color + '80' || '#ff000080',
-        borderColor: lineups[0]?.color || '#ff0000',
-        borderWidth: 1
-      },
-      {
-        label: competitionPoints.topGoalScorer[1].id,
-        data: [
-          competitionPoints.topGoalScorer[1].goals,
-          competitionPoints.topAssistProvider[1]?.assists || 0,
-          competitionPoints.topAttackPoints[1]?.attackPoints || 0,
-          competitionPoints.topCleanSheet[1]?.cleanSheets || 0,
-          competitionPoints.topPowerRanking[1]?.powerRanking || 0,
-          competitionPoints.topMomCount[1]?.momTop3Count || 0
-        ],
-        backgroundColor: lineups[1]?.color + '80' || '#0000ff80',
-        borderColor: lineups[1]?.color || '#0000ff',
-        borderWidth: 1
-      }
-    ] : [];
+  if (loading) return <S.Container style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>로딩 중...</S.Container>;
 
-    return { labels, datasets };
-  };
-
-  const graphOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top', labels: { font: { size: 14 } } },
-      title: { display: true, text: '주장 통계 비교', font: { size: 16 } }
-    },
-    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-  };
-
-  const competitionGraphOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top', labels: { font: { size: 14 } } },
-      title: { display: true, text: '관전 포인트 비교', font: { size: 16 } }
-    },
-    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-  };
-
-  if (error) {
-    return <S.ErrorMessage>{error}</S.ErrorMessage>;
-  }
-
-  if (lineups.length === 0) {
-    return <S.Container>데이터를 불러오는 중입니다...</S.Container>;
-  }
-
-  const totalCheers = cheers.reduce((sum, team) => sum + (team.cheers || 0), 0);
-  const cheerPercentages = cheers.map(team =>
-    totalCheers ? ((team.cheers || 0) / totalCheers) * 100 : (100 / (cheers.length || 1))
-  );
-  const topCheerTeam = cheers.reduce((max, team) => team.cheers > (max.cheers || 0) ? team : max, { name: '없음', cheers: 0 });
-
-  const now = new Date();
-  const isLineupVisible = lineupRevealTime && isAfter(now, lineupRevealTime);
+  const totalCheers = cheers.reduce((sum, t) => sum + (t.cheers || 0), 0);
+  const isLineupVisible = lineupRevealTime && isAfter(new Date(), lineupRevealTime);
 
   return (
     <S.Container>
-      {/* === 기존 상단 부분 (VS, 응원, 라인업) 그대로 유지 === */}
+      <S.GlobalFontStyle />
       <S.MatchHeader>
         <h2>경기 라인업</h2>
+        <p>오늘의 매치업과 실시간 선수 명단을 확인하세요.</p>
       </S.MatchHeader>
 
       <S.MatchVS>
-        {lineups.map((team, index) => (
-          <React.Fragment key={index}>
+        {lineups.map((team, idx) => (
+          <React.Fragment key={idx}>
             <S.TeamContainer>
               <S.TeamInfo>
                 <S.TeamName>{team.teamName}</S.TeamName>
                 <S.TeamStats>
-                  {captainStats[team.captain] && (
-                    <>{captainStats[team.captain].win}승 {captainStats[team.captain].draw}무 {captainStats[team.captain].lose}패</>
-                  )}
+                  {captainStats[team.captain] && `${captainStats[team.captain].win}승 ${captainStats[team.captain].draw}무 ${captainStats[team.captain].lose}패`}
                 </S.TeamStats>
               </S.TeamInfo>
             </S.TeamContainer>
-            {lineups.length === 2 && index === 0 && (
+            {lineups.length === 2 && idx === 0 && (
               <S.VSIndicator>
                 <S.VSText>VS</S.VSText>
-                <S.MatchDate>
-                  {team.date && format(new Date(team.date), 'yyyy-MM-dd HH:mm')}
-                </S.MatchDate>
+                <S.MatchDate>{formatDate(team.date, true)}</S.MatchDate>
               </S.VSIndicator>
             )}
           </React.Fragment>
         ))}
       </S.MatchVS>
-      {lineups.length === 3 && (
-        <S.MatchDateBelow>
-          {lineups[0].date && format(new Date(lineups[0].date), 'yyyy-MM-dd HH:mm')}
-        </S.MatchDateBelow>
-      )}
 
       <S.CheerSection>
-        <h3>응원하는 팀을 눌러주세요!</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
-          {lineups.map((team, index) => (
-            <S.CheerButton
-              key={index}
-              color={team.color}
-              onClick={() => cheerForTeam(team.teamName)}
-            >
-              {team.teamName} 응원하기
-            </S.CheerButton>
-          ))}
-        </div>
+        <h3>어느 팀이 승리할까요?</h3>
+
+        <S.CheerConfrontation>
+          {lineups.map((team, i) => {
+            const cheerData = cheers.find(c => c.name === team.teamName);
+            const pct = totalCheers ? (cheerData?.cheers / totalCheers) : (1 / (lineups.length || 1));
+            const teaser = activeTeasers[team.teamName];
+
+            return (
+              <S.CaptainCheerWrapper key={i}>
+                {teaser && (
+                  <S.SpeechBubble>
+                    <span>{teaser.victimCaptain}</span> 따잇!!
+                  </S.SpeechBubble>
+                )}
+                <S.CaptainAvatar scale={pct} color={team.color}>
+                  <img src={`/players/${team.captain}.png`} onError={e => e.target.src = '/profile_default.svg'} alt={team.captain} />
+                </S.CaptainAvatar>
+                <S.CaptainCheerName>{team.captain}</S.CaptainCheerName>
+                <S.CheerButton color={team.color} onClick={() => cheerForTeam(team.teamName)}>
+                  응원하기
+                </S.CheerButton>
+              </S.CaptainCheerWrapper>
+            );
+          })}
+        </S.CheerConfrontation>
+
         <S.CheerGauge>
-          {cheers.map((team, index) => (
-            <S.GaugeBar
-              key={index}
-              color={lineups.find(t => t.teamName === team.name)?.color || '#000000'}
-              width={`${cheerPercentages[index]}%`}
-              percentage={cheerPercentages[index]}
-            >
-              <S.GaugeText percentage={cheerPercentages[index]}>
-                {team.cheers || 0}
-              </S.GaugeText>
-            </S.GaugeBar>
-          ))}
+          {cheers.map((t, i) => {
+            const pct = totalCheers ? (t.cheers / totalCheers) * 100 : 100 / (cheers.length || 1);
+            return (
+              <S.GaugeBar key={i} color={lineups.find(u => u.teamName === t.name)?.color || '#e5e8eb'} width={`${pct}%`}>
+                <S.GaugeText percentage={pct}>{Math.round(pct)}%</S.GaugeText>
+              </S.GaugeBar>
+            );
+          })}
         </S.CheerGauge>
       </S.CheerSection>
 
       <S.Section>
-        <S.SectionTitle>라인업</S.SectionTitle>
+        <S.SectionTitle>매치 라인업</S.SectionTitle>
         {isLineupVisible ? (
-          <S.LineupContainer style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center' }}>
-            {lineups.map((team, index) => (
-              <S.TeamLineup key={index} hasBorder={index < lineups.length - 1}>
-                <S.TeamLineupHeader>
-                  {team.teamName}
-                </S.TeamLineupHeader>
-                <S.PlayerList>
-                  {team.players.map((player, playerIndex) => (
-                    <S.PlayerItem key={player.id} index={playerIndex}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <PlayerAvatar nick={player.nick} size={34} />
-                        <S.PlayerName isCaptain={player.nick === team.captain}>
-                          {player.nick}
-                          {!allExistingPlayers.includes(player.nick) && (
-                            <span style={{ marginLeft: '5px', color: '#FF4500', fontWeight: 'bold' }}>
-                              (데뷔) [Fire]
-                            </span>
-                          )}
-                        </S.PlayerName>
-                      </div>
-                      <S.PlayerPosition>{POSITIONS[player.position]}</S.PlayerPosition>
-                    </S.PlayerItem>
+          <S.LineupContainer>
+            {lineups.map((team, i) => (
+              <S.TeamLineup key={i}>
+                <S.TeamLineupHeader>{team.teamName}</S.TeamLineupHeader>
+                <S.PlayerGrid>
+                  {team.players.map(p => (
+                    <S.PlayerCard key={p.id}>
+                      {p.nick === team.captain && <S.CaptainBadge>C</S.CaptainBadge>}
+                      <S.PlayerImage src={`/players/${p.nick}.png`} onError={e => e.target.src = '/profile_default.svg'} />
+                      <S.PlayerName>
+                        {p.nick}
+                        {!allExistingPlayers.includes(p.nick) && <span className="debut">NEW</span>}
+                      </S.PlayerName>
+                      <S.PlayerPosition>{POSITIONS[p.position] || p.position}</S.PlayerPosition>
+                    </S.PlayerCard>
                   ))}
-                </S.PlayerList>
+                </S.PlayerGrid>
               </S.TeamLineup>
             ))}
           </S.LineupContainer>
         ) : (
           <S.LineupMessage>
-            {lineupRevealTime ? `${formatTime(lineupRevealTime)} 라인업 공개 예정입니다.` : '라인업 공개 시간이 설정되지 않았습니다.'}
+            라인업은 경기 8시간 전인 {lineupRevealTime ? formatDate(lineupRevealTime, true) : '--:--'}에 공개됩니다.
           </S.LineupMessage>
         )}
       </S.Section>
 
-      {/* === 주장 비교 섹션 (기존 그대로) === */}
-      {lineups.length > 0 && Object.keys(captainStats).length > 0 && (
+      {lineups.length > 1 && (
         <S.Section>
-          <S.SectionTitle>주장 비교</S.SectionTitle>
+          <S.SectionTitle>주장 커리어 비교</S.SectionTitle>
           <S.StatsSection>
-            <S.StatRow>
-              {lineups.map((team, index) => (
-                <S.TeamStatValue key={index} isTeamA={index === 0} color={team.color}>
-                  {captainStats[team.captain]?.goals || 0}
-                </S.TeamStatValue>
-              ))}
-              <S.StatLabel>골</S.StatLabel>
-            </S.StatRow>
-            <S.StatRow>
-              {lineups.map((team, index) => (
-                <S.TeamStatValue key={index} isTeamA={index === 0} color={team.color}>
-                  {captainStats[team.captain]?.assists || 0}
-                </S.TeamStatValue>
-              ))}
-              <S.StatLabel>어시스트</S.StatLabel>
-            </S.StatRow>
-            <S.StatRow>
-              {lineups.map((team, index) => (
-                <S.TeamStatValue key={index} isTeamA={index === 0} color={team.color}>
-                  {captainStats[team.captain]?.cleanSheets || 0}
-                </S.TeamStatValue>
-              ))}
-              <S.StatLabel>클린시트</S.StatLabel>
-            </S.StatRow>
-            <S.StatRow>
-              {lineups.map((team, index) => (
-                <S.TeamStatValue key={index} isTeamA={index === 0} color={team.color}>
-                  {captainStats[team.captain]?.matches || 0}
-                </S.TeamStatValue>
-              ))}
-              <S.StatLabel>출장수</S.StatLabel>
-            </S.StatRow>
-            <S.StatRow>
-              {lineups.map((team, index) => (
-                <S.TeamStatValue key={index} isTeamA={index === 0} color={team.color}>
-                  {captainStats[team.captain]?.winRate || 0}%
-                </S.TeamStatValue>
-              ))}
-              <S.StatLabel>승률</S.StatLabel>
-            </S.StatRow>
-            <S.ChartContainer>
-              <Bar data={getGraphData()} options={graphOptions} />
-            </S.ChartContainer>
+            {['goals', 'assists', 'cleanSheets', 'matches', 'winRate'].map((key, i) => (
+              <S.StatRow key={i}>
+                <S.StatLabel>
+                  {key === 'goals' ? '골' : key === 'assists' ? '도움' : key === 'cleanSheets' ? '클린시트' : key === 'matches' ? '출장수' : '승률'}
+                </S.StatLabel>
+                {lineups.map((team, idx) => {
+                  const val = captainStats[team.captain]?.[key] || 0;
+                  return (
+                    <S.TeamStatValue key={idx} color={team.color}>
+                      {key === 'winRate' ? Math.round(val) : val}{key === 'winRate' ? '%' : ''}
+                    </S.TeamStatValue>
+                  );
+                })}
+              </S.StatRow>
+            ))}
+            {getGraphData() && (
+              <S.ChartContainer>
+                <Bar data={getGraphData()} options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                }} />
+              </S.ChartContainer>
+            )}
           </S.StatsSection>
         </S.Section>
       )}
 
-      {/* === 관전 포인트 (여기만 사진 추가됨) === */}
       <S.Section>
-        <S.SectionTitle>관전 포인트</S.SectionTitle>
+        <S.SectionTitle>주요 매치업 포인트</S.SectionTitle>
         <S.CompetitionPointsContainer>
-          {competitionPoints.topGoalScorer.length > 1 && (
-            <S.CompetitionItem>
+          {Object.entries({
+            '득점왕 경쟁': competitionPoints.topGoalScorer,
+            '도움왕 경쟁': competitionPoints.topAssistProvider,
+            '공격포인트 경쟁': competitionPoints.topAttackPoints,
+            '승률 1위 유지': competitionPoints.topWinRate,
+            '클린시트 경쟁': competitionPoints.topCleanSheet,
+            '파워랭킹 경쟁': competitionPoints.topPowerRanking,
+            'MOM 최다': competitionPoints.topMomCount
+          }).map(([title, pts], i) => pts.length > 0 && (
+            <S.CompetitionItem key={i}>
               <S.CompetitionTitle>
-                득점왕 경쟁{' '}
-                {Math.abs((competitionPoints.topGoalScorer[0].goals || 0) - (competitionPoints.topGoalScorer[1].goals || 0)) <= 2 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
+                {title} {pts[0]?.isHot && <span>HOT</span>}
               </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topGoalScorer[0].id} size={38} />
-                  <strong>{competitionPoints.topGoalScorer[0].id}</strong> {competitionPoints.topGoalScorer[0].goals}골
+              <S.CompetitionDetail>
+                <div className="player">
+                  <img src={`/players/${pts[0].id}.png`} onError={e => e.target.src = '/profile_default.svg'} alt="" />
+                  <div className="info">
+                    <div className="nick">{pts[0].id}</div>
+                    <div className="score">
+                      {pts[0].value.toFixed(pts[0].powerRanking ? 1 : 0)}
+                      {title.includes('승률') ? '%' : ''}
+                    </div>
+                  </div>
                 </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topGoalScorer[1].id} size={38} />
-                  <strong>{competitionPoints.topGoalScorer[1].id}</strong> {competitionPoints.topGoalScorer[1].goals}골
-                </div>
+                {pts.length === 2 ? (
+                  <>
+                    <div className="vs">VS</div>
+                    <div className="player">
+                      <div className="info" style={{ textAlign: 'right' }}>
+                        <div className="nick">{pts[1].id}</div>
+                        <div className="score">
+                          {pts[1].value.toFixed(pts[1].powerRanking ? 1 : 0)}
+                          {title.includes('승률') ? '%' : ''}
+                        </div>
+                      </div>
+                      <img src={`/players/${pts[1].id}.png`} onError={e => e.target.src = '/profile_default.svg'} alt="" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="info" style={{ textAlign: 'right' }}>
+                    <div className="score" style={{ color: '#3182f6', fontSize: '18px', fontWeight: '800' }}>RANK 1</div>
+                  </div>
+                )}
               </S.CompetitionDetail>
             </S.CompetitionItem>
-          )}
-
-          {competitionPoints.topAssistProvider.length > 1 && (
-            <S.CompetitionItem>
-              <S.CompetitionTitle>
-                도움왕 경쟁{' '}
-                {Math.abs((competitionPoints.topAssistProvider[0].assists || 0) - (competitionPoints.topAssistProvider[1].assists || 0)) <= 2 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
-              </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topAssistProvider[0].id} size={38} />
-                  <strong>{competitionPoints.topAssistProvider[0].id}</strong> {competitionPoints.topAssistProvider[0].assists}도움
-                </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topAssistProvider[1].id} size={38} />
-                  <strong>{competitionPoints.topAssistProvider[1].id}</strong> {competitionPoints.topAssistProvider[1].assists}도움
-                </div>
-              </S.CompetitionDetail>
-            </S.CompetitionItem>
-          )}
-
-          {competitionPoints.topAttackPoints.length > 1 && (
-            <S.CompetitionItem>
-              <S.CompetitionTitle>
-                공격포인트 경쟁{' '}
-                {Math.abs((competitionPoints.topAttackPoints[0].attackPoints || 0) - (competitionPoints.topAttackPoints[1].attackPoints || 0)) <= 2 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
-              </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topAttackPoints[0].id} size={38} />
-                  <strong>{competitionPoints.topAttackPoints[0].id}</strong> {competitionPoints.topAttackPoints[0].attackPoints}P
-                </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topAttackPoints[1].id} size={38} />
-                  <strong>{competitionPoints.topAttackPoints[1].id}</strong> {competitionPoints.topAttackPoints[1].attackPoints}P
-                </div>
-              </S.CompetitionDetail>
-            </S.CompetitionItem>
-          )}
-
-          {competitionPoints.topWinRate.length > 1 && (
-            <S.CompetitionItem>
-              <S.CompetitionTitle>
-                승률 1위 유지{' '}
-                {Math.abs((competitionPoints.topWinRate[0].winRate || 0) - (competitionPoints.topWinRate[1].winRate || 0)) <= 2 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
-              </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topWinRate[0].id} size={38} />
-                  <strong>{competitionPoints.topWinRate[0].id}</strong> {competitionPoints.topWinRate[0].winRate}%
-                </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topWinRate[1].id} size={38} />
-                  <strong>{competitionPoints.topWinRate[1].id}</strong> {competitionPoints.topWinRate[1].winRate}%
-                </div>
-              </S.CompetitionDetail>
-            </S.CompetitionItem>
-          )}
-
-          {competitionPoints.topCleanSheet.length > 1 && (
-            <S.CompetitionItem>
-              <S.CompetitionTitle>
-                클린시트 경쟁{' '}
-                {Math.abs((competitionPoints.topCleanSheet[0].cleanSheets || 0) - (competitionPoints.topCleanSheet[1].cleanSheets || 0)) <= 2 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
-              </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topCleanSheet[0].id} size={38} />
-                  <strong>{competitionPoints.topCleanSheet[0].id}</strong> {competitionPoints.topCleanSheet[0].cleanSheets}회
-                </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topCleanSheet[1].id} size={38} />
-                  <strong>{competitionPoints.topCleanSheet[1].id}</strong> {competitionPoints.topCleanSheet[1].cleanSheets}회
-                </div>
-              </S.CompetitionDetail>
-            </S.CompetitionItem>
-          )}
-
-          {competitionPoints.topPowerRanking.length > 1 && (
-            <S.CompetitionItem>
-              <S.CompetitionTitle>
-                파워랭킹 경쟁{' '}
-                {Math.abs((competitionPoints.topPowerRanking[0].powerRanking || 0) - (competitionPoints.topPowerRanking[1].powerRanking || 0)) <= 0.05 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
-              </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topPowerRanking[0].id} size={38} />
-                  <strong>{competitionPoints.topPowerRanking[0].id}</strong> {competitionPoints.topPowerRanking[0].powerRanking.toFixed(2)}점
-                </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topPowerRanking[1].id} size={38} />
-                  <strong>{competitionPoints.topPowerRanking[1].id}</strong> {competitionPoints.topPowerRanking[1].powerRanking.toFixed(2)}점
-                </div>
-              </S.CompetitionDetail>
-            </S.CompetitionItem>
-          )}
-
-          {competitionPoints.topMomCount.length > 1 && (
-            <S.CompetitionItem>
-              <S.CompetitionTitle>
-                MOM 경쟁{' '}
-                {Math.abs((competitionPoints.topMomCount[0].momTop3Count || 0) - (competitionPoints.topMomCount[1].momTop3Count || 0)) <= 1 && (
-                  <span style={{ color: '#FF4500' }}>치열한 경쟁!</span>
-                )}
-              </S.CompetitionTitle>
-              <S.CompetitionDetail style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topMomCount[0].id} size={38} />
-                  <strong>{competitionPoints.topMomCount[0].id}</strong> {competitionPoints.topMomCount[0].momTop3Count}회
-                </div>
-                <span style={{ color: '#666' }}>vs</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <PlayerAvatar nick={competitionPoints.topMomCount[1].id} size={38} />
-                  <strong>{competitionPoints.topMomCount[1].id}</strong> {competitionPoints.topMomCount[1].momTop3Count}회
-                </div>
-              </S.CompetitionDetail>
-            </S.CompetitionItem>
-          )}
-
-          {Object.values(competitionPoints).every(arr => arr.length < 2) && (
-            <S.NoCompetitionMessage>곧 치열한 경쟁이 시작될 예정입니다! 팀을 응원하며 경기를 즐겨보세요!</S.NoCompetitionMessage>
-          )}
+          ))}
         </S.CompetitionPointsContainer>
-
-        {competitionPoints.topGoalScorer.length > 1 && (
-          <S.ChartContainer>
-            <Bar data={getCompetitionGraphData()} options={competitionGraphOptions} />
-          </S.ChartContainer>
-        )}
       </S.Section>
 
-      {/* === 최근 맞대결 섹션 (기존 그대로) === */}
-      {lineups.length > 1 && (
+      {recentMatches.length > 0 && (
         <S.Section>
-          <S.PreviousMatchesTitle>최근 5경기 맞대결</S.PreviousMatchesTitle>
-          {Object.values(headToHeadStats).map((stats, index) => {
-            const captain1Name = Object.keys(stats).find(k => k !== 'history');
-            const captain2Name = Object.keys(stats).find(k => k !== 'history' && k !== captain1Name);
-            if (!captain1Name || !captain2Name) return null;
-            const captain1Stats = stats[captain1Name];
-            const captain2Stats = stats[captain2Name];
-
-            return (
-              <S.HeadToHead key={index}>
-                <S.HeadToHeadTitle>상대 전적</S.HeadToHeadTitle>
-                <S.HeadToHeadStats>
-                  <S.HeadToHeadTeam>
-                    {captain1Name} {captain1Stats.wins}승 {captain1Stats.draws}무 {captain1Stats.losses}패
-                  </S.HeadToHeadTeam>
-                  <S.HeadToHeadVS>vs</S.HeadToHeadVS>
-                  <S.HeadToHeadTeam>
-                    {captain2Name} {captain2Stats.wins}승 {captain2Stats.draws}무 {captain2Stats.losses}패
-                  </S.HeadToHeadTeam>
-                </S.HeadToHeadStats>
-              </S.HeadToHead>
-            );
-          })}
+          <S.SectionTitle>상대 전적 (최근 5경기)</S.SectionTitle>
+          <S.HeadToHead>
+            <S.HeadToHeadTitle>통산 기록</S.HeadToHeadTitle>
+            <S.HeadToHeadStats>
+              <S.HeadToHeadTeam>
+                <div className="name">{lineups[0].captain}</div>
+                <div className="record">{headToHeadStats[Object.keys(headToHeadStats)[0]]?.[lineups[0].captain]?.wins}승</div>
+              </S.HeadToHeadTeam>
+              <S.HeadToHeadVS>VS</S.HeadToHeadVS>
+              <S.HeadToHeadTeam>
+                <div className="name">{lineups[1]?.captain}</div>
+                <div className="record">{headToHeadStats[Object.keys(headToHeadStats)[0]]?.[lineups[1]?.captain]?.wins}승</div>
+              </S.HeadToHeadTeam>
+            </S.HeadToHeadStats>
+          </S.HeadToHead>
           <S.MatchList>
-            {recentMatches.length > 0 ? recentMatches.map((match, index) => (
-              <S.MatchItem key={index}>
+            {recentMatches.map((m, i) => (
+              <S.MatchItem key={i}>
+                <S.MatchInfo>{formatDate(m.date, true).split(' ')[0]}</S.MatchInfo>
                 <S.MatchTeams>
-                  {match.result} ({match.score})
+                  <span className={m.winner === m.teams[0].captain ? 'winner' : ''}>{m.teams[0].captain}</span>
+                  <S.MatchScore>{m.score}</S.MatchScore>
+                  <span className={m.winner === m.teams[1].captain ? 'winner' : ''}>{m.teams[1].captain}</span>
                 </S.MatchTeams>
-                <S.MatchInfo>
-                  <S.MatchDateInfo>{formatDate(match.date)}</S.MatchDateInfo>
-                </S.MatchInfo>
               </S.MatchItem>
-            )) : (
-              <S.MatchItem>
-                <S.MatchTeams>맞대결 기록이 없습니다.</S.MatchTeams>
-              </S.MatchItem>
-            )}
+            ))}
           </S.MatchList>
         </S.Section>
       )}

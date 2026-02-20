@@ -242,17 +242,44 @@ export const PopupBody = styled.div`
   gap: 12px;
 `;
 
-export const PopupStat = styled.div`
-  font-size: 15px;
-  color: #444;
+export const StatBox = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
+  align-items: center; /* Changed from default to center for better alignment */
+  padding: 12px 16px; /* Increased padding */
   border-bottom: 1px solid #f0f0f0;
+  background-color: ${props => props.isFirst ? '#fff9db' : 'transparent'}; /* Light Yellow bg for 1st */
+  border-radius: ${props => props.isFirst ? '8px' : '0'};
+  border: ${props => props.isFirst ? '1px solid #ffe066' : 'none'};
+  margin-bottom: ${props => props.isFirst ? '4px' : '0'};
 
   &:last-child {
     border-bottom: none;
   }
+`;
+
+export const BoxLabel = styled.span`
+  font-size: 15px;
+  color: ${props => props.isFirst ? '#e67700' : '#888'}; /* Darker orange for 1st */
+  font-weight: ${props => props.isFirst ? '700' : '400'};
+`;
+
+export const BoxValue = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin-right: 8px; /* Spacing */
+  margin-left: auto; /* Push to right */
+`;
+
+export const BoxRank = styled.span`
+  font-size: 14px;
+  color: ${props => props.isFirst ? '#e67700' : '#868e96'};
+  font-weight: ${props => props.isFirst ? '700' : '400'};
+  width: 70px; /* Slightly increased for icon space */
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: center;
 `;
 
 export const PopupFooter = styled.div`

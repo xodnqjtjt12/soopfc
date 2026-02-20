@@ -3,6 +3,8 @@ import { collection, addDoc, getDocs, doc, setDoc, deleteDoc, getDoc, query } fr
 import { db } from '../App';
 import { format } from 'date-fns';
 import styled from 'styled-components';
+import axios from 'axios';
+import Papa from 'papaparse';
 import * as S from './LiveAdminCss';
 import eyeIcon from '../icons/eye_icon.png';
 import eyeOffIcon from '../icons/eye_off_icon.png';
@@ -87,10 +89,6 @@ const LiveAdmin = () => {
   const [editingCheerCount, setEditingCheerCount] = useState({});
   const [matchCheers, setMatchCheers] = useState([]);
   const [isEditingMatchCheers, setIsEditingMatchCheers] = useState(false);
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [capsLockOn, setCapsLockOn] = useState(false);
   const [logs, setLogs] = useState([]);
   const [isHomeExposed, setIsHomeExposed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -105,20 +103,6 @@ const LiveAdmin = () => {
     const ts = new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' });
     setLogs((prev) => [...prev, `[${ts}] ${msg}`]);
   };
-
-  const handlePasswordChange = (e) => setPassword(e.target.value);
-  const handlePasswordKeyEvent = (e) => setCapsLockOn(e.getModifierState('CapsLock'));
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    if (password === 'alves') {
-      setIsAuthenticated(true);
-      addLog('관리자 로그인 성공');
-    } else {
-      alert('비밀번호가 올바르지 않습니다.');
-      addLog('관리자 로그인 실패');
-    }
-  };
-  const toggleShowPassword = () => setShowPassword((prev) => !prev);
 
   const fetchAllPlayers = async () => {
     try {
@@ -173,7 +157,7 @@ const LiveAdmin = () => {
 
   // 노출 시간에 따라 isHomeExposed 업데이트
   useEffect(() => {
-    if (!isAuthenticated || !startDateTime || !endDateTime) return;
+    if (!startDateTime || !endDateTime) return;
 
     const checkExposure = () => {
       const now = new Date();
@@ -188,47 +172,45 @@ const LiveAdmin = () => {
     const interval = setInterval(checkExposure, 60000); // 1분마다 확인
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, startDateTime, endDateTime]);
+  }, [startDateTime, endDateTime]);
 
   // 초기 데이터 가져오기
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchLineups();
-      fetchAllPlayers();
-      buildPlayerPositionHistory();
-      const voteStatusRef = doc(db, 'voteStatus', today);
-      getDoc(voteStatusRef).then((voteStatusDoc) => {
-        if (voteStatusDoc.exists()) {
-          const { matchDate, startDateTime, endDateTime } = voteStatusDoc.data();
-          setDateTime(matchDate ? formatDateTimeDisplay(new Date(matchDate)) : '');
-          setStartDateTime(startDateTime ? formatDateTimeDisplay(new Date(startDateTime)) : '');
-          setEndDateTime(endDateTime ? formatDateTimeDisplay(new Date(endDateTime)) : '');
-          addLog('voteStatus 데이터 로드 완료');
-        } else {
-          setDateTime('');
-          setStartDateTime('');
-          setEndDateTime('');
-          addLog('voteStatus 데이터 없음, 기본값 설정');
-          // voteStatus 문서 초기화
-          setDoc(voteStatusRef, {
-            matchDate: new Date().toISOString(),
-            startDateTime: new Date().toISOString(),
-            endDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            isEnabled: true
-          }).then(() => {
-            addLog(`voteStatus/${today} 초기화`);
-          }).catch((err) => {
-            console.error('voteStatus 초기화 오류:', err.message);
-            addLog(`voteStatus 초기화 오류: ${err.message}`);
-          });
-        }
-      }).catch((err) => {
-        console.error('Error fetching vote status:', err.message);
-        setError('투표 상태 불러오기 오류: ' + err.message);
-        addLog('투표 상태 불러오기 오류: ' + err.message);
-      });
-    }
-  }, [isAuthenticated, today]);
+    fetchLineups();
+    fetchAllPlayers();
+    buildPlayerPositionHistory();
+    const voteStatusRef = doc(db, 'voteStatus', today);
+    getDoc(voteStatusRef).then((voteStatusDoc) => {
+      if (voteStatusDoc.exists()) {
+        const { matchDate, startDateTime, endDateTime } = voteStatusDoc.data();
+        setDateTime(matchDate ? formatDateTimeDisplay(new Date(matchDate)) : '');
+        setStartDateTime(startDateTime ? formatDateTimeDisplay(new Date(startDateTime)) : '');
+        setEndDateTime(endDateTime ? formatDateTimeDisplay(new Date(endDateTime)) : '');
+        addLog('voteStatus 데이터 로드 완료');
+      } else {
+        setDateTime('');
+        setStartDateTime('');
+        setEndDateTime('');
+        addLog('voteStatus 데이터 없음, 기본값 설정');
+        // voteStatus 문서 초기화
+        setDoc(voteStatusRef, {
+          matchDate: new Date().toISOString(),
+          startDateTime: new Date().toISOString(),
+          endDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          isEnabled: true
+        }).then(() => {
+          addLog(`voteStatus/${today} 초기화`);
+        }).catch((err) => {
+          console.error('voteStatus 초기화 오류:', err.message);
+          addLog(`voteStatus 초기화 오류: ${err.message}`);
+        });
+      }
+    }).catch((err) => {
+      console.error('Error fetching vote status:', err.message);
+      setError('투표 상태 불러오기 오류: ' + err.message);
+      addLog('투표 상태 불러오기 오류: ' + err.message);
+    });
+  }, [today]);
 
   const fetchLineups = async () => {
     try {
@@ -322,6 +304,69 @@ const LiveAdmin = () => {
     setTeams(newTeams);
     console.log('Updated teams:', newTeams);
     addLog(`팀 데이터 업데이트: 팀 ${index + 1} ${field}=${value}`);
+  };
+
+  const handleSyncGoogleSheet = async (teamIndex) => {
+    const sheetIds = [
+      '133293953',   // Team 1 (A)
+      '387893900',   // Team 2 (B)
+      '1883903987'  // Team 3 (C)
+    ];
+
+    const gid = sheetIds[teamIndex];
+    if (!gid) return;
+
+    if (!window.confirm(`팀 ${teamIndex + 1}의 데이터를 구글 시트와 동기화하시겠습니까?`)) return;
+
+    try {
+      setLoading(true);
+      addLog(`구글 시트 동기화 시작: 팀 ${teamIndex + 1} (gid=${gid})`);
+
+      const response = await axios.get(
+        `https://docs.google.com/spreadsheets/d/1M-sJAgFBF6XDnPwbX8bZLvsIWV06vtRWQV6AOGO49gI/export?format=csv&gid=${gid}`,
+        { responseType: 'blob' }
+      );
+
+      Papa.parse(response.data, {
+        complete: (results) => {
+          const rows = results.data;
+          // Row 7 (Index 6), Column B (Index 1)
+          const names = rows.slice(6)
+            .map(row => row[1])
+            .filter(name => name && name.trim() !== '' && name !== '0' && !name.includes('#REF!') && !name.includes('입력'));
+
+          if (names.length === 0) {
+            alert('시트에서 선수 이름을 찾을 수 없습니다.');
+            setLoading(false);
+            return;
+          }
+
+          const newPlayers = names.map(name => ({
+            nick: name.trim(),
+            position: getMostFrequentPosition(name.trim())
+          }));
+
+          const newTeams = [...teams];
+          newTeams[teamIndex].players = newPlayers;
+          setTeams(newTeams);
+
+          addLog(`구글 시트 동기화 완료: 팀 ${teamIndex + 1} (${newPlayers.length}명)`);
+          alert(`팀 ${teamIndex + 1} 동기화 완료 (${newPlayers.length}명)`);
+          setLoading(false);
+        },
+        error: (err) => {
+          console.error(err);
+          addLog(`구글 시트 파싱 오류: ${err.message}`);
+          alert(`파싱 실패: ${err.message}`);
+          setLoading(false);
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      addLog(`구글 시트 동기화 오류: ${err.message}`);
+      alert(`동기화 실패: ${err.message}`);
+      setLoading(false);
+    }
   };
 
   const getMostFrequentPosition = (playerName) => {
@@ -822,302 +867,279 @@ const LiveAdmin = () => {
 
   return (
     <S.Container>
-      {!isAuthenticated ? (
-        <form onSubmit={handlePasswordSubmit}>
-          <S.Header>관리자 페이지 접근</S.Header>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <S.Input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={handlePasswordChange}
-              onKeyDown={handlePasswordKeyEvent}
-              onKeyUp={handlePasswordKeyEvent}
-              placeholder="비밀번호 입력"
-            />
-            <S.TogglePasswordVisibility
-              src={showPassword ? eyeIcon : eyeOffIcon}
-              alt="Toggle Password Visibility"
-              onClick={toggleShowPassword}
-            />
-          </div>
-          {capsLockOn && <S.ErrorMessage>Caps Lock이 켜져 있습니다.</S.ErrorMessage>}
-          <S.Button type="submit">확인</S.Button>
-          {logs.length > 0 && (
-            <S.LogsContainer>
-              <S.Header>로그</S.Header>
-              {logs.map((log, i) => (
-                <S.LogItem key={i}>{log}</S.LogItem>
-              ))}
-            </S.LogsContainer>
-          )}
-        </form>
-      ) : (
-        <>
-          <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (홈 노출 시작 시간과 종료 시간 사이에 홈 화면에 표시됩니다)</S.SectionTitle>
-          
-          <S.SwitchContainer>
-            <S.SwitchLabel>라인업 홈 노출: </S.SwitchLabel>
-            <S.StatusText>{isHomeExposed ? '활성화' : '비활성화'}</S.StatusText>
-          </S.SwitchContainer>
-          {loading && <S.Loading>로딩 중...</S.Loading>}
+      <S.SectionTitle>{editingLineupId ? '라인업 수정' : '경기 라인업 관리'} (홈 노출 시작 시간과 종료 시간 사이에 홈 화면에 표시됩니다)</S.SectionTitle>
 
-          <S.FormContainer onSubmit={handleSubmit}>
+      <S.SwitchContainer>
+        <S.SwitchLabel>라인업 홈 노출: </S.SwitchLabel>
+        <S.StatusText>{isHomeExposed ? '활성화' : '비활성화'}</S.StatusText>
+      </S.SwitchContainer>
+      {loading && <S.Loading>로딩 중...</S.Loading>}
+
+      <S.FormContainer onSubmit={handleSubmit}>
+        <S.Input
+          type="datetime-local"
+          value={dateTime}
+          onChange={(e) => setDateTime(e.target.value)}
+          placeholder="경기 시간"
+          required
+        />
+        <S.Input
+          type="datetime-local"
+          value={startDateTime}
+          onChange={(e) => setStartDateTime(e.target.value)}
+          placeholder="홈 노출 시작 시간"
+          required
+        />
+        <S.Input
+          type="datetime-local"
+          value={endDateTime}
+          onChange={(e) => setEndDateTime(e.target.value)}
+          placeholder="홈 노출 종료 시간"
+          required
+        />
+
+        {!editingLineupId && (
+          <S.RadioGroup>
+            <S.RadioLabel>
+              <input
+                type="radio"
+                name="teamCount"
+                value={2}
+                checked={teamCount === 2}
+                onChange={() => handleTeamCountChange(2)}
+              />
+              2팀
+            </S.RadioLabel>
+            <S.RadioLabel>
+              <input
+                type="radio"
+                name="teamCount"
+                value={3}
+                checked={teamCount === 3}
+                onChange={() => handleTeamCountChange(3)}
+              />
+              3팀
+            </S.RadioLabel>
+          </S.RadioGroup>
+        )}
+
+        {teams.map((team, teamIndex) => (
+          <S.TeamSection key={teamIndex}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <S.TeamTitle>팀 {teamIndex + 1}</S.TeamTitle>
+              <S.AddButton
+                type="button"
+                onClick={() => handleSyncGoogleSheet(teamIndex)}
+                style={{ width: 'auto', padding: '5px 15px', fontSize: '12px', backgroundColor: '#217346' }}
+              >
+                구글 시트 동기화
+              </S.AddButton>
+            </div>
             <S.Input
-              type="datetime-local"
-              value={dateTime}
-              onChange={(e) => setDateTime(e.target.value)}
-              placeholder="경기 시간"
-              required
+              type="text"
+              value={team.name}
+              onChange={(e) => handleTeamChange(teamIndex, 'name', e.target.value)}
+              placeholder="팀 이름"
             />
             <S.Input
-              type="datetime-local"
-              value={startDateTime}
-              onChange={(e) => setStartDateTime(e.target.value)}
-              placeholder="홈 노출 시작 시간"
-              required
+              type="text"
+              value={team.captain}
+              onChange={(e) => handleTeamChange(teamIndex, 'captain', e.target.value)}
+              placeholder="주장 이름"
             />
-            <S.Input
-              type="datetime-local"
-              value={endDateTime}
-              onChange={(e) => setEndDateTime(e.target.value)}
-              placeholder="홈 노출 종료 시간"
-              required
-            />
-            
-            {!editingLineupId && (
-              <S.RadioGroup>
-                <S.RadioLabel>
-                  <input
-                    type="radio"
-                    name="teamCount"
-                    value={2}
-                    checked={teamCount === 2}
-                    onChange={() => handleTeamCountChange(2)}
-                  />
-                  2팀
-                </S.RadioLabel>
-                <S.RadioLabel>
-                  <input
-                    type="radio"
-                    name="teamCount"
-                    value={3}
-                    checked={teamCount === 3}
-                    onChange={() => handleTeamCountChange(3)}
-                  />
-                  3팀
-                </S.RadioLabel>
-              </S.RadioGroup>
+            <S.Select
+              value={team.color}
+              onChange={(e) => handleTeamChange(teamIndex, 'color', e.target.value)}
+            >
+              <option value="#000000">검정</option>
+              <option value="#00b7eb">하늘색</option>
+              <option value="#FFA500">주황색</option>
+              <option value="#FF0000">빨강</option>
+              <option value="#0000FF">파랑</option>
+              <option value="#FFFFFF">흰색</option>
+            </S.Select>
+            {editingLineupId && (
+              <S.Input
+                type="number"
+                value={team.cheerCount}
+                onChange={(e) => handleTeamChange(teamIndex, 'cheerCount', e.target.value)}
+                placeholder="팀 응원 수"
+                min="0"
+              />
             )}
 
-            {teams.map((team, teamIndex) => (
-              <S.TeamSection key={teamIndex}>
-                <S.TeamTitle>팀 {teamIndex + 1}</S.TeamTitle>
-                <S.Input
-                  type="text"
-                  value={team.name}
-                  onChange={(e) => handleTeamChange(teamIndex, 'name', e.target.value)}
-                  placeholder="팀 이름"
-                />
-                <S.Input
-                  type="text"
-                  value={team.captain}
-                  onChange={(e) => handleTeamChange(teamIndex, 'captain', e.target.value)}
-                  placeholder="주장 이름"
-                />
-                <S.Select
-                  value={team.color}
-                  onChange={(e) => handleTeamChange(teamIndex, 'color', e.target.value)}
-                >
-                  <option value="#000000">검정</option>
-                  <option value="#00b7eb">하늘색</option>
-                  <option value="#FFA500">주황색</option>
-                  <option value="#FF0000">빨강</option>
-                  <option value="#0000FF">파랑</option>
-                  <option value="#FFFFFF">흰색</option>
-                </S.Select>
-                {editingLineupId && (
+            <h4>선수 명단 (최대 20명)</h4>
+            {team.players.map((player, playerIndex) => (
+              <S.PlayerRow key={playerIndex}>
+                <div style={{ position: 'relative', flex: 2 }}>
                   <S.Input
-                    type="number"
-                    value={team.cheerCount}
-                    onChange={(e) => handleTeamChange(teamIndex, 'cheerCount', e.target.value)}
-                    placeholder="팀 응원 수"
-                    min="0"
+                    type="text"
+                    value={player.nick}
+                    onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'nick', e.target.value)}
+                    onFocus={() => setActiveInput({ teamIndex, playerIndex })}
+                    placeholder="닉네임"
+                    style={playerIndex === 0 ? { border: '2px solid red' } : {}}
                   />
-                )}
-                
-                <h4>선수 명단 (최대 20명)</h4>
-                {team.players.map((player, playerIndex) => (
-                  <S.PlayerRow key={playerIndex}>
-                    <div style={{ position: 'relative', flex: 2 }}>
-                        <S.Input
-                            type="text"
-                            value={player.nick}
-                            onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'nick', e.target.value)}
-                            onFocus={() => setActiveInput({ teamIndex, playerIndex })}
-                            placeholder="닉네임"
-                            style={playerIndex === 0 ? { border: '2px solid red' } : {}}
-                        />
-                        {activeInput?.teamIndex === teamIndex && activeInput?.playerIndex === playerIndex && suggestions.length > 0 && (
-                            <SuggestionsList>
-                            {suggestions.map((p) => (
-                                <SuggestionItem key={p.id} onClick={() => handlePlayerSelect(teamIndex, playerIndex, p)}>
-                                {p.name} ({getMostFrequentPosition(p.name)})
-                                </SuggestionItem>
-                            ))}
-                            </SuggestionsList>
-                        )}
-                    </div>
-                    <S.Select
-                      value={player.position}
-                      onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'position', e.target.value)}
-                      style={{ flex: 2 }}
-                    >
-                      {renderPositionOptions()}
-                    </S.Select>
-                    <S.IconButton 
-                      type="button" 
-                      onClick={() => removePlayer(teamIndex, playerIndex)}
-                    >
-                      🗑️
-                    </S.IconButton>
-                  </S.PlayerRow>
-                ))}
-                
-                <S.AddButton 
-                  type="button" 
-                  onClick={() => addPlayer(teamIndex)}
-                  disabled={team.players.length >= 20}
+                  {activeInput?.teamIndex === teamIndex && activeInput?.playerIndex === playerIndex && suggestions.length > 0 && (
+                    <SuggestionsList>
+                      {suggestions.map((p) => (
+                        <SuggestionItem key={p.id} onClick={() => handlePlayerSelect(teamIndex, playerIndex, p)}>
+                          {p.name} ({getMostFrequentPosition(p.name)})
+                        </SuggestionItem>
+                      ))}
+                    </SuggestionsList>
+                  )}
+                </div>
+                <S.Select
+                  value={player.position}
+                  onChange={(e) => handlePlayerChange(teamIndex, playerIndex, 'position', e.target.value)}
+                  style={{ flex: 2 }}
                 >
-                  선수 추가
-                </S.AddButton>
-              </S.TeamSection>
+                  {renderPositionOptions()}
+                </S.Select>
+                <S.IconButton
+                  type="button"
+                  onClick={() => removePlayer(teamIndex, playerIndex)}
+                >
+                  🗑️
+                </S.IconButton>
+              </S.PlayerRow>
             ))}
 
-            {teamCount >= 2 && (
-              <S.TeamSection>
-                <S.TeamTitle>매치 응원 데이터</S.TeamTitle>
-                {teams.map((team, index) => (
-                  <S.Input
-                    key={index}
-                    type="number"
-                    value={matchCheers[index]?.cheers || 0}
-                    onChange={(e) => handleMatchCheerChange(index, e.target.value)}
-                    placeholder={`${team.name || `Team${index + 1}`} 응원 수`}
-                    min="0"
-                  />
-                ))}
-              </S.TeamSection>
-            )}
+            <S.AddButton
+              type="button"
+              onClick={() => addPlayer(teamIndex)}
+              disabled={team.players.length >= 20}
+            >
+              선수 추가
+            </S.AddButton>
+          </S.TeamSection>
+        ))}
 
-            <S.SaveButton type="submit" disabled={loading}>
-              {editingLineupId ? '수정 완료' : '라인업 저장'}
-            </S.SaveButton>
-            
-            {editingLineupId && (
-              <S.DeleteButton type="button" onClick={handleCancelEdit}>
-                수정 취소
-              </S.DeleteButton>
-            )}
-            
-            {message && <S.Message>{message}</S.Message>}
-            {error && <S.Message error>{error}</S.Message>}
-          </S.FormContainer>
+        {teamCount >= 2 && (
+          <S.TeamSection>
+            <S.TeamTitle>매치 응원 데이터</S.TeamTitle>
+            {teams.map((team, index) => (
+              <S.Input
+                key={index}
+                type="number"
+                value={matchCheers[index]?.cheers || 0}
+                onChange={(e) => handleMatchCheerChange(index, e.target.value)}
+                placeholder={`${team.name || `Team${index + 1}`} 응원 수`}
+                min="0"
+              />
+            ))}
+          </S.TeamSection>
+        )}
 
-          <S.SavedLineupsContainer>
-            <S.SectionTitle>저장된 라인업 목록</S.SectionTitle>
-            {savedLineups.length === 0 ? (
-              <p>저장된 라인업이 없습니다.</p>
-            ) : (
-              <>
-                <S.MatchCheerSection>
+        <S.SaveButton type="submit" disabled={loading}>
+          {editingLineupId ? '수정 완료' : '라인업 저장'}
+        </S.SaveButton>
+
+        {editingLineupId && (
+          <S.DeleteButton type="button" onClick={handleCancelEdit}>
+            수정 취소
+          </S.DeleteButton>
+        )}
+
+        {message && <S.Message>{message}</S.Message>}
+        {error && <S.Message error>{error}</S.Message>}
+      </S.FormContainer>
+
+      <S.SavedLineupsContainer>
+        <S.SectionTitle>저장된 라인업 목록</S.SectionTitle>
+        {savedLineups.length === 0 ? (
+          <p>저장된 라인업이 없습니다.</p>
+        ) : (
+          <>
+            <S.MatchCheerSection>
+              <S.SavedLineupTitle>
+                매치 응원:{' '}
+                {isEditingMatchCheers ? (
+                  matchCheers.map((team, index) => (
+                    <span key={index}>
+                      <S.Input
+                        type="number"
+                        value={team.cheers}
+                        onChange={(e) => handleMatchCheerChange(index, e.target.value)}
+                        style={{ width: '80px', marginLeft: '5px' }}
+                        min="0"
+                      />
+                      {' 회'}
+                      {index < matchCheers.length - 1 && ', '}
+                    </span>
+                  ))
+                ) : (
+                  matchCheers.map((team, index) => (
+                    <span key={index}>
+                      {team.name || `Team${index + 1}`} {team.cheers}회
+                      {index < matchCheers.length - 1 && ', '}
+                    </span>
+                  ))
+                )}
+              </S.SavedLineupTitle>
+              <S.SavedLineupActions>
+                {isEditingMatchCheers ? (
+                  <S.EditButton onClick={handleSaveMatchCheers}>저장</S.EditButton>
+                ) : (
+                  <S.EditButton onClick={handleEditMatchCheers}>매치 응원 수정</S.EditButton>
+                )}
+                <S.DeleteButton onClick={handleResetMatchCheers}>매치 응원 초기화</S.DeleteButton>
+              </S.SavedLineupActions>
+            </S.MatchCheerSection>
+            {savedLineups.map((lineupGroup, index) => (
+              <S.SavedLineup key={index}>
+                <S.SavedLineupHeader>
                   <S.SavedLineupTitle>
-                    매치 응원:{' '}
-                    {isEditingMatchCheers ? (
-                      matchCheers.map((team, index) => (
-                        <span key={index}>
-                          <S.Input
-                            type="number"
-                            value={team.cheers}
-                            onChange={(e) => handleMatchCheerChange(index, e.target.value)}
-                            style={{ width: '80px', marginLeft: '5px' }}
-                            min="0"
-                          />
-                          {' 회'}
-                          {index < matchCheers.length - 1 && ', '}
-                        </span>
-                      ))
-                    ) : (
-                      matchCheers.map((team, index) => (
-                        <span key={index}>
-                          {team.name || `Team${index + 1}`} {team.cheers}회
-                          {index < matchCheers.length - 1 && ', '}
-                        </span>
-                      ))
-                    )}
+                    매치: {lineupGroup.date ? formatDateTimeDisplay(new Date(lineupGroup.date)) : '날짜 미정'}
                   </S.SavedLineupTitle>
                   <S.SavedLineupActions>
-                    {isEditingMatchCheers ? (
-                      <S.EditButton onClick={handleSaveMatchCheers}>저장</S.EditButton>
-                    ) : (
-                      <S.EditButton onClick={handleEditMatchCheers}>매치 응원 수정</S.EditButton>
-                    )}
-                    <S.DeleteButton onClick={handleResetMatchCheers}>매치 응원 초기화</S.DeleteButton>
+                    <S.EditButton onClick={() => handleEdit(lineupGroup)}>수정</S.EditButton>
+                    <S.DeleteButton onClick={() => handleDelete(lineupGroup.date)}>삭제</S.DeleteButton>
                   </S.SavedLineupActions>
-                </S.MatchCheerSection>
-                {savedLineups.map((lineupGroup, index) => (
-                  <S.SavedLineup key={index}>
-                    <S.SavedLineupHeader>
-                      <S.SavedLineupTitle>
-                        매치: {lineupGroup.date ? formatDateTimeDisplay(new Date(lineupGroup.date)) : '날짜 미정'}
-                      </S.SavedLineupTitle>
-                      <S.SavedLineupActions>
-                        <S.EditButton onClick={() => handleEdit(lineupGroup)}>수정</S.EditButton>
-                        <S.DeleteButton onClick={() => handleDelete(lineupGroup.date)}>삭제</S.DeleteButton>
-                      </S.SavedLineupActions>
-                    </S.SavedLineupHeader>
-                    <S.SavedLineupTeams>
-                      {lineupGroup.teams.map((team, teamIndex) => (
-                        <S.SavedLineupTeam key={teamIndex}>
-                          <S.SavedLineupTeamHeader>
-                            {team.teamName}
-                            <span style={{ marginLeft: '10px' }}>
-                              {editingLineupId === lineupGroup.date ? (
-                                <S.Input
-                                  type="number"
-                                  value={editingCheerCount[team.teamName] || team.cheerCount}
-                                  onChange={(e) => handleCheerCountChange(team.teamName, e.target.value)}
-                                  style={{ width: '80px', marginLeft: '5px' }}
-                                  min="0"
-                                />
-                              ) : (
-                                `팀 응원: ${team.cheerCount}회`
-                              )}
-                            </span>
-                          </S.SavedLineupTeamHeader>
-                          <S.SavedLineupPlayers>
-                            {team.players.map((player, playerIndex) => (
-                              <li key={playerIndex}>
-                                {player.nick} ({POSITIONS[player.position] || player.position})
-                              </li>
-                            ))}
-                          </S.SavedLineupPlayers>
-                        </S.SavedLineupTeam>
-                      ))}
-                    </S.SavedLineupTeams>
-                  </S.SavedLineup>
-                ))}
-              </>
-            )}
-          </S.SavedLineupsContainer>
-          {logs.length > 0 && (
-            <S.LogsContainer>
-              <S.Header>로그</S.Header>
-              {logs.map((log, i) => (
-                <S.LogItem key={i}>{log}</S.LogItem>
-              ))}
-            </S.LogsContainer>
-          )}
-        </>
+                </S.SavedLineupHeader>
+                <S.SavedLineupTeams>
+                  {lineupGroup.teams.map((team, teamIndex) => (
+                    <S.SavedLineupTeam key={teamIndex}>
+                      <S.SavedLineupTeamHeader>
+                        {team.teamName}
+                        <span style={{ marginLeft: '10px' }}>
+                          {editingLineupId === lineupGroup.date ? (
+                            <S.Input
+                              type="number"
+                              value={editingCheerCount[team.teamName] || team.cheerCount}
+                              onChange={(e) => handleCheerCountChange(team.teamName, e.target.value)}
+                              style={{ width: '80px', marginLeft: '5px' }}
+                              min="0"
+                            />
+                          ) : (
+                            `팀 응원: ${team.cheerCount}회`
+                          )}
+                        </span>
+                      </S.SavedLineupTeamHeader>
+                      <S.SavedLineupPlayers>
+                        {team.players.map((player, playerIndex) => (
+                          <li key={playerIndex}>
+                            {player.nick} ({POSITIONS[player.position] || player.position})
+                          </li>
+                        ))}
+                      </S.SavedLineupPlayers>
+                    </S.SavedLineupTeam>
+                  ))}
+                </S.SavedLineupTeams>
+              </S.SavedLineup>
+            ))}
+          </>
+        )}
+      </S.SavedLineupsContainer>
+
+      {logs.length > 0 && (
+        <S.LogsContainer>
+          <S.Header>로그</S.Header>
+          {logs.map((log, i) => (
+            <S.LogItem key={i}>{log}</S.LogItem>
+          ))}
+        </S.LogsContainer>
       )}
     </S.Container>
   );

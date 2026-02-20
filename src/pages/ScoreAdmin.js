@@ -18,7 +18,7 @@ const formatDate = (date) => {
 const PredictionItem = React.memo(({ prediction, matchId, onEdit, onDelete }) => (
   <S.PredictionItem>
     <S.PredictionDetails>
-      {prediction.nickname}: {prediction.homeScore}:{prediction.awayScore} 
+      {prediction.nickname}: {prediction.homeScore}:{prediction.awayScore}
       (비밀번호: {prediction.password})
     </S.PredictionDetails>
     <S.ButtonGroup>
@@ -83,10 +83,6 @@ const ScoreAdmin = () => {
   const [newMatch, setNewMatch] = useState({ homeTeam: '', awayTeam: '', date: '', voteDeadlineOffset: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
   const [predictionsByMatch, setPredictionsByMatch] = useState({});
   const [editPrediction, setEditPrediction] = useState(null);
@@ -101,16 +97,6 @@ const ScoreAdmin = () => {
       .catch(err => console.error('익명 로그인 오류:', err.message));
   }, []);
 
-  // 비밀번호 확인
-  const handlePasswordSubmit = useCallback(() => {
-    console.log('비밀번호 제출 시도:', password);
-    if (password === 'alves') {
-      setIsAuthenticated(true);
-      setPasswordError('');
-    } else {
-      setPasswordError('비밀번호가 올바르지 않습니다.');
-    }
-  }, [password]);
 
   // Firestore 초기화 확인
   useEffect(() => {
@@ -119,7 +105,7 @@ const ScoreAdmin = () => {
 
   // 전체 경기 목록 가져오기
   useEffect(() => {
-    if (isAuthenticated && !selectedMatch) {
+    if (!selectedMatch) {
       console.log('전체 경기 목록 가져오기 시작');
       const fetchMatches = async () => {
         setLoading(true);
@@ -136,18 +122,18 @@ const ScoreAdmin = () => {
           setMatches(matchesData);
         } catch (err) {
           console.error('경기 데이터 가져오기 오류:', err.message);
-          setError('경기 데이터를 불러오는 중 오류가 발생했습니다.');
+          alert('경기 데이터를 불러오는 중 오류가 발생했습니다.');
         } finally {
           setLoading(false);
         }
       };
       fetchMatches();
     }
-  }, [isAuthenticated, selectedMatch]);
+  }, [selectedMatch]);
 
   // 현재 선택된 경기 데이터 및 예측 가져오기
   useEffect(() => {
-    if (isAuthenticated && !selectedMatch) {
+    if (!selectedMatch) {
       console.log('현재 선택된 경기 데이터 가져오기 시작');
       const fetchCurrentMatchesAndPredictions = async () => {
         setLoading(true);
@@ -190,14 +176,14 @@ const ScoreAdmin = () => {
           setPredictionsByMatch(predictionsByMatch);
         } catch (err) {
           console.error('데이터 가져오기 오류:', err.message);
-          setError('데이터를 불러오는 중 오류가 발생했습니다.');
+          alert('데이터를 불러오는 중 오류가 발생했습니다.');
         } finally {
           setLoading(false);
         }
       };
       fetchCurrentMatchesAndPredictions();
     }
-  }, [isAuthenticated, selectedMatch]);
+  }, [selectedMatch]);
 
   // 새 경기 추가
   const handleAddMatch = useCallback(async (e) => {
@@ -327,7 +313,7 @@ const ScoreAdmin = () => {
     try {
       const predictionRef = doc(db, 'Score', editPrediction.matchId, 'predictions', editPrediction.predictionId);
       const winner = homeScore > awayScore ? selectedMatch.homeTeam :
-                    awayScore > homeScore ? selectedMatch.awayTeam : 'draw';
+        awayScore > homeScore ? selectedMatch.awayTeam : 'draw';
       await updateDoc(predictionRef, {
         nickname: editForm.nickname,
         homeScore,
@@ -407,31 +393,9 @@ const ScoreAdmin = () => {
     setEditForm({ nickname: '', homeScore: '', awayScore: '', password: '' });
   };
 
-  if (!isAuthenticated) {
-    console.log('비밀번호 인증 화면 렌더링');
-    return (
-      <S.PasswordContainer>
-        <h2>비밀번호를 입력하세요</h2>
-        <S.PasswordInput
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handlePasswordSubmit();
-            }
-          }}
-          placeholder="비밀번호"
-        />
-        <S.SubmitButton onClick={handlePasswordSubmit}>제출</S.SubmitButton>
-        {passwordError && <S.ErrorMessage>{passwordError}</S.ErrorMessage>}
-      </S.PasswordContainer>
-    );
-  }
-
-  if (selectedMatch) {
-    return (
-      <>
+  return (
+    <S.Container>
+      {selectedMatch ? (
         <PredictionView
           match={selectedMatch}
           predictions={predictionsByMatch[selectedMatch.id] || []}
@@ -439,141 +403,133 @@ const ScoreAdmin = () => {
           onEditPrediction={startEditPrediction}
           onDeletePrediction={handleDeletePrediction}
         />
-        {editPrediction && (
-          <S.Form onSubmit={handleEditPrediction}>
-            <S.SubHeader>예측 수정</S.SubHeader>
+      ) : (
+        <>
+          <S.Header>Score Admin</S.Header>
+          <S.FormSection>
+            <h3>새 경기 추가</h3>
             <S.Input
               type="text"
-              placeholder="닉네임"
+              name="homeTeam"
+              value={newMatch.homeTeam}
+              onChange={(e) => setNewMatch(prev => ({ ...prev, homeTeam: e.target.value }))}
+              placeholder="홈 팀"
+            />
+            <S.Input
+              type="text"
+              name="awayTeam"
+              value={newMatch.awayTeam}
+              onChange={(e) => setNewMatch(prev => ({ ...prev, awayTeam: e.target.value }))}
+              placeholder="어웨이 팀"
+            />
+            <S.Input
+              type="datetime-local"
+              name="date"
+              value={newMatch.date}
+              onChange={(e) => setNewMatch(prev => ({ ...prev, date: e.target.value }))}
+            />
+            <S.Input
+              type="number"
+              name="voteDeadlineOffset"
+              value={newMatch.voteDeadlineOffset}
+              onChange={(e) => setNewMatch(prev => ({ ...prev, voteDeadlineOffset: e.target.value }))}
+              placeholder="투표 마감 오프셋 (분)"
+            />
+            <S.SubmitButton onClick={handleAddMatch}>경기 추가</S.SubmitButton>
+          </S.FormSection>
+
+          <S.SelectedPlayersContainer>
+            <h3>현재 선택된 경기 (홈 화면 노출)</h3>
+            {selectedMatches.map((match, index) => (
+              <SelectedMatchCard
+                key={match.id || index}
+                match={match}
+                index={index}
+                onRemove={handleRemoveMatch}
+                statusUpdateLoading={statusUpdateLoading}
+              />
+            ))}
+          </S.SelectedPlayersContainer>
+
+          <S.SaveButton
+            onClick={saveToScore}
+            disabled={selectedMatches.filter(m => m.homeTeam && m.awayTeam).length < 1 || loading}
+          >
+            {loading ? '저장 중...' : 'Score에 저장'}
+          </S.SaveButton>
+
+          <S.SubHeader>경기 목록 ({filteredMatches.length}개)</S.SubHeader>
+          <S.SearchInput
+            type="text"
+            placeholder="팀 이름으로 검색"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {loading && <p>로딩 중...</p>}
+          <S.PlayersList>
+            {filteredMatches.map((match) => (
+              <S.PlayerCard
+                key={match.id}
+                onClick={() => {
+                  setSelectedMatch(match);
+                  // Add match to selectedMatches if not already present
+                  const isSelected = selectedMatches.some(m => m.id === match.id);
+                  if (!isSelected) {
+                    setSelectedMatches(prev => [
+                      ...prev,
+                      { ...match, id: match.id || `match_${formatDate(new Date(match.date))}_${Date.now()}` },
+                    ]);
+                  }
+                }}
+                selected={selectedMatches.some(m => m.id === match.id)}
+              >
+                <S.PlayerName>{match.homeTeam} vs {match.awayTeam}</S.PlayerName>
+                <S.PlayerStats>일시: {new Date(match.date).toLocaleString()}</S.PlayerStats>
+                <S.PlayerStats>상태: {match.isEnabled ? '예측 가능' : '예측 종료'}</S.PlayerStats>
+                <S.PlayerStats>마감: {match.voteDeadlineOffset ? `${match.voteDeadlineOffset}분 전` : '없음'}</S.PlayerStats>
+              </S.PlayerCard>
+            ))}
+          </S.PlayersList>
+        </>
+      )}
+
+      {editPrediction && (
+        <S.ModalOverlay>
+          <S.ModalContent>
+            <S.Header>예측 수정</S.Header>
+            <S.Input
+              type="text"
+              name="nickname"
               value={editForm.nickname}
               onChange={(e) => setEditForm(prev => ({ ...prev, nickname: e.target.value }))}
+              placeholder="닉네임"
             />
-            <S.ScoreInputContainer>
-              <S.Input
-                type="number"
-                placeholder="홈팀 스코어"
-                value={editForm.homeScore}
-                onChange={(e) => setEditForm(prev => ({ ...prev, homeScore: e.target.value }))}
-                min="0"
-              />
-              <S.ScoreSeparator>:</S.ScoreSeparator>
-              <S.Input
-                type="number"
-                placeholder="어웨이팀 스코어"
-                value={editForm.awayScore}
-                onChange={(e) => setEditForm(prev => ({ ...prev, awayScore: e.target.value }))}
-                min="0"
-              />
-            </S.ScoreInputContainer>
-            <S.PasswordContainer>
-              <S.Input
-                type="password"
-                placeholder="새 비밀번호"
-                value={editForm.password}
-                onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
-              />
-            </S.PasswordContainer>
-            <S.SubmitButton type="submit">수정 완료</S.SubmitButton>
-            <S.CancelButton onClick={() => {
-              setEditPrediction(null);
-              setEditForm({ nickname: '', homeScore: '', awayScore: '', password: '' });
-            }}>
-              취소
-            </S.CancelButton>
-          </S.Form>
-        )}
-      </>
-    );
-  }
-
-  console.log('메인 페이지 렌더링', { selectedMatches, filteredMatches });
-  return (
-    <S.Container>
-      <S.Header>스코어 관리</S.Header>
-
-      <S.SubHeader>선택된 경기</S.SubHeader>
-      <S.SelectedPlayersContainer>
-      {selectedMatches.map((match, index) => (
-    <SelectedMatchCard
-      key={index}
-      match={match}
-      index={index}
-      onRemove={handleRemoveMatch}
-      statusUpdateLoading={statusUpdateLoading}
-    />
-  ))}
-  <S.AddSlotButton onClick={addSlot}>+ 경기 추가</S.AddSlotButton>
-  <S.ResetButton onClick={resetAllMatches}>모두 초기화</S.ResetButton>
-</S.SelectedPlayersContainer>
-
-      <S.SaveButton
-        onClick={saveToScore}
-        disabled={selectedMatches.filter(m => m.homeTeam && m.awayTeam).length < 1 || loading}
-      >
-        {loading ? '저장 중...' : 'Score에 저장'}
-      </S.SaveButton>
-
-      <S.SubHeader>새 경기 추가</S.SubHeader>
-      <S.Form onSubmit={handleAddMatch}>
-        <S.Input
-          type="text"
-          value={newMatch.homeTeam}
-          onChange={(e) => setNewMatch(prev => ({ ...prev, homeTeam: e.target.value }))}
-          placeholder="홈팀 이름"
-        />
-        <S.Input
-          type="text"
-          value={newMatch.awayTeam}
-          onChange={(e) => setNewMatch(prev => ({ ...prev, awayTeam: e.target.value }))}
-          placeholder="어웨이팀 이름"
-        />
-        <S.Input
-          type="datetime-local"
-          value={newMatch.date}
-          onChange={(e) => setNewMatch(prev => ({ ...prev, date: e.target.value }))}
-        />
-        <S.Input
-          type="number"
-          value={newMatch.voteDeadlineOffset}
-          onChange={(e) => setNewMatch(prev => ({ ...prev, voteDeadlineOffset: e.target.value }))}
-          placeholder="마감 시간(분 전)"
-          min="0"
-        />
-        <S.SubmitButton type="submit">경기 추가</S.SubmitButton>
-      </S.Form>
-
-      <S.SubHeader>경기 목록 ({filteredMatches.length}개)</S.SubHeader>
-      <S.SearchInput
-        type="text"
-        placeholder="팀 이름으로 검색"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-      {loading && <p>로딩 중...</p>}
-      <S.PlayersList>
-        {filteredMatches.map((match) => (
-          <S.PlayerCard
-            key={match.id}
-            onClick={() => {
-              setSelectedMatch(match);
-              // Add match to selectedMatches if not already present
-              const isSelected = selectedMatches.some(m => m.id === match.id);
-              if (!isSelected) {
-                setSelectedMatches(prev => [
-                  ...prev,
-                  { ...match, id: match.id || `match_${formatDate(new Date(match.date))}_${Date.now()}` },
-                ]);
-              }
-            }}
-            selected={selectedMatches.some(m => m.id === match.id)}
-          >
-            <S.PlayerName>{match.homeTeam} vs {match.awayTeam}</S.PlayerName>
-            <S.PlayerStats>일시: {new Date(match.date).toLocaleString()}</S.PlayerStats>
-            <S.PlayerStats>상태: {match.isEnabled ? '예측 가능' : '예측 종료'}</S.PlayerStats>
-            <S.PlayerStats>마감: {match.voteDeadlineOffset ? `${match.voteDeadlineOffset}분 전` : '없음'}</S.PlayerStats>
-          </S.PlayerCard>
-        ))}
-      </S.PlayersList>
+            <S.Input
+              type="number"
+              name="homeScore"
+              value={editForm.homeScore}
+              onChange={(e) => setEditForm(prev => ({ ...prev, homeScore: e.target.value }))}
+              placeholder="홈 스코어"
+            />
+            <S.Input
+              type="number"
+              name="awayScore"
+              value={editForm.awayScore}
+              onChange={(e) => setEditForm(prev => ({ ...prev, awayScore: e.target.value }))}
+              placeholder="어웨이 스코어"
+            />
+            <S.Input
+              type="password"
+              name="password"
+              value={editForm.password}
+              onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+              placeholder="비밀번호"
+            />
+            <S.SubmitButton onClick={handleEditPrediction}>수정</S.SubmitButton>
+            <S.CancelButton onClick={() => setEditPrediction(null)}>취소</S.CancelButton>
+          </S.ModalContent>
+        </S.ModalOverlay>
+      )}
     </S.Container>
   );
 };

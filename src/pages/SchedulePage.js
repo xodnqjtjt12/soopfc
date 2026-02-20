@@ -76,10 +76,6 @@ const SchedulePage = () => {
   const [scheduleList, setScheduleList] = useState([]);
   const [editMode, setEditMode] = useState({});
   const [editText, setEditText] = useState({});
-  const [password, setPassword] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCapsLock, setIsCapsLock] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // 일정 불러오기 - 'schedules' 컬렉션 사용
   const fetchSchedules = async () => {
@@ -92,10 +88,10 @@ const SchedulePage = () => {
           ? new Date(doc.data().date.seconds * 1000)
           : new Date(doc.data().date)
       }));
-      
+
       // 날짜별 정렬
       data.sort((a, b) => a.date - b.date);
-      
+
       setScheduleList(data);
     } catch (error) {
       console.error("일정 불러오기 오류:", error);
@@ -103,15 +99,9 @@ const SchedulePage = () => {
     }
   };
 
-  // 비밀번호 확인
-  const handleLogin = () => {
-    if (password === 'alves') {
-      setIsAuthenticated(true);
-      fetchSchedules();
-    } else {
-      alert('비밀번호가 틀렸습니다.');
-    }
-  };
+  useEffect(() => {
+    fetchSchedules();
+  }, []);
 
   // 일정 추가
   const handleAddSchedule = async () => {
@@ -119,13 +109,13 @@ const SchedulePage = () => {
       alert('날짜와 일정 내용을 모두 입력해주세요.');
       return;
     }
-    
+
     try {
-      await addDoc(collection(db, 'schedules'), { 
+      await addDoc(collection(db, 'schedules'), {
         date: new Date(date),
         text: text
       });
-      
+
       alert('일정이 추가되었습니다.');
       setDate('');
       setText('');
@@ -156,7 +146,7 @@ const SchedulePage = () => {
       ...prev,
       [id]: !prev[id]
     }));
-    
+
     // 수정 모드로 전환할 때 현재 텍스트를 editText에 저장
     if (!editMode[id]) {
       setEditText(prev => ({
@@ -194,52 +184,17 @@ const SchedulePage = () => {
     }
   };
 
-  // CapsLock 확인
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-    const isCapsOn = e.getModifierState && e.getModifierState('CapsLock');
-    setIsCapsLock(isCapsOn);
-  };
-
   // 날짜 형식 변환 함수
   const formatDate = (date) => {
-    return date instanceof Date 
-      ? date.toLocaleDateString('ko-KR', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric', 
-          weekday: 'long' 
-        })
+    return date instanceof Date
+      ? date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      })
       : '';
   };
-
-  const toggleShowPassword = () => {
-    setShowPassword((prev) => !prev);
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <PasswordContainer>
-        <h2>비밀번호를 입력하세요</h2>
-        <Input
-          type={showPassword ? "text" : "password"}
-          value={password}
-          onChange={handlePasswordChange}
-          placeholder="비밀번호"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleLogin();
-            }
-          }}
-        />
-        <Button onClick={handleLogin}>로그인</Button>
-        <Button onClick={toggleShowPassword}>
-          {showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-        </Button>
-        {isCapsLock && <p style={{ color: 'red' }}>Caps Lock이 켜져 있습니다.</p>}
-      </PasswordContainer>
-    );
-  }
 
   return (
     <PageContainer>
@@ -266,7 +221,7 @@ const SchedulePage = () => {
         scheduleList.map((item) => (
           <ScheduleCard key={item.id}>
             <p><strong>날짜:</strong> {formatDate(item.date)}</p>
-            
+
             {editMode[item.id] ? (
               <FormGroup>
                 <Input

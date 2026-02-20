@@ -5,18 +5,18 @@ import {
 } from 'firebase/firestore';
 import { db } from '../App';
 import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
+import axios from 'axios';
 import eyeIcon from '../icons/eye_icon.png';
 import eyeOffIcon from '../icons/eye_off_icon.png';
+import LoadingScreen from '../components/LoadingScreen';
 
 // 스타일 컴포넌트를 한 번에 가져오기
 import * as S from './Admincss';
 
 const AdminPage = () => {
   // --- 상태 정의 ---
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [loading, setLoading] = useState(false); // Add loading state
   const [logs, setLogs] = useState([]);
   const [playerData, setPlayerData] = useState({
     backNumber: '', name: '', team: '', matches: '', goals: '', assists: '',
@@ -57,20 +57,6 @@ const AdminPage = () => {
     addLog(`연도 추가: ${newYear}`);
   };
 
-  // --- 비밀번호 입력/확인 ---
-  const handlePasswordChange = (e) => setPassword(e.target.value);
-  const handlePasswordKeyEvent = (e) => setCapsLockOn(e.getModifierState('CapsLock'));
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    if (password === 'alves') {
-      setIsAuthenticated(true);
-      addLog('관리자 로그인 성공');
-    } else {
-      alert('비밀번호가 올바르지 않습니다.');
-      addLog('관리자 로그인 실패');
-    }
-  };
-  const toggleShowPassword = () => setShowPassword((prev) => !prev);
 
   // --- 선수 데이터 입력 핸들러 ---
   const handleInputChange = (e) => {
@@ -227,6 +213,109 @@ const AdminPage = () => {
     reader.readAsBinaryString(file);
   };
 
+
+  // --- 구글 시트 동기화 핸들러 ---
+  const handleGoogleSheetSync = async () => {
+    if (!window.confirm('구글 시트의 "선수 관리 업로드용" 시트 데이터로 동기화하시겠습니까?')) return;
+
+    try {
+      setUploadMessage('구글 시트 데이터 가져오는 중...');
+
+      // 1. Fetch CSV data
+      const response = await axios.get(
+        'https://docs.google.com/spreadsheets/d/1M-sJAgFBF6XDnPwbX8bZLvsIWV06vtRWQV6AOGO49gI/export?format=csv&gid=1688314028',
+        { responseType: 'blob' }
+      );
+
+      // 2. Parse CSV using PapaParse
+      Papa.parse(response.data, {
+        complete: async (results) => {
+          const rows = results.data;
+          // Skip the first 6 rows (header area)
+          const dataRows = rows.slice(6);
+
+          let successCount = 0;
+
+          for (const row of dataRows) {
+            // Mapping based on column index (0-based)
+            // B열 is index 1, T열 is index 19
+            if (!row[2] || !row[3]) continue; // Name (C=2) or Team (D=3) missing -> skip
+
+            const mappedData = {
+              backNumber: row[1],
+              name: row[2],
+              team: row[3],
+              matches: row[4],
+              goals: row[5],
+              assists: row[6],
+              attackPoints: row[7],
+              cleanSheets: row[8],
+              war: row[9],
+              xg: row[10],
+              wa: row[11],
+              win: row[12],
+              draw: row[13],
+              lose: row[14],
+              winRate: row[15],
+              personalPoints: row[16],
+              momScore: row[17],
+              momTop3Count: row[18],
+              momTop8Count: row[19]
+            };
+
+            const ref = doc(db, 'players', mappedData.name);
+
+            // Calculate advanced stats if needed, or use the ones from sheet if provided
+            // The sheet provides war, xg, wa, so we can use them directly or recalculate.
+            // Plan says to map directly.
+
+            await setDoc(ref, {
+              backNumber: Number(mappedData.backNumber) || 0,
+              name: mappedData.name,
+              team: mappedData.team,
+              matches: Number(mappedData.matches) || 0,
+              goals: Number(mappedData.goals) || 0,
+              assists: Number(mappedData.assists) || 0,
+              attackPoints: Number(mappedData.attackPoints) || 0,
+              cleanSheets: Number(mappedData.cleanSheets) || 0,
+              win: Number(mappedData.win) || 0,
+              draw: Number(mappedData.draw) || 0,
+              lose: Number(mappedData.lose) || 0,
+              winRate: Number(mappedData.winRate) || 0,
+              personalPoints: Number(mappedData.personalPoints) || 0,
+              momScore: Number(mappedData.momScore) || 0,
+              momTop3Count: Number(mappedData.momTop3Count) || 0,
+              momTop8Count: Number(mappedData.momTop8Count) || 0,
+              xg: Number(mappedData.xg) || 0,
+              wa: Number(mappedData.wa) || 0,
+              war: Number(mappedData.war) || 0,
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+
+            addLog(`구글 시트 동기화: ${mappedData.name} (${selectedYear}년)`);
+            successCount++;
+          }
+
+          setUploadMessage(`구글 시트 동기화 완료 (${successCount}명)`);
+          fetchPlayers();
+          alert(`구글 시트 데이터 동기화가 완료되었습니다. (${successCount}명 처리)`);
+        },
+        error: (err) => {
+          console.error(err);
+          setUploadMessage('구글 시트 파싱 오류');
+          addLog(`CSV 파싱 오류: ${err.message}`);
+          alert(`CSV 파싱 실패: ${err.message}`);
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      setUploadMessage('구글 시트 동기화 오류');
+      addLog(`구글 시트 동기화 오류: ${err.message}`);
+      alert(`동기화 실패: ${err.message}`);
+    }
+  };
+
   const handlePreviewExcel = () => {
     if (!file) return alert('파일을 선택해주세요.');
     const reader = new FileReader();
@@ -365,358 +454,334 @@ const AdminPage = () => {
 
   // --- 초기 로드 ---
   useEffect(() => {
-    if (isAuthenticated) fetchPlayers();
-  }, [isAuthenticated]);
+    setLoading(true);
+    fetchPlayers().finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   // --- 렌더링 ---
   return (
-    <S.Container>
-      {!isAuthenticated ? (
-        <form onSubmit={handlePasswordSubmit}>
-          <S.Header>관리자 페이지 접근</S.Header>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <S.Input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={handlePasswordChange}
-              onKeyDown={handlePasswordKeyEvent}
-              onKeyUp={handlePasswordKeyEvent}
-              placeholder="비밀번호 입력"
-            />
-            <S.TogglePasswordVisibility
-              src={showPassword ? eyeIcon : eyeOffIcon}
-              alt="Toggle Password Visibility"
-              onClick={toggleShowPassword}
-            />
-          </div>
-          {capsLockOn && <S.ErrorMessage>Caps Lock이 켜져 있습니다.</S.ErrorMessage>}
-          <S.Button type="submit">확인</S.Button>
-        </form>
-      ) : (
-        <S.AdminContent>
-          <S.MainArea>
-            <S.Header>관리자 페이지</S.Header>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-              <S.Select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                {years.map((year) => (
-                  <option key={year} value={year}>{year}년</option>
-                ))}
-              </S.Select>
-              <S.Button onClick={handleAddYear}>연도 추가</S.Button>
-            </div>
-            <div style={{ textAlign: 'right', fontSize: '14px', color: '#4e5968', marginBottom: '16px' }}>
-              {players[0]?.updatedAt
-                ? `최근 업데이트: ${new Date(players[0].updatedAt.seconds * 1000).toLocaleString('ko-KR')}`
-                : '최근 업데이트 정보 없음'}
-            </div>
+    <S.AdminContainer>
+      <S.TitleSection>
+        <S.MainTitle>선수 데이터 관리 ({selectedYear}년)</S.MainTitle>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <S.AddButton onClick={handleAddYear}>+ 연도 추가</S.AddButton>
+          <S.Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+            {years.map((y) => <option key={y} value={y}>{y}년</option>)}
+          </S.Select>
+        </div>
+      </S.TitleSection>
 
-            {/* 엑셀 업로드 */}
-            <h3>엑셀 파일 업로드 ({selectedYear}년)</h3>
-            <S.Input type="file" onChange={handleFileChange} />
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-              <S.Button onClick={handleFileUpload}>업로드</S.Button>
-              <S.Button onClick={handlePreviewExcel}>미리보기</S.Button>
-            </div>
-            {uploadMessage && <S.UploadMessage success={uploadMessage.includes('완료')}>{uploadMessage}</S.UploadMessage>}
-            {showExcelPreview && previewData.length > 0 && (
-              <S.PreviewContainer>
-                <p><strong>엑셀 미리보기 ({selectedYear}년)</strong></p>
-                <S.Table>
-                  <thead>
-                    <tr>
-                      <S.Th>등번호</S.Th><S.Th>이름</S.Th><S.Th>팀</S.Th><S.Th>경기수</S.Th>
-                      <S.Th>득점</S.Th><S.Th>도움</S.Th><S.Th>공격포인트</S.Th><S.Th>클린시트</S.Th>
-                      <S.Th>경기당 공격포인트</S.Th><S.Th>경기당 득점</S.Th><S.Th>경기당 도움</S.Th>
-                      <S.Th>승</S.Th><S.Th>무</S.Th><S.Th>패</S.Th><S.Th>승률</S.Th>
-                      <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th>
-                      <S.Th>MOM TOP 3 횟수</S.Th><S.Th>MOM TOP 8 횟수</S.Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewData.map((r, i) => (
-                      <tr key={i}>
-                        <S.Td>{r.backNumber}</S.Td><S.Td>{r.name}</S.Td><S.Td>{r.team}</S.Td><S.Td>{r.matches}</S.Td>
-                        <S.Td>{r.goals}</S.Td><S.Td>{r.assists}</S.Td><S.Td>{r.attackPoints}</S.Td><S.Td>{r.cleanSheets}</S.Td>
-                        <S.Td>{r.war}</S.Td><S.Td>{r.xg}</S.Td><S.Td>{r.wa}</S.Td>
-                        <S.Td>{r.win}</S.Td><S.Td>{r.draw}</S.Td><S.Td>{r.lose}</S.Td><S.Td>{r.winRate}</S.Td>
-                        <S.Td>{r.personalPoints}</S.Td><S.Td>{r.momScore}</S.Td>
-                        <S.Td>{r.momTop3Count}</S.Td><S.Td>{r.momTop8Count}</S.Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </S.Table>
-              </S.PreviewContainer>
-            )}
+      <div style={{ textAlign: 'right', fontSize: '14px', color: '#4e5968', marginBottom: '16px' }}>
+        {players[0]?.updatedAt
+          ? `최근 업데이트: ${new Date(players[0].updatedAt.seconds * 1000).toLocaleString('ko-KR')}`
+          : '최근 업데이트 정보 없음'}
+      </div>
 
-            <hr />
-
-            {/* 개별 입력 폼 */}
-            <S.Form onSubmit={handleSubmitPlayerData}>
-              <h3>선수 데이터 추가/수정 ({selectedYear}년)</h3>
-              {previewExcelChanges && (
-                <S.PreviewContainer>
-                  <p><strong>업데이트 미리보기</strong></p>
-                  <p>등번호: {previewExcelChanges.backNumber}</p>
-                  <p>팀: {previewExcelChanges.team}</p>
-                  <p>경기수: {previewExcelChanges.matches}</p>
-                  <p>득점: {previewExcelChanges.goals}</p>
-                  <p>도움: {previewExcelChanges.assists}</p>
-                  <p>클린시트: {previewExcelChanges.cleanSheets}</p>
-                  <p>승: {previewExcelChanges.win}</p>
-                  <p>무: {previewExcelChanges.draw}</p>
-                  <p>패: {previewExcelChanges.lose}</p>
-                  <p>승률: {previewExcelChanges.winRate}</p>
-                  <p>개인승점: {previewExcelChanges.personalPoints}</p>
-                  <p>MOM점수: {previewExcelChanges.momScore}</p>
-                  <p>MOM TOP 3 횟수: {previewExcelChanges.momTop3Count}</p>
-                  <p>MOM TOP 8 횟수: {previewExcelChanges.momTop8Count}</p>
-                </S.PreviewContainer>
-              )}
-              <S.Input type="number" name="backNumber" value={playerData.backNumber} onChange={handleInputChange} placeholder="등번호" />
-              <S.Input type="text" name="name" value={playerData.name} onChange={handleInputChange} placeholder="선수 이름" />
-              <S.Input type="text" name="team" value={playerData.team} onChange={handleInputChange} placeholder="팀 이름" />
-              <S.Input type="number" name="matches" value={playerData.matches} onChange={handleInputChange} placeholder="경기수" />
-              <S.Input type="number" name="goals" value={playerData.goals} onChange={handleInputChange} placeholder="득점" />
-              <S.Input type="number" name="assists" value={playerData.assists} onChange={handleInputChange} placeholder="도움" />
-              <S.Input type="number" name="cleanSheets" value={playerData.cleanSheets} onChange={handleInputChange} placeholder="클린시트" />
-              <S.Input type="number" name="win" value={playerData.win} onChange={handleInputChange} placeholder="승" />
-              <S.Input type="number" name="draw" value={playerData.draw} onChange={handleInputChange} placeholder="무" />
-              <S.Input type="number" name="lose" value={playerData.lose} onChange={handleInputChange} placeholder="패" />
-              <S.Input type="number" name="winRate" value={playerData.winRate} onChange={handleInputChange} placeholder="승률" />
-              <S.Input type="number" name="personalPoints" value={playerData.personalPoints} onChange={handleInputChange} placeholder="개인승점" />
-              <S.Input type="number" name="momScore" value={playerData.momScore} onChange={handleInputChange} placeholder="MOM점수" />
-              <S.Input type="number" name="momTop3Count" value={playerData.momTop3Count} onChange={handleInputChange} placeholder="MOM TOP 3 횟수" />
-              <S.Input type="number" name="momTop8Count" value={playerData.momTop8Count} onChange={handleInputChange} placeholder="MOM TOP 8 횟수" />
-              <S.Button type="submit">저장</S.Button>
-            </S.Form>
-
-            <hr />
-
-            <S.Button onClick={downloadTemplate}>엑셀 양식 다운로드</S.Button>
-
-            <hr />
-
-            {/* 선수 목록 */}
-            <S.Header>저장된 선수 목록 (총 {players.length}명, {selectedYear}년)</S.Header>
-            <S.Table>
-              <thead>
-                <tr>
-                  <S.Th>등번호</S.Th><S.Th>이름</S.Th><S.Th>팀</S.Th><S.Th>경기수</S.Th>
-                  <S.Th>득점</S.Th><S.Th>도움</S.Th><S.Th>공격포인트</S.Th><S.Th>클린시트</S.Th>
-                  <S.Th>경기당 공격포인트</S.Th><S.Th>경기당 득점</S.Th><S.Th>경기당 도움</S.Th>
-                  <S.Th>승</S.Th><S.Th>무</S.Th><S.Th>패</S.Th><S.Th>승률</S.Th>
-                  <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th><S.Th>MOM TOP 3 횟수</S.Th><S.Th>MOM TOP 8 횟수</S.Th><S.Th>액션</S.Th>
+      {/* 엑셀 업로드 */}
+      <h3>엑셀 파일 업로드 ({selectedYear}년)</h3>
+      <S.Input type="file" onChange={handleFileChange} />
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+        <S.Button onClick={handleFileUpload}>업로드</S.Button>
+        <S.Button onClick={handlePreviewExcel}>미리보기</S.Button>
+        <S.Button onClick={handleGoogleSheetSync} style={{ backgroundColor: '#217346' }}>구글 시트 동기화</S.Button>
+      </div>
+      {uploadMessage && <S.UploadMessage success={uploadMessage.includes('완료')}>{uploadMessage}</S.UploadMessage>}
+      {showExcelPreview && previewData.length > 0 && (
+        <S.PreviewContainer>
+          <p><strong>엑셀 미리보기 ({selectedYear}년)</strong></p>
+          <S.Table>
+            <thead>
+              <tr>
+                <S.Th>등번호</S.Th><S.Th>이름</S.Th><S.Th>팀</S.Th><S.Th>경기수</S.Th>
+                <S.Th>득점</S.Th><S.Th>도움</S.Th><S.Th>공격포인트</S.Th><S.Th>클린시트</S.Th>
+                <S.Th>경기당 공격포인트</S.Th><S.Th>경기당 득점</S.Th><S.Th>경기당 도움</S.Th>
+                <S.Th>승</S.Th><S.Th>무</S.Th><S.Th>패</S.Th><S.Th>승률</S.Th>
+                <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th>
+                <S.Th>MOM TOP 3 횟수</S.Th><S.Th>MOM TOP 8 횟수</S.Th>
+              </tr>
+            </thead>
+            <tbody>
+              {previewData.map((r, i) => (
+                <tr key={i}>
+                  <S.Td>{r.backNumber}</S.Td><S.Td>{r.name}</S.Td><S.Td>{r.team}</S.Td><S.Td>{r.matches}</S.Td>
+                  <S.Td>{r.goals}</S.Td><S.Td>{r.assists}</S.Td><S.Td>{r.attackPoints}</S.Td><S.Td>{r.cleanSheets}</S.Td>
+                  <S.Td>{r.war}</S.Td><S.Td>{r.xg}</S.Td><S.Td>{r.wa}</S.Td>
+                  <S.Td>{r.win}</S.Td><S.Td>{r.draw}</S.Td><S.Td>{r.lose}</S.Td><S.Td>{r.winRate}</S.Td>
+                  <S.Td>{r.personalPoints}</S.Td><S.Td>{r.momScore}</S.Td>
+                  <S.Td>{r.momTop3Count}</S.Td><S.Td>{r.momTop8Count}</S.Td>
                 </tr>
-              </thead>
-              <tbody>
-                {players.map((pl) => (
-                  <tr key={pl.id}>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="backNumber"
-                          value={editingData.backNumber}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.backNumber
-                      )}
-                    </S.Td>
-                    <S.Td>{pl.name}</S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="text"
-                          name="team"
-                          value={editingData.team}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.team
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="matches"
-                          value={editingData.matches}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.matches
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="goals"
-                          value={editingData.goals}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.goals
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="assists"
-                          value={editingData.assists}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.assists
-                      )}
-                    </S.Td>
-                    <S.Td>{pl.attackPoints}</S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="cleanSheets"
-                          value={editingData.cleanSheets}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.cleanSheets
-                      )}
-                    </S.Td>
-                    <S.Td>{pl.war}</S.Td>
-                    <S.Td>{pl.xg}</S.Td>
-                    <S.Td>{pl.wa}</S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="win"
-                          value={editingData.win}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.win
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="draw"
-                          value={editingData.draw}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.draw
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="lose"
-                          value={editingData.lose}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.lose
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="winRate"
-                          value={editingData.winRate}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.winRate
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="personalPoints"
-                          value={editingData.personalPoints}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.personalPoints
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="momScore"
-                          value={editingData.momScore}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.momScore
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="momTop3Count"
-                          value={editingData.momTop3Count}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.momTop3Count || 0
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <S.SmallInput
-                          type="number"
-                          name="momTop8Count"
-                          value={editingData.momTop8Count}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        pl.momTop8Count || 0
-                      )}
-                    </S.Td>
-                    <S.Td>
-                      {editingId === pl.id ? (
-                        <>
-                          <S.Button onClick={() => handleSaveEdit(pl.id)}>저장</S.Button>
-                          <S.Button onClick={handleCancelEdit}>취소</S.Button>
-                          <S.Button onClick={() => handleDelete(pl.id)}>삭제</S.Button>
-                        </>
-                      ) : (
-                        <>
-                          <S.Button onClick={() => handleEdit(pl)}>수정</S.Button>
-                          <S.Button onClick={() => handleDelete(pl.id)}>삭제</S.Button>
-                        </>
-                      )}
-                    </S.Td>
-                  </tr>
-                ))}
-              </tbody>
-            </S.Table>
-          </S.MainArea>
-
-          {/* 로그 */}
-          <S.LogsContainer>
-            <S.Header>로그</S.Header>
-            {logs.map((log, i) => (
-              <S.LogItem key={i}>{log}</S.LogItem>
-            ))}
-          </S.LogsContainer>
-        </S.AdminContent>
+              ))}
+            </tbody>
+          </S.Table>
+        </S.PreviewContainer>
       )}
-    </S.Container>
+
+      <hr />
+
+      {/* 개별 입력 폼 */}
+      <S.Form onSubmit={handleSubmitPlayerData}>
+        <h3>선수 데이터 추가/수정 ({selectedYear}년)</h3>
+        {previewExcelChanges && (
+          <S.PreviewContainer>
+            <p><strong>업데이트 미리보기</strong></p>
+            <p>등번호: {previewExcelChanges.backNumber}</p>
+            <p>팀: {previewExcelChanges.team}</p>
+            <p>경기수: {previewExcelChanges.matches}</p>
+            <p>득점: {previewExcelChanges.goals}</p>
+            <p>도움: {previewExcelChanges.assists}</p>
+            <p>클린시트: {previewExcelChanges.cleanSheets}</p>
+            <p>승: {previewExcelChanges.win}</p>
+            <p>무: {previewExcelChanges.draw}</p>
+            <p>패: {previewExcelChanges.lose}</p>
+            <p>승률: {previewExcelChanges.winRate}</p>
+            <p>개인승점: {previewExcelChanges.personalPoints}</p>
+            <p>MOM점수: {previewExcelChanges.momScore}</p>
+            <p>MOM TOP 3 횟수: {previewExcelChanges.momTop3Count}</p>
+            <p>MOM TOP 8 횟수: {previewExcelChanges.momTop8Count}</p>
+          </S.PreviewContainer>
+        )}
+        <S.Input type="number" name="backNumber" value={playerData.backNumber} onChange={handleInputChange} placeholder="등번호" />
+        <S.Input type="text" name="name" value={playerData.name} onChange={handleInputChange} placeholder="선수 이름" />
+        <S.Input type="text" name="team" value={playerData.team} onChange={handleInputChange} placeholder="팀 이름" />
+        <S.Input type="number" name="matches" value={playerData.matches} onChange={handleInputChange} placeholder="경기수" />
+        <S.Input type="number" name="goals" value={playerData.goals} onChange={handleInputChange} placeholder="득점" />
+        <S.Input type="number" name="assists" value={playerData.assists} onChange={handleInputChange} placeholder="도움" />
+        <S.Input type="number" name="cleanSheets" value={playerData.cleanSheets} onChange={handleInputChange} placeholder="클린시트" />
+        <S.Input type="number" name="win" value={playerData.win} onChange={handleInputChange} placeholder="승" />
+        <S.Input type="number" name="draw" value={playerData.draw} onChange={handleInputChange} placeholder="무" />
+        <S.Input type="number" name="lose" value={playerData.lose} onChange={handleInputChange} placeholder="패" />
+        <S.Input type="number" name="winRate" value={playerData.winRate} onChange={handleInputChange} placeholder="승률" />
+        <S.Input type="number" name="personalPoints" value={playerData.personalPoints} onChange={handleInputChange} placeholder="개인승점" />
+        <S.Input type="number" name="momScore" value={playerData.momScore} onChange={handleInputChange} placeholder="MOM점수" />
+        <S.Input type="number" name="momTop3Count" value={playerData.momTop3Count} onChange={handleInputChange} placeholder="MOM TOP 3 횟수" />
+        <S.Input type="number" name="momTop8Count" value={playerData.momTop8Count} onChange={handleInputChange} placeholder="MOM TOP 8 횟수" />
+        <S.Button type="submit">저장</S.Button>
+      </S.Form>
+
+      <hr />
+
+      <S.Button onClick={downloadTemplate}>엑셀 양식 다운로드</S.Button>
+
+      <hr />
+
+      {/* 선수 목록 */}
+      <S.Header>저장된 선수 목록 (총 {players.length}명, {selectedYear}년)</S.Header>
+      <S.Table>
+        <thead>
+          <tr>
+            <S.Th>등번호</S.Th><S.Th>이름</S.Th><S.Th>팀</S.Th><S.Th>경기수</S.Th>
+            <S.Th>득점</S.Th><S.Th>도움</S.Th><S.Th>공격포인트</S.Th><S.Th>클린시트</S.Th>
+            <S.Th>경기당 공격포인트</S.Th><S.Th>경기당 득점</S.Th><S.Th>경기당 도움</S.Th>
+            <S.Th>승</S.Th><S.Th>무</S.Th><S.Th>패</S.Th><S.Th>승률</S.Th>
+            <S.Th>개인승점</S.Th><S.Th>MOM점수</S.Th><S.Th>MOM TOP 3 횟수</S.Th><S.Th>MOM TOP 8 횟수</S.Th><S.Th>액션</S.Th>
+          </tr>
+        </thead>
+        <tbody>
+          {players.map((pl) => (
+            <tr key={pl.id}>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="backNumber"
+                    value={editingData.backNumber}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.backNumber
+                )}
+              </S.Td>
+              <S.Td>{pl.name}</S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="text"
+                    name="team"
+                    value={editingData.team}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.team
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="matches"
+                    value={editingData.matches}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.matches
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="goals"
+                    value={editingData.goals}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.goals
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="assists"
+                    value={editingData.assists}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.assists
+                )}
+              </S.Td>
+              <S.Td>{pl.attackPoints}</S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="cleanSheets"
+                    value={editingData.cleanSheets}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.cleanSheets
+                )}
+              </S.Td>
+              <S.Td>{pl.war}</S.Td>
+              <S.Td>{pl.xg}</S.Td>
+              <S.Td>{pl.wa}</S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="win"
+                    value={editingData.win}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.win
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="draw"
+                    value={editingData.draw}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.draw
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="lose"
+                    value={editingData.lose}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.lose
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="winRate"
+                    value={editingData.winRate}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.winRate
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="personalPoints"
+                    value={editingData.personalPoints}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.personalPoints
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="momScore"
+                    value={editingData.momScore}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.momScore
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="momTop3Count"
+                    value={editingData.momTop3Count}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.momTop3Count || 0
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <S.SmallInput
+                    type="number"
+                    name="momTop8Count"
+                    value={editingData.momTop8Count}
+                    onChange={handleEditingDataChange}
+                  />
+                ) : (
+                  pl.momTop8Count || 0
+                )}
+              </S.Td>
+              <S.Td>
+                {editingId === pl.id ? (
+                  <>
+                    <S.Button onClick={() => handleSaveEdit(pl.id)}>저장</S.Button>
+                    <S.Button onClick={handleCancelEdit}>취소</S.Button>
+                    <S.Button onClick={() => handleDelete(pl.id)}>삭제</S.Button>
+                  </>
+                ) : (
+                  <>
+                    <S.Button onClick={() => handleEdit(pl)}>수정</S.Button>
+                    <S.Button onClick={() => handleDelete(pl.id)}>삭제</S.Button>
+                  </>
+                )}
+              </S.Td>
+            </tr>
+          ))}
+        </tbody>
+      </S.Table>
+
+      <S.LogsContainer>
+        <S.Header>로그</S.Header>
+        {logs.map((log, i) => (
+          <S.LogItem key={i}>{log}</S.LogItem>
+        ))}
+      </S.LogsContainer>
+    </S.AdminContainer>
   );
 };
 

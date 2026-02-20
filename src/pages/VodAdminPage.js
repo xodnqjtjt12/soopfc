@@ -3,16 +3,16 @@ import CreatableSelect from 'react-select/creatable';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { db } from '../App';
 import { collection, getDocs, addDoc, setDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { 
-  AdminContainer, 
-  AdminHeader, 
+import {
+  AdminContainer,
+  AdminHeader,
   TeamManagementGrid,
   TeamSettingsPanel,
   PanelSectionTitle,
-  FormGroup, 
-  Label, 
-  Input, 
-  Select, 
+  FormGroup,
+  Label,
+  Input,
+  Select,
   Button,
   SaveButton,
   FormationSelector,
@@ -132,12 +132,12 @@ const formations = {
 
 // Get empty player array based on formation, applying fixed players
 const getEmptyPlayers = (formation, fixedPlayers = {}, teamName = '') => {
-  const formationData = formations[formation] || formations['4-3-3'];
+  const formationData = formations[formation] || formations['4-2-3-1'];
   return formationData.map(pos => {
     const fixedPlayer = fixedPlayers[teamName]?.[pos.position];
-    return { 
-      backNumber: fixedPlayer?.backNumber || '', 
-      name: fixedPlayer?.name || '', 
+    return {
+      backNumber: fixedPlayer?.backNumber || '',
+      name: fixedPlayer?.name || '',
       position: pos.position,
       top: pos.top,
       left: pos.left
@@ -149,17 +149,17 @@ const getEmptyPlayers = (formation, fixedPlayers = {}, teamName = '') => {
 const initializeQuarter = (team1 = null, team2 = null, fixedPlayers = {}) => {
   return {
     teams: [
-      { 
+      {
         id: team1?.id || null,
-        name: team1?.name || '', 
-        formation: team1?.formation || '4-3-3', 
-        players: team1?.players || getEmptyPlayers('4-3-3', fixedPlayers, team1?.name) 
+        name: team1?.name || '',
+        formation: team1?.formation || '4-2-3-1',
+        players: team1?.players || getEmptyPlayers('4-2-3-1', fixedPlayers, team1?.name)
       },
-      { 
+      {
         id: team2?.id || null,
-        name: team2?.name || '', 
-        formation: team2?.formation || '4-3-3', 
-        players: team2?.players || getEmptyPlayers('4-3-3', fixedPlayers, team2?.name) 
+        name: team2?.name || '',
+        formation: team2?.formation || '4-2-3-1',
+        players: team2?.players || getEmptyPlayers('4-2-3-1', fixedPlayers, team2?.name)
       }
     ],
     goalAssistPairs: [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }],
@@ -215,43 +215,118 @@ function MatchAdminPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState(null);
   const [teams, setTeams] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState('팀 A');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [fixedPlayers, setFixedPlayers] = useState({});
+  const [selectedTeam, setSelectedTeam] = useState('팀 A');
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // 페이지 로드 시 비밀번호 입력 모달 표시
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setIsAuthenticated(false);
+  // Google Sheets sync function with sheet selection
+  const syncFromGoogleSheets = async (sheetGid, sheetName) => {
+    setIsSyncing(true);
+    try {
+      const SHEET_ID = '1M-sJAgFBF6XDnPwbX8bZLvsIWV06vtRWQV6AOGO49gI';
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${sheetGid}`;
+
+      const response = await fetch(csvUrl);
+      const csvText = await response.text();
+      const rows = csvText.split('\n').map(row => row.split(','));
+
+      // Parse formation layout from Google Sheets with unified fallback positions
+      const parseQuarterData = (baseRow, baseCol, formationType) => {
+        const players = {};
+
+        const getCell = (row, col) => {
+          const cell = rows[row]?.[col]?.trim() || '';
+          if (!cell || cell.includes('REF') || cell.includes('심판') || cell.includes('쉬는 팀')) {
+            return '';
+          }
+          return cell;
+        };
+
+        // Helper to get cell with fallback positions
+        const getCellWithFallback = (positions) => {
+          for (const pos of positions) {
+            const value = getCell(baseRow + pos.row, baseCol + pos.col);
+            if (value) return value;
+          }
+          return '';
+        };
+
+        // Unified fallback logic for all formations
+        // Each position tries multiple cell locations in order of priority
+        players.ST = getCellWithFallback([
+          { row: 5, col: 7 },   // H6 (Formation C)
+          { row: 6, col: 7 }    // H7 (Formation A/B)
+        ]);
+
+        players.LW = getCellWithFallback([
+          { row: 7, col: 4 },   // E8 (Formation B)
+          { row: 8, col: 4 }    // E9 (Formation A/C)
+        ]);
+
+        players.CAM = getCellWithFallback([
+          { row: 7, col: 7 },   // H8 (Formation C)
+          { row: 8, col: 7 }    // H9 (Formation A/B)
+        ]);
+
+        players.RW = getCellWithFallback([
+          { row: 7, col: 10 },  // K8 (Formation B)
+          { row: 8, col: 10 }   // K9 (Formation A/C)
+        ]);
+
+        players.CDM1 = getCellWithFallback([
+          { row: 9, col: 6 },   // G10 (Formation C)
+          { row: 10, col: 6 }   // G11 (Formation A/B)
+        ]);
+
+        players.CDM2 = getCellWithFallback([
+          { row: 9, col: 8 },   // I10 (Formation C)
+          { row: 10, col: 8 }   // I11 (Formation A/B)
+        ]);
+
+        // These positions are consistent across all formations
+        players.LB = getCell(baseRow + 12, baseCol + 4);       // E13
+        players.CB2 = getCell(baseRow + 12, baseCol + 6);      // G13
+        players.CB1 = getCell(baseRow + 12, baseCol + 8);      // I13
+        players.RB = getCell(baseRow + 12, baseCol + 10);      // K13
+        players.GK = getCell(baseRow + 14, baseCol + 7);       // H15
+
+        return players;
+      };
+
+      const quarterPositions = [
+        { row: 0, col: 0 },   // 1Q: rows 7-15, cols E-K
+        { row: 0, col: 8 },   // 2Q: rows 7-15, cols M-S
+        { row: 13, col: 0 },  // 3Q: rows 20-28, cols E-K
+        { row: 13, col: 8 }   // 4Q: rows 20-28, cols M-S
+      ];
+
+      const quarterPos = quarterPositions[activeQuarterIndex];
+
+      // Extract formation type from sheet name (포메이션A -> 'A', 포메이션B -> 'B', etc.)
+      const formationType = sheetName.replace('포메이션', '');
+      const playersByPosition = parseQuarterData(quarterPos.row, quarterPos.col, formationType);
+
+      const updatedQuarters = [...quarters];
+      const currentFormation = updatedQuarters[activeQuarterIndex].teams[activeTeamIndex].formation || '4-2-3-1';
+      const formationData = formations[currentFormation] || formations['4-2-3-1'];
+
+      const updatedPlayers = formationData.map(pos => ({
+        ...pos,
+        name: playersByPosition[pos.position] || '',
+        backNumber: ''
+      }));
+
+      updatedQuarters[activeQuarterIndex].teams[activeTeamIndex].players = updatedPlayers;
+      setQuarters(updatedQuarters);
+
+      const playerCount = updatedPlayers.filter(p => p.name).length;
+      alert(`[${sheetName}] 쿼터 ${activeQuarterIndex + 1} 데이터를 성공적으로 가져왔습니다! (${playerCount}명)`);
+    } catch (error) {
+      console.error('Google Sheets sync error:', error);
+      alert('구글 시트 동기화 중 오류가 발생했습니다.');
+    } finally {
+      setIsSyncing(false);
     }
-  }, []);
-
-  // 비밀번호 제출 처리
-  const handlePasswordSubmit = () => {
-    if (password === 'alves') {
-      setIsAuthenticated(true);
-      setError('');
-      setPassword('');
-    } else {
-      setError('비밀번호가 올바르지 않습니다.');
-      setPassword('');
-    }
-  };
-
-  // Enter 키로 비밀번호 제출
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handlePasswordSubmit();
-    }
-  };
-
-  // Caps Lock 감지
-  const handleKeyDown = (e) => {
-    const capsLock = e.getModifierState('CapsLock');
-    setIsCapsLockOn(capsLock);
   };
 
   // Fetch data
@@ -272,7 +347,7 @@ function MatchAdminPage() {
     console.log('Fixed Players:', JSON.stringify(fixedPlayers, null, 2));
     quarters.forEach((quarter, idx) => {
       if (quarter && Array.isArray(quarter.teams)) {
-        console.log(`Quarter ${idx + 1} Matchup:`, 
+        console.log(`Quarter ${idx + 1} Matchup:`,
           quarter.teams
             .filter(t => t != null)
             .map(t => t.name || '이름 미정')
@@ -293,7 +368,7 @@ function MatchAdminPage() {
   }, [quarters, teams, fixedPlayers]);
 
   // Define playerOptions safely
-  const playerOptions = (players && tempPlayers) ? 
+  const playerOptions = (players && tempPlayers) ?
     [...players, ...tempPlayers].map((p) => ({
       label: `${p.name} (${p.position || '포지션 미정'}${p.isMercenary ? ' - 용병' : ''})`,
       value: p.name,
@@ -306,39 +381,39 @@ function MatchAdminPage() {
       setLoading(true);
       const q = query(collection(db, 'matches'), orderBy('date', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const matchData = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const quarters = Array.isArray(data.quarters) && data.quarters.length > 0 
+        const quarters = Array.isArray(data.quarters) && data.quarters.length > 0
           ? data.quarters.map((quarter, idx) => ({
-              teams: Array.isArray(quarter.teams) ? quarter.teams.slice(0, 2).map(team => ({
-                id: team.id || null,
-                name: team.name || '',
-                formation: team.formation || '4-4-2',
-                players: Array.isArray(team.players) ? team.players.map(player => ({
-                  backNumber: player.backNumber || '',
-                  name: player.name || '',
-                  position: player.position || '',
-                  top: player.top || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.top || '',
-                  left: player.left || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.left || ''
-                })) : getEmptyPlayers(team.formation || '4-4-2', fixedPlayers, team.name)
-              })) : initializeQuarter().teams,
-              goalAssistPairs: Array.isArray(quarter.goalAssistPairs) && quarter.goalAssistPairs.length > 0 
-                ? quarter.goalAssistPairs.map(pair => ({
-                    goal: { player: pair.goal?.player || '', team: pair.goal?.team || '' },
-                    assist: { player: pair.assist?.player || '', team: pair.assist?.team || '' }
-                  }))
-                : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }],
-              ownGoals: Array.isArray(quarter.ownGoals) && quarter.ownGoals.length > 0 
-                ? quarter.ownGoals.map(og => ({
-                    player: og.player || '',
-                    team: og.team || ''
-                  }))
-                : []
-            }))
+            teams: Array.isArray(quarter.teams) ? quarter.teams.slice(0, 2).map(team => ({
+              id: team.id || null,
+              name: team.name || '',
+              formation: team.formation || '4-4-2',
+              players: Array.isArray(team.players) ? team.players.map(player => ({
+                backNumber: player.backNumber || '',
+                name: player.name || '',
+                position: player.position || '',
+                top: player.top || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.top || '',
+                left: player.left || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.left || ''
+              })) : getEmptyPlayers(team.formation || '4-4-2', fixedPlayers, team.name)
+            })) : initializeQuarter().teams,
+            goalAssistPairs: Array.isArray(quarter.goalAssistPairs) && quarter.goalAssistPairs.length > 0
+              ? quarter.goalAssistPairs.map(pair => ({
+                goal: { player: pair.goal?.player || '', team: pair.goal?.team || '' },
+                assist: { player: pair.assist?.player || '', team: pair.assist?.team || '' }
+              }))
+              : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }],
+            ownGoals: Array.isArray(quarter.ownGoals) && quarter.ownGoals.length > 0
+              ? quarter.ownGoals.map(og => ({
+                player: og.player || '',
+                team: og.team || ''
+              }))
+              : []
+          }))
           : initializeAllQuarters([], fixedPlayers);
-        return { 
-          id: doc.id, 
+        return {
+          id: doc.id,
           date: data.date || new Date().toISOString().split('T')[0],
           quarters: quarters.length === 6 ? quarters : [
             ...quarters,
@@ -346,9 +421,9 @@ function MatchAdminPage() {
           ]
         };
       });
-      
+
       const uniqueDates = [...new Set(matchData.map(match => match.date))].sort().reverse();
-      
+
       setMatches(matchData);
       setFilteredMatches(matchData);
       setDates(uniqueDates);
@@ -431,13 +506,13 @@ function MatchAdminPage() {
   // Handle quarter changes
   const handleQuarterChange = (quarterIndex, teamIndex, field, value) => {
     const updatedQuarters = JSON.parse(JSON.stringify(quarters));
-    
+
     if (updatedQuarters[quarterIndex].teams[teamIndex]) {
       updatedQuarters[quarterIndex].teams[teamIndex][field] = value;
       if (field === 'formation') {
         const teamName = updatedQuarters[quarterIndex].teams[teamIndex].name;
         const newFormation = value;
-        const formationData = formations[newFormation] || formations['4-3-3'];
+        const formationData = formations[newFormation] || formations['4-2-3-1'];
         const existingPlayers = updatedQuarters[quarterIndex].teams[teamIndex].players || [];
         const fixedTeamPlayers = fixedPlayers[teamName] || {};
 
@@ -463,16 +538,16 @@ function MatchAdminPage() {
   // Add player to team via search for a specific quarter
   const addPlayerToTeam = (quarterIndex, teamIndex, selected, position) => {
     if (!selected) return;
-    
+
     const updatedQuarters = [...quarters];
     const teamName = updatedQuarters[quarterIndex].teams[teamIndex]?.name;
     const playerIndex = updatedQuarters[quarterIndex].teams[teamIndex]?.players.findIndex(p => p.position === position);
-    
+
     if (playerIndex !== -1) {
       const playerName = selected.__isNew__ ? selected.value : selected.value;
       updatedQuarters[quarterIndex].teams[teamIndex].players[playerIndex].name = playerName;
       updatedQuarters[quarterIndex].teams[teamIndex].players[playerIndex].backNumber = selected.backNumber || '';
-      
+
       if (selected.__isNew__) {
         setTempPlayers(prev => [
           ...prev,
@@ -489,7 +564,7 @@ function MatchAdminPage() {
           }
         }));
       }
-      
+
       setQuarters(updatedQuarters);
     }
   };
@@ -500,15 +575,15 @@ function MatchAdminPage() {
       alert("먼저 선수를 선택해주세요.");
       return;
     }
-  
+
     const updatedQuarters = JSON.parse(JSON.stringify(quarters));
     const teamName = updatedQuarters[quarterIndex].teams[teamIndex]?.name;
-  
+
     if (!teamName) {
       alert("팀 이름이 설정되지 않았습니다.");
       return;
     }
-  
+
     setFixedPlayers(prev => ({
       ...prev,
       [teamName]: {
@@ -520,10 +595,10 @@ function MatchAdminPage() {
     updatedQuarters.forEach((quarter, idx) => {
       const teamIdx = quarter.teams.findIndex(team => team.name === teamName);
       if (teamIdx !== -1) {
-        const formation = quarter.teams[teamIdx].formation || '4-3-3';
-        const formationData = formations[formation] || formations['4-3-3'];
+        const formation = quarter.teams[teamIdx].formation || '4-2-3-1';
+        const formationData = formations[formation] || formations['4-2-3-1'];
         const playerIdx = quarter.teams[teamIdx].players.findIndex(p => p.position === position);
-        
+
         if (playerIdx !== -1) {
           updatedQuarters[idx].teams[teamIdx].players[playerIdx] = {
             ...quarter.teams[teamIdx].players[playerIdx],
@@ -542,7 +617,7 @@ function MatchAdminPage() {
         }
       }
     });
-  
+
     setQuarters(updatedQuarters);
     alert(`${teamName} 팀의 ${position} 포지션에 ${playerName} 선수가 모든 쿼터에 고정되었습니다.`);
   };
@@ -553,7 +628,7 @@ function MatchAdminPage() {
       alert("팀은 1쿼터에서만 추가할 수 있습니다.");
       return;
     }
-    
+
     const currentTeamCount = teams.length;
     if (currentTeamCount >= 3) {
       alert("최대 3팀까지만 추가할 수 있습니다.");
@@ -666,9 +741,9 @@ function MatchAdminPage() {
   // Add new goal-assist pair for a specific quarter
   const addGoalAssistPair = (quarterIndex) => {
     const updatedQuarters = [...quarters];
-    updatedQuarters[quarterIndex].goalAssistPairs.push({ 
-      goal: { player: '', team: '' }, 
-      assist: { player: '', team: '' } 
+    updatedQuarters[quarterIndex].goalAssistPairs.push({
+      goal: { player: '', team: '' },
+      assist: { player: '', team: '' }
     });
     setQuarters(updatedQuarters);
   };
@@ -699,9 +774,9 @@ function MatchAdminPage() {
   // Add new own goal for a specific quarter
   const addOwnGoal = (quarterIndex) => {
     const updatedQuarters = [...quarters];
-    updatedQuarters[quarterIndex].ownGoals.push({ 
-      player: '', 
-      team: '' 
+    updatedQuarters[quarterIndex].ownGoals.push({
+      player: '',
+      team: ''
     });
     setQuarters(updatedQuarters);
   };
@@ -730,7 +805,7 @@ function MatchAdminPage() {
     setIsEditing(true);
     setEditingMatchId(match.id);
     setDate(match.date);
-    
+
     const matchTeams = [];
     const newFixedPlayers = {};
     match.quarters.forEach(quarter => {
@@ -753,7 +828,7 @@ function MatchAdminPage() {
     setFixedPlayers(newFixedPlayers);
     setTeams(matchTeams);
     const updatedQuarters = initializeAllQuarters(matchTeams, newFixedPlayers);
-    
+
     match.quarters.forEach((quarter, idx) => {
       if (updatedQuarters[idx] && Array.isArray(quarter.teams)) {
         updatedQuarters[idx].teams = quarter.teams.slice(0, 2).map(team => ({
@@ -768,21 +843,21 @@ function MatchAdminPage() {
             left: player.left || formations[team.formation || '4-4-2']?.find(p => p.position === player.position)?.left || ''
           })) : getEmptyPlayers(team.formation || '4-4-2', newFixedPlayers, team.name)
         }));
-        updatedQuarters[idx].goalAssistPairs = Array.isArray(quarter.goalAssistPairs) && quarter.goalAssistPairs.length > 0 
+        updatedQuarters[idx].goalAssistPairs = Array.isArray(quarter.goalAssistPairs) && quarter.goalAssistPairs.length > 0
           ? quarter.goalAssistPairs.map(pair => ({
-              goal: { player: pair.goal?.player || '', team: pair.goal?.team || '' },
-              assist: { player: pair.assist?.player || '', team: pair.assist?.team || '' }
-            }))
+            goal: { player: pair.goal?.player || '', team: pair.goal?.team || '' },
+            assist: { player: pair.assist?.player || '', team: pair.assist?.team || '' }
+          }))
           : [{ goal: { player: '', team: '' }, assist: { player: '', team: '' } }];
-        updatedQuarters[idx].ownGoals = Array.isArray(quarter.ownGoals) && quarter.ownGoals.length > 0 
+        updatedQuarters[idx].ownGoals = Array.isArray(quarter.ownGoals) && quarter.ownGoals.length > 0
           ? quarter.ownGoals.map(og => ({
-              player: og.player || '',
-              team: og.team || ''
-            }))
+            player: og.player || '',
+            team: og.team || ''
+          }))
           : [];
       }
     });
-    
+
     setQuarters(updatedQuarters);
     setActiveTeamIndex(0);
     setActiveQuarterIndex(0);
@@ -800,16 +875,16 @@ function MatchAdminPage() {
     try {
       const teamCount = getTeamCount(teams);
       const validQuarterIndices = getValidQuarterIndices(teamCount);
-      const matchData = { 
+      const matchData = {
         date,
         quarters: quarters.map((quarter, idx) => ({
           teams: validQuarterIndices.includes(idx) && quarter.teams.some(team => team.name)
             ? quarter.teams.filter(team => team && team.name).map(team => ({
-                id: team.id,
-                name: team.name,
-                formation: team.formation,
-                players: team.players.filter(p => p.name && p.position)
-              }))
+              id: team.id,
+              name: team.name,
+              formation: team.formation,
+              players: team.players.filter(p => p.name && p.position)
+            }))
             : [],
           goalAssistPairs: validQuarterIndices.includes(idx)
             ? quarter.goalAssistPairs.filter(pair => pair.goal.player && pair.goal.team)
@@ -828,9 +903,9 @@ function MatchAdminPage() {
         await addDoc(collection(db, 'matches'), matchData);
         alert("경기가 성공적으로 등록되었습니다.");
       }
-      
+
       fetchMatches();
-      
+
       setDate(new Date().toISOString().split('T')[0]);
       setQuarters(initializeAllQuarters([], {}));
       setTeams([]);
@@ -869,16 +944,16 @@ function MatchAdminPage() {
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     const weekday = weekdays[date.getDay()];
-    
+
     return `${year}.${month}.${day} (${weekday})`;
   };
 
@@ -954,7 +1029,7 @@ function MatchAdminPage() {
   const getMatchupDescription = (quarterIndex) => {
     const teams = quarters[quarterIndex]?.teams || [];
     const teamCount = getTeamCount(teams);
-    
+
     if (!teams[0]?.name && !teams[1]?.name) {
       return '팀 정보 없음';
     }
@@ -971,29 +1046,6 @@ function MatchAdminPage() {
     }
   };
 
-  // 비밀번호 입력 모달 렌더링
-  if (!isAuthenticated) {
-    return (
-      <ModalOverlay>
-        <ModalContent>
-          <ModalTitle>관리자 인증</ModalTitle>
-          <ModalInput
-            type="password"
-            placeholder="비밀번호를 입력하세요"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
-          {isCapsLockOn && <CapsLockWarning>Caps Lock이 켜져 있습니다.</CapsLockWarning>}
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-          <ModalButton onClick={handlePasswordSubmit}>확인</ModalButton>
-        </ModalContent>
-      </ModalOverlay>
-    );
-  }
-
   // 기존 콘텐츠 렌더링
   if (loading) {
     return <AdminContainer><p>데이터를 불러오는 중...</p></AdminContainer>;
@@ -1005,10 +1057,10 @@ function MatchAdminPage() {
   return (
     <AdminContainer>
       <AdminHeader>팀 & 경기 관리 시스템</AdminHeader>
-      
+
       <FormGroup>
         <Label>경기 날짜</Label>
-        <Input 
+        <Input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
@@ -1038,7 +1090,7 @@ function MatchAdminPage() {
           </ul>
         </div>
       )}
-      
+
       <PanelSectionTitle>쿼터 관리</PanelSectionTitle>
       <FormGroup>
         <Label>활성 쿼터 선택</Label>
@@ -1049,14 +1101,83 @@ function MatchAdminPage() {
         </Select>
       </FormGroup>
 
+
+      <FormGroup>
+        <Label>구글 시트 동기화</Label>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', flexWrap: 'wrap' }}>
+          <Button
+            onClick={() => syncFromGoogleSheets('133293953', '포메이션A')}
+            disabled={isSyncing}
+            style={{
+              flex: 1,
+              backgroundColor: '#3498db',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: isSyncing ? 0.6 : 1
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            {isSyncing ? '동기화 중...' : '포메이션A 구글 시트 동기화'}
+          </Button>
+
+          <Button
+            onClick={() => syncFromGoogleSheets('387893900', '포메이션B')}
+            disabled={isSyncing}
+            style={{
+              flex: 1,
+              backgroundColor: '#27ae60',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: isSyncing ? 0.6 : 1
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            {isSyncing ? '동기화 중...' : '포메이션B 구글 시트 동기화'}
+          </Button>
+
+          <Button
+            onClick={() => syncFromGoogleSheets('1883903987', '포메이션C')}
+            disabled={isSyncing}
+            style={{
+              flex: 1,
+              backgroundColor: '#e67e22',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: isSyncing ? 0.6 : 1
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            {isSyncing ? '동기화 중...' : '포메이션C 구글 시트 동기화'}
+          </Button>
+        </div>
+      </FormGroup>
+
       {quarters.length > 0 && quarters[activeQuarterIndex] ? (
         <div key={activeQuarterIndex} style={{ marginBottom: '20px' }}>
           <h3>쿼터 {activeQuarterIndex + 1} ({getMatchupDescription(activeQuarterIndex)})</h3>
-          
+
           <TeamManagementGrid>
             <TeamSettingsPanel>
               <PanelSectionTitle>팀 설정 (쿼터 {activeQuarterIndex + 1})</PanelSectionTitle>
-              
+
               <FormGroup>
                 <Label>팀 선택</Label>
                 <Select onChange={(e) => setActiveTeamIndex(parseInt(e.target.value))}>
@@ -1067,17 +1188,17 @@ function MatchAdminPage() {
                   ))}
                 </Select>
               </FormGroup>
-              
+
               <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                <Button 
+                <Button
                   onClick={() => addTeam(activeQuarterIndex)}
                   style={{ width: 'auto', backgroundColor: '#3498db' }}
                   disabled={teamCount >= 3}
                 >
                   <PlusIcon /> 팀 추가
                 </Button>
-                <Select 
-                  value={selectedTeam} 
+                <Select
+                  value={selectedTeam}
                   onChange={(e) => setSelectedTeam(e.target.value)}
                   style={{ width: '120px' }}
                 >
@@ -1085,14 +1206,14 @@ function MatchAdminPage() {
                   <option value="팀 B">팀 B</option>
                   <option value="팀 C">팀 C</option>
                 </Select>
-                <Button 
+                <Button
                   onClick={handleTeamSave}
                   style={{ width: 'auto', backgroundColor: '#2ecc71' }}
                 >
                   <PlusIcon /> 팀 저장하기
                 </Button>
               </div>
-              
+
               <FormGroup>
                 <Label>팀 이름</Label>
                 <Input
@@ -1102,7 +1223,7 @@ function MatchAdminPage() {
                   onChange={(e) => handleQuarterChange(activeQuarterIndex, activeTeamIndex, 'name', e.target.value)}
                 />
               </FormGroup>
-              
+
               <FormGroup>
                 <Label>포메이션</Label>
                 <FormationSelector
@@ -1114,7 +1235,7 @@ function MatchAdminPage() {
                   ))}
                 </FormationSelector>
               </FormGroup>
-              
+
               <PanelSectionTitle>선수 추가 (쿼터 {activeQuarterIndex + 1})</PanelSectionTitle>
               {(quarters[activeQuarterIndex].teams[activeTeamIndex]?.players || []).map((player, index) => (
                 <FormGroup key={index} style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1149,7 +1270,7 @@ function MatchAdminPage() {
                   </Button>
                 </FormGroup>
               ))}
-              
+
               <TeamSummary>
                 <div className="summary-item">
                   <div className="value">{quarters[activeQuarterIndex].teams[activeTeamIndex]?.players.filter(p => p.name).length || 0}</div>
@@ -1157,8 +1278,8 @@ function MatchAdminPage() {
                 </div>
                 <div className="summary-item">
                   <div className="value">
-                    {quarters[activeQuarterIndex].teams[activeTeamIndex]?.players.filter(p => p.name).length 
-                      ? Math.round(quarters[activeQuarterIndex].teams[activeTeamIndex].players.filter(p => p.name).reduce((sum, p) => sum + getPlayerRating(p.name), 0) / quarters[activeQuarterIndex].teams[activeTeamIndex].players.filter(p => p.name).length) 
+                    {quarters[activeQuarterIndex].teams[activeTeamIndex]?.players.filter(p => p.name).length
+                      ? Math.round(quarters[activeQuarterIndex].teams[activeTeamIndex].players.filter(p => p.name).reduce((sum, p) => sum + getPlayerRating(p.name), 0) / quarters[activeQuarterIndex].teams[activeTeamIndex].players.filter(p => p.name).length)
                       : 0}
                   </div>
                   <div className="label">평균 능력치</div>
@@ -1169,13 +1290,13 @@ function MatchAdminPage() {
                 </div>
               </TeamSummary>
             </TeamSettingsPanel>
-            
+
             <FieldContainer>
               <FieldViewTitle>
                 필드 배치도 (쿼터 {activeQuarterIndex + 1})
                 <span>{quarters[activeQuarterIndex].teams[activeTeamIndex]?.formation || '4-4-2'} 포메이션</span>
               </FieldViewTitle>
-              
+
               <FieldView>
                 <GoalArea className="top" />
                 <GoalArea className="bottom" />
@@ -1183,7 +1304,7 @@ function MatchAdminPage() {
                 <PenaltyArea className="bottom" />
                 <GoalPost className="top" />
                 <GoalPost className="bottom" />
-                
+
                 <DragDropContext onDragEnd={(result) => onDragEnd(result, activeQuarterIndex, activeTeamIndex)}>
                   <Droppable droppableId={`team-${activeTeamIndex}-quarter-${activeQuarterIndex}`}>
                     {(provided) => (
@@ -1198,8 +1319,8 @@ function MatchAdminPage() {
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
-                                  style={{ 
-                                    top: player.top, 
+                                  style={{
+                                    top: player.top,
                                     left: player.left,
                                     opacity: player.name ? 1 : 0.4,
                                     ...provided.draggableProps.style,
@@ -1228,21 +1349,21 @@ function MatchAdminPage() {
                   </Droppable>
                 </DragDropContext>
               </FieldView>
-              
+
               <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <Button 
+                <Button
                   onClick={resetCurrentQuarter}
-                  style={{ 
-                    width: 'auto', 
+                  style={{
+                    width: 'auto',
                     backgroundColor: '#e74c3c'
                   }}
                 >
                   <ResetIcon /> 쿼터 초기화
                 </Button>
               </div>
-              
+
               <PanelSectionTitle>공격 포인트 (쿼터 {activeQuarterIndex + 1})</PanelSectionTitle>
-              
+
               {quarters[activeQuarterIndex].goalAssistPairs.map((pair, pairIndex) => (
                 <div key={pairIndex} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
@@ -1292,7 +1413,7 @@ function MatchAdminPage() {
                       formatCreateLabel={(inputValue) => `새 선수 추가: ${inputValue}`}
                     />
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => removeGoalAssistPair(activeQuarterIndex, pairIndex)}
                     style={{ width: 'auto', padding: '0 10px', backgroundColor: '#e74c3c' }}
                   >
@@ -1300,8 +1421,8 @@ function MatchAdminPage() {
                   </Button>
                 </div>
               ))}
-              
-              <Button 
+
+              <Button
                 onClick={() => addGoalAssistPair(activeQuarterIndex)}
                 style={{ marginBottom: '20px', width: 'auto' }}
               >
@@ -1309,7 +1430,7 @@ function MatchAdminPage() {
               </Button>
 
               <PanelSectionTitle>자책골 (쿼터 {activeQuarterIndex + 1})</PanelSectionTitle>
-              
+
               {quarters[activeQuarterIndex].ownGoals.map((og, ogIndex) => (
                 <div key={ogIndex} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
@@ -1335,7 +1456,7 @@ function MatchAdminPage() {
                       formatCreateLabel={(inputValue) => `새 선수 추가: ${inputValue}`}
                     />
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => removeOwnGoal(activeQuarterIndex, ogIndex)}
                     style={{ width: 'auto', padding: '0 10px', backgroundColor: '#e74c3c' }}
                   >
@@ -1343,8 +1464,8 @@ function MatchAdminPage() {
                   </Button>
                 </div>
               ))}
-              
-              <Button 
+
+              <Button
                 onClick={() => addOwnGoal(activeQuarterIndex)}
                 style={{ marginBottom: '20px', width: 'auto' }}
               >
@@ -1358,15 +1479,15 @@ function MatchAdminPage() {
           쿼터 데이터가 없습니다. 초기화하거나 경기를 새로 등록해주세요.
         </p>
       )}
-      
+
       <SaveButton onClick={handleAddMatch} style={{ marginTop: '20px' }}>
         {isEditing ? '경기 수정하기' : '경기 등록하기'}
       </SaveButton>
-      
+
       <PanelSectionTitle style={{ marginTop: '30px' }}>
         등록된 경기 목록
       </PanelSectionTitle>
-      
+
       <FormGroup style={{ maxWidth: '300px' }}>
         <Label>날짜 필터</Label>
         <Select
@@ -1381,7 +1502,7 @@ function MatchAdminPage() {
           ))}
         </Select>
       </FormGroup>
-      
+
       {loading ? (
         <p>경기 목록을 불러오는 중...</p>
       ) : filteredMatches.length > 0 ? (
@@ -1398,8 +1519,8 @@ function MatchAdminPage() {
               padding: '16px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ 
-                display: 'flex', 
+              <div style={{
+                display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: '10px'
@@ -1411,23 +1532,23 @@ function MatchAdminPage() {
                 </div>
                 <Badge type="vod">{formatDate(match.date)}</Badge>
               </div>
-              
+
               {match.quarters && match.quarters.length > 0 ? (
                 validQuarterIndices.map((idx) => (
                   <div key={idx} style={{ marginTop: '10px' }}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                      쿼터 {idx + 1}: {match.quarters[idx].teams && match.quarters[idx].teams.length > 0 
-                        ? match.quarters[idx].teams.map(t => t.name || '이름 미정').join(' vs ') 
+                      쿼터 {idx + 1}: {match.quarters[idx].teams && match.quarters[idx].teams.length > 0
+                        ? match.quarters[idx].teams.map(t => t.name || '이름 미정').join(' vs ')
                         : '팀 정보 없음'}
                     </div>
                     <div style={{ fontSize: '12px', color: '#666' }}>
-                      {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.goal.player).length) || 0} 골 / 
-                      {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.assist.player).length) || 0} 어시스트 / 
+                      {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.goal.player).length) || 0} 골 /
+                      {(match.quarters[idx].goalAssistPairs && match.quarters[idx].goalAssistPairs.filter(pair => pair.assist.player).length) || 0} 어시스트 /
                       {(match.quarters[idx].ownGoals && match.quarters[idx].ownGoals.filter(og => og.player).length) || 0} 자책골
                     </div>
                     <div style={{ fontSize: '12px', color: '#999' }}>
-                      포메이션: {match.quarters[idx].teams && match.quarters[idx].teams.length > 0 
-                        ? match.quarters[idx].teams.map(t => t.formation || '미정').join(' vs ') 
+                      포메이션: {match.quarters[idx].teams && match.quarters[idx].teams.length > 0
+                        ? match.quarters[idx].teams.map(t => t.formation || '미정').join(' vs ')
                         : '포메이션 정보 없음'}
                     </div>
                   </div>
@@ -1435,13 +1556,13 @@ function MatchAdminPage() {
               ) : (
                 <div style={{ fontSize: '12px', color: '#999' }}>쿼터 정보 없음</div>
               )}
-              
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <Button
                   onClick={() => handleEditMatch(match)}
-                  style={{ 
-                    width: 'auto', 
-                    padding: '8px 16px', 
+                  style={{
+                    width: 'auto',
+                    padding: '8px 16px',
                     backgroundColor: '#f1c40f',
                     fontSize: '14px'
                   }}
@@ -1450,9 +1571,9 @@ function MatchAdminPage() {
                 </Button>
                 <Button
                   onClick={() => handleDeleteMatch(match.id)}
-                  style={{ 
-                    width: 'auto', 
-                    padding: '8px 16px', 
+                  style={{
+                    width: 'auto',
+                    padding: '8px 16px',
                     backgroundColor: '#e74c3c',
                     fontSize: '14px'
                   }}

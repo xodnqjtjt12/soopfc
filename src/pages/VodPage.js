@@ -1,100 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../App';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  MainContent,
-  PageTitle,
-  MatchSection,
-  MatchHeader,
-  QuarterSection,
-  QuarterHeader,
-  QuarterContent,
-  FieldContainer,
-  FieldView,
-  GoalArea,
-  PenaltyArea,
-  GoalPost,
-  PlayerCard,
-  TeamsContainer,
-  TeamCard,
-  TeamName,
-  Formation,
-  PlayersList,
-  PlayerItem,
-  StatsList,
-  StatItem,
-  StatTitle,
-  StatValue,
-  LoadingIndicator,
-  EmptyState,
-  Badge,
-  ScoreBox,
-  TossButton,
-  TossSelect,
-  FilterBarWrapper,
-  PaginationWrapper,
-  PaginationButton,
-  PopupOverlay,
-  PopupContent,
-  PopupHeader,
-  PopupTitle,
-  CloseButton,
-  PopupBody,
-  PopupStat,
-  PopupFooter,
-  GradeButton,
-} from './MatchStatsCss';
-
-// Modal styles
-const modalStyles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '8px',
-    width: '90%',
-    maxWidth: '400px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-  },
-  input: {
-    padding: '8px',
-    marginBottom: '10px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-  },
-  buttonContainer: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '10px',
-  },
-  button: {
-    padding: '8px 16px',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  searchButton: {
-    backgroundColor: '#3182f6',
-    color: 'white',
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
-    color: '#333',
-  },
-};
+import LoadingScreen from '../components/LoadingScreen';
+import * as S from './VodPageCss';
 
 // Position mirror map
 const MIRROR_POSITION = {
@@ -106,8 +15,8 @@ const MIRROR_POSITION = {
 
 // Chevron Icon
 const ChevronIcon = ({ isOpen }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-       style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" strokeWidth="2.5"
+    style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
     <polyline points="6 9 12 15 18 9"></polyline>
   </svg>
 );
@@ -120,7 +29,7 @@ const formatDate = dateString => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} (${['일', '월', '화', '수', '목', '금', '토'][date.getDay()]})`;
 };
 
-// Formation positions (사용자가 원하는 그대로 유지)
+// Formation positions
 const FORMATIONS = {
   '4-3-3': {
     desktop: [
@@ -137,14 +46,14 @@ const FORMATIONS = {
       { position: 'LW', left: '79%', top: '20%' },
     ],
     mobile: [
-      { position: 'GK', top: '0%', left: '50%', transform: 'translate(-50%, 0)' },
-      { position: 'RB', top: '10%', left: '14%' },
-      { position: 'CB1', top: '10%', left: '34%' },
-      { position: 'CB2', top: '10%', left: '54%' },
-      { position: 'LB', top: '10%', left: '74%' },
-      { position: 'CM1', top: '23%', left: '24%' },
-      { position: 'CM2', top: '23%', left: '44%' },
-      { position: 'CM3', top: '23%', left: '64%' },
+      { position: 'GK', top: '2%', left: '50%', transform: 'translate(-50%, 0)' },
+      { position: 'RB', top: '12%', left: '14%' },
+      { position: 'CB1', top: '12%', left: '34%' },
+      { position: 'CB2', top: '12%', left: '54%' },
+      { position: 'LB', top: '12%', left: '74%' },
+      { position: 'CM1', top: '24%', left: '24%' },
+      { position: 'CM2', top: '24%', left: '44%' },
+      { position: 'CM3', top: '24%', left: '64%' },
       { position: 'RW', top: '38%', left: '14%' },
       { position: 'ST', top: '38%', left: '44%' },
       { position: 'LW', top: '38%', left: '74%' },
@@ -310,78 +219,27 @@ const calculateTotalScores = (quarters) => {
   const isMultiTeam = teams.length >= 3;
 
   let winner = null;
-  if (isPointsBased) {
+  if (isPointsBased || isMultiTeam) {
     const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
     const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
-    if (topTeams.length === 1) {
-      winner = topTeams[0];
-    } else if (topTeams.length > 1) {
+    if (topTeams.length === 1) winner = topTeams[0];
+    else if (topTeams.length > 1) {
       const maxGoals = Math.max(...topTeams.map(t => teamStats[t].goals));
       const topGoalTeams = topTeams.filter(t => teamStats[t].goals === maxGoals);
       winner = topGoalTeams.length === 1 ? topGoalTeams[0] : null;
     }
-  } else {
-    if (isMultiTeam) {
-      const maxPoints = Math.max(...Object.values(teamStats).map(stat => stat.points));
-      const topTeams = teams.filter(t => teamStats[t].points === maxPoints);
-      if (topTeams.length === 1) {
-        winner = topTeams[0];
-      } else if (topTeams.length > 1) {
-        const maxGoals = Math.max(...topTeams.map(t => teamStats[t].goals));
-        const topGoalTeams = topTeams.filter(t => teamStats[t].goals === maxGoals);
-        winner = topGoalTeams.length === 1 ? topGoalTeams[0] : null;
-      }
-    } else if (teams.length === 2) {
-      const maxGoals = Math.max(...Object.values(teamStats).map(stat => stat.goals));
-      const topTeams = teams.filter(t => teamStats[t].goals === maxGoals);
-      winner = topTeams.length === 1 ? topTeams[0] : null;
-    }
+  } else if (teams.length === 2) {
+    const maxGoals = Math.max(...Object.values(teamStats).map(stat => stat.goals));
+    const topTeams = teams.filter(t => teamStats[t].goals === maxGoals);
+    winner = topTeams.length === 1 ? topTeams[0] : null;
   }
 
   return { teamStats, winner, isMultiTeam };
 };
 
-// MobileFormation
-const MobileFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, ownGoals = [], handlePlayerClick }) => {
-  if (!teams || teams.length < 2) {
-    return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
-  }
-  return (
-    <div className="w-full h-full flex flex-col">
-      <div className="relative flex-1">
-        {renderFormation(teams[0], true, true, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, ownGoals, handlePlayerClick)}
-      </div>
-      <div className="relative flex-1 border-t border-white border-opacity-50">
-        {renderFormation(teams[1], false, true, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, ownGoals, handlePlayerClick)}
-      </div>
-    </div>
-  );
-};
-
-// DesktopFormation
-const DesktopFormation = ({ teams, highlightedPlayer, highlightPlayer, goalAssistPairs, ownGoals = [], handlePlayerClick }) => {
-  if (!teams || teams.length < 2) {
-    return <div className="w-full h-full flex items-center justify-center text-white">팀 데이터 부족</div>;
-  }
-  return (
-    <div className="w-full h-full grid grid-cols-2 relative">
-      <div className="relative border-r border-white border-opacity-50">
-        {renderFormation(teams[0], true, false, highlightedPlayer, highlightPlayer, 'home', goalAssistPairs, ownGoals, handlePlayerClick)}
-      </div>
-      <div className="relative">
-        {renderFormation(teams[1], false, false, highlightedPlayer, highlightPlayer, 'away', goalAssistPairs, ownGoals, handlePlayerClick)}
-      </div>
-    </div>
-  );
-};
-
-// renderFormation (사용자가 원하는 그대로 유지)
-const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highlightPlayer, side, goalAssistPairs, ownGoals = [], handlePlayerClick) => {
-  if (!team?.players?.length) return (
-    <div className="absolute inset-0 flex items-center justify-center text-white">
-      {isHomeTeam ? '홈' : '어웨이'} 팀 선수 데이터 없음
-    </div>
-  );
+// PlayerCard implementation inside field
+const renderFormation = (team, isHomeTeam, isMobile, side, goalAssistPairs, ownGoals = [], handlePlayerClick) => {
+  if (!team?.players?.length) return null;
 
   const positions = getFormationPositions(team.formation, isMobile).map(pos => {
     const newPos = { ...pos };
@@ -393,85 +251,36 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
         const reversedLeft = 100 - leftValue;
         newPos.left = leftValue === 5 ? '89%' : `${50 + (reversedLeft * 0.35)}%`;
       }
-      if (!isHomeTeam && newPos.position === 'GK') {
-        newPos.top = '47%';
-        newPos.left = '93%';
-      }
+      if (!isHomeTeam && newPos.position === 'GK') { newPos.top = '47%'; newPos.left = '93%'; }
       if (!isHomeTeam) {
-        if (newPos.position === 'GK') {
-          newPos.top = '47%';
-          newPos.left = '94%';
-        }
-        if (newPos.position.startsWith('CB1')) {
-          newPos.top = '35%';
-          newPos.left = '85%';
-        }
-        if (newPos.position.startsWith('CB2')) {
-          newPos.top = '55%';
-          newPos.left = '85%';
-        }
-        if (newPos.position.startsWith('CDM1')) {
-          newPos.top = '55%';
-          newPos.left = '77%';
-        }
-        if (newPos.position.startsWith('CDM2')) {
-          newPos.top = '35%';
-          newPos.left = '77%';
-        }
-        if (newPos.position.startsWith('LB')) {
-          newPos.top = '8%';
-          newPos.left = '85%';
-        }
-        if (newPos.position.startsWith('RB')) {
-          newPos.top = '85%';
-          newPos.left = '85%';
-        }
-        if (newPos.position.startsWith('CAM')) {
-          newPos.top = '47%';
-          newPos.left = '67%';
-        }
-        if (newPos.position.startsWith('RW')) {
-          newPos.top = '80%';
-          newPos.left = '55%';
-        }
-        if (newPos.position.startsWith('LW')) {
-          newPos.top = '20%';
-          newPos.left = '55%';
-        }
-        if (newPos.position.startsWith('ST')) {
-          newPos.top = '47%';
-          newPos.left = '55%';
-        }
-        if (newPos.position.startsWith('ST1')) {
-          newPos.top = '35%';
-          newPos.left = '55%';
-        }
-        if (newPos.position.startsWith('ST2')) {
-          newPos.top = '60%';
-          newPos.left = '55%';
-        }
+        if (newPos.position === 'GK') { newPos.top = '47%'; newPos.left = '94%'; }
+        if (newPos.position.startsWith('CB1')) { newPos.top = '35%'; newPos.left = '85%'; }
+        if (newPos.position.startsWith('CB2')) { newPos.top = '55%'; newPos.left = '85%'; }
+        if (newPos.position.startsWith('CDM1')) { newPos.top = '55%'; newPos.left = '77%'; }
+        if (newPos.position.startsWith('CDM2')) { newPos.top = '35%'; newPos.left = '77%'; }
+        if (newPos.position.startsWith('LB')) { newPos.top = '8%'; newPos.left = '85%'; }
+        if (newPos.position.startsWith('RB')) { newPos.top = '85%'; newPos.left = '85%'; }
+        if (newPos.position.startsWith('CAM')) { newPos.top = '47%'; newPos.left = '67%'; }
+        if (newPos.position.startsWith('RW')) { newPos.top = '80%'; newPos.left = '55%'; }
+        if (newPos.position.startsWith('LW')) { newPos.top = '20%'; newPos.left = '55%'; }
+        if (newPos.position.startsWith('ST')) { newPos.top = '47%'; newPos.left = '55%'; }
+        if (newPos.position.startsWith('ST1')) { newPos.top = '35%'; newPos.left = '55%'; }
+        if (newPos.position.startsWith('ST2')) { newPos.top = '60%'; newPos.left = '55%'; }
       }
     } else {
       if (!isHomeTeam) {
         if (newPos.position === 'GK') newPos.top = '92%';
-        else if (newPos.position.includes('CB') || newPos.position.includes('RB') || newPos.position.includes('LB'))
-          newPos.top = '85%';
-        else if (newPos.position.includes('CM') || newPos.position.includes('RM') || newPos.position.includes('LM'))
-          newPos.top = '70%';
-        else if (newPos.position.includes('CDM1') || newPos.position.includes('CDM2'))
-          newPos.top = '74%';
-        else if (newPos.position.includes('CAM'))
-          newPos.top = '65%';
-        else if (newPos.position.includes('ST') || newPos.position.includes('RW') || newPos.position.includes('LW'))
-          newPos.top = '56%';
+        else if (newPos.position.includes('CB') || newPos.position.includes('RB') || newPos.position.includes('LB')) newPos.top = '85%';
+        else if (newPos.position.includes('CM') || newPos.position.includes('RM') || newPos.position.includes('LM')) newPos.top = '70%';
+        else if (newPos.position.includes('CDM1') || newPos.position.includes('CDM2')) newPos.top = '74%';
+        else if (newPos.position.includes('CAM')) newPos.top = '65%';
+        else if (newPos.position.includes('ST') || newPos.position.includes('RW') || newPos.position.includes('LW')) newPos.top = '56%';
         else if (newPos.position === 'CAM') newPos.top = '63%';
         else if (newPos.position.includes('CDM')) newPos.top = '71%';
         else if (newPos.position === 'RWB' || newPos.position === 'LWB') newPos.top = '70%';
       }
     }
-    if (!isHomeTeam) {
-      newPos.position = MIRROR_POSITION[newPos.position] || newPos.position;
-    }
+    if (!isHomeTeam) { newPos.position = MIRROR_POSITION[newPos.position] || newPos.position; }
     return newPos;
   });
 
@@ -482,37 +291,28 @@ const renderFormation = (team, isHomeTeam, isMobile, highlightedPlayer, highligh
     const ownGoalsCount = ownGoals?.filter(og => og.player === player.name).length || 0;
 
     return (
-      <PlayerCard
+      <S.PlayerCard
         key={`${side}-${i}`}
         style={{ left: pos.left, top: pos.top, transform: pos.transform }}
-        highlighted={highlightedPlayer?.name === player.name}
-        highlightType={highlightedPlayer?.type}
-        onClick={() => handlePlayerClick(player, goalAssistPairs, ownGoals)}
+        onClick={() => handlePlayerClick(player)}
       >
-        <div className="avatar">
-          {player.avatarUrl ? (
-            <img src={player.avatarUrl} alt={player.name} />
-          ) : (
-            <div className="avatar-placeholder">{player.position}</div>
-          )}
+        <div className="avatar-wrap">
+          <img src={player.avatarUrl || '/profile_default.svg'} onError={e => e.target.src = '/profile_default.svg'} alt={player.name} />
         </div>
-        <div className="playerInfo">
-          <span className="number">{player.backNumber}</span>
-          <span className="name" title={player.name}>{player.name}</span>
+        <span className="name">{player.name}</span>
+        <div className="stats-icons">
+          {goals > 0 && <span>⚽{goals > 1 ? goals : ''}</span>}
+          {assists > 0 && <span>👟{assists > 1 ? assists : ''}</span>}
+          {ownGoalsCount > 0 && <span>🥅</span>}
         </div>
-        <div className="stats">
-          {goals > 0 && <span className="goal-icon">⚽{goals}</span>}
-          {assists > 0 && <span className="assist-icon">👟{assists}</span>}
-          {ownGoalsCount > 0 && <span className="own-goal-icon">🥅{ownGoalsCount}</span>}
-        </div>
-      </PlayerCard>
+      </S.PlayerCard>
     );
   });
-}
+};
 
 function VodPage() {
   const [matches, setMatches] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('2026'); // 기본 2026년
+  const [selectedYear, setSelectedYear] = useState('2026');
   const [filterDate, setFilterDate] = useState('all');
   const [dates, setDates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -520,34 +320,24 @@ function VodPage() {
   const [nickname, setNickname] = useState('');
   const [filteredMatches, setFilteredMatches] = useState([]);
   const [openQuarters, setOpenQuarters] = useState({});
-  const [highlightedPlayer, setHighlightedPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedQuarter, setSelectedQuarter] = useState(null);
   const [filters, setFilters] = useState([]);
   const datesPerPage = 5;
   const navigate = useNavigate();
 
   const filterOptions = [
-    { value: 'win', label: '승' },
-    { value: 'draw', label: '무' },
-    { value: 'loss', label: '패' },
-    { value: 'goal', label: '골' },
-    { value: 'assist', label: '어시스트' },
-    { value: 'clean', label: '클린시트' },
+    { value: 'win', label: '승' }, { value: 'draw', label: '무' }, { value: 'loss', label: '패' },
+    { value: 'goal', label: '골' }, { value: 'assist', label: '어시스트' }, { value: 'clean', label: '클린시트' },
   ];
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+    checkMobile(); window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  useEffect(() => {
-    fetchMatches();
-  }, []);
+  useEffect(() => { fetchMatches(); }, []);
 
   useEffect(() => {
     const yearDates = matches
@@ -555,67 +345,40 @@ function VodPage() {
       .map(m => m.date)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => new Date(b) - new Date(a));
-
-    setDates(yearDates);
-    setFilterDate('all');
-    setCurrentPage(1);
+    setDates(yearDates); setFilterDate('all'); setCurrentPage(1);
   }, [selectedYear, matches]);
 
   useEffect(() => {
-    let result = matches.filter(m => 
-      m.date && new Date(m.date).getFullYear().toString() === selectedYear
-    );
-
+    let result = matches.filter(m => m.date && new Date(m.date).getFullYear().toString() === selectedYear);
     if (nickname) {
       result = result.map(match => {
-        const filteredQuarters = match.quarters
-          .map((quarter, index) => {
-            const hasPlayer = quarter.teams.some(team =>
-              team.players.some(player => player.name.toLowerCase() === nickname.toLowerCase())
-            );
-            if (!hasPlayer) return null;
-            return { ...quarter, quarterIndex: index + 1 };
-          })
-          .filter(quarter => quarter !== null);
-        if (filteredQuarters.length === 0) return null;
-        return { ...match, quarters: filteredQuarters };
-      }).filter(match => match !== null);
+        const filteredQuarters = match.quarters.filter(quarter =>
+          quarter.teams.some(team => team.players.some(player => player.name.toLowerCase() === nickname.toLowerCase()))
+        );
+        return filteredQuarters.length > 0 ? { ...match, quarters: filteredQuarters } : null;
+      }).filter(Boolean);
     }
-
     if (filters.length > 0) {
       result = result.filter(match => {
         let satisfies = false;
-        const myTeams = new Set(match.quarters.map(q => q.teams.find(t => t.players.some(p => p.name.toLowerCase() === nickname.toLowerCase()))?.name).filter(Boolean));
-        const myTeam = [...myTeams][0];
-
+        const myTeam = match.quarters[0].teams.find(t => t.players.some(p => p.name.toLowerCase() === nickname.toLowerCase()))?.name;
         const { teamStats, winner } = calculateTotalScores(match.quarters);
-
         const isWin = winner === myTeam;
-        const isDraw = winner === null;
-        const isLoss = !isWin && !isDraw;
+        const isDraw = winner === null && myTeam;
+        const isLoss = myTeam && !isWin && !isDraw;
 
-        let hasGoal = false;
-        let hasAssist = false;
-        let hasClean = false;
-
-        const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
+        let hasGoal = false, hasAssist = false, hasClean = false;
+        const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB', 'GK'];
 
         match.quarters.forEach(q => {
           const myTeamInQuarter = q.teams.find(t => t.players.some(p => p.name.toLowerCase() === nickname.toLowerCase()));
           if (!myTeamInQuarter) return;
-
-          const isDefender = myTeamInQuarter.players.find(p => p.name.toLowerCase() === nickname.toLowerCase())?.position in defensivePositions;
-
+          const player = myTeamInQuarter.players.find(p => p.name.toLowerCase() === nickname.toLowerCase());
           if (q.goalAssistPairs?.some(p => p.goal.player.toLowerCase() === nickname.toLowerCase())) hasGoal = true;
           if (q.goalAssistPairs?.some(p => p.assist.player?.toLowerCase() === nickname.toLowerCase())) hasAssist = true;
-
-          if (isDefender) {
+          if (defensivePositions.includes(player?.position)) {
             const opponentTeam = q.teams.find(t => t.name !== myTeamInQuarter.name);
-            const opponentGoals = (q.goalAssistPairs?.filter(
-              p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)
-            ).length || 0) + (q.ownGoals?.filter(
-              og => normalizeTeamName(og.team) === normalizeTeamName(myTeamInQuarter.name)
-            ).length || 0);
+            const opponentGoals = (q.goalAssistPairs?.filter(p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)).length || 0);
             if (opponentGoals === 0) hasClean = true;
           }
         });
@@ -626,22 +389,12 @@ function VodPage() {
         if (filters.includes('goal') && hasGoal) satisfies = true;
         if (filters.includes('assist') && hasAssist) satisfies = true;
         if (filters.includes('clean') && hasClean) satisfies = true;
-
         return satisfies;
       });
     }
-
-    if (filterDate !== 'all') {
-      result = result.filter(m => m.date === filterDate);
-    }
-
-    const startIndex = (currentPage - 1) * datesPerPage;
-    const endIndex = startIndex + datesPerPage;
-    const paginatedDates = dates.slice(startIndex, endIndex);
-    if (filterDate === 'all') {
-      result = result.filter(m => paginatedDates.includes(m.date));
-    }
-
+    if (filterDate !== 'all') result = result.filter(m => m.date === filterDate);
+    const paginatedDates = dates.slice((currentPage - 1) * datesPerPage, currentPage * datesPerPage);
+    if (filterDate === 'all') result = result.filter(m => paginatedDates.includes(m.date));
     setFilteredMatches(result);
   }, [selectedYear, filterDate, nickname, matches, currentPage, dates, filters]);
 
@@ -650,577 +403,219 @@ function VodPage() {
     try {
       const q = query(collection(db, 'matches'), orderBy('date', 'desc'));
       const snap = await getDocs(q);
-      const data = snap.docs.map(doc => {
-        const { date, quarters = [] } = doc.data();
-        return {
-          id: doc.id,
-          date,
-          quarters: quarters.map((q, index) => ({
-            ...q,
-            quarterIndex: index + 1,
-            teams: (q.teams || []).map((t, ti) => ({
-              ...t,
-              name: t.name || `팀 ${String.fromCharCode(65 + ti)}`,
-              formation: t.formation || '4-3-3',
-              players: (t.players || []).map(p => ({
-                ...p,
-                position: p.position || 'GK',
-              })),
-            })),
-            goalAssistPairs: q.goalAssistPairs || [],
-            ownGoals: Array.isArray(q.ownGoals) ? q.ownGoals : [],
-          })),
-        };
-      });
+      const data = snap.docs.map(doc => ({
+        id: doc.id,
+        date: doc.data().date,
+        quarters: (doc.data().quarters || []).map((q, idx) => ({
+          ...q, quarterIndex: idx + 1,
+          teams: (q.teams || []).map(t => ({
+            ...t, formation: t.formation || '4-3-3',
+            players: (t.players || []).map(p => ({ ...p, position: p.position || 'GK' }))
+          }))
+        }))
+      }));
       setMatches(data);
-    } catch (err) {
-      console.error('Error fetching matches:', err);
-    }
+    } catch (err) { console.error(err); }
     setLoading(false);
   };
 
   const toggleQuarter = (matchId, idx) => {
-    setOpenQuarters(prev => ({ ...prev, [`${matchId}-${idx}`]: !prev[`${matchId}-${idx}`] }));
-    setHighlightedPlayer(null);
-    setSelectedPlayer(null);
-    setSelectedQuarter(null);
+    const key = `${matchId}-${idx}`;
+    setOpenQuarters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const highlightPlayer = (name, type) => setHighlightedPlayer({ name, type });
-
-  const handlePlayerClick = (player, goalAssistPairs, ownGoals) => {
-    highlightPlayer(player.name, 'goal');
-    setSelectedPlayer({
-      ...player,
-      goalAssistPairs,
-      ownGoals,
-    });
-    setSelectedQuarter({ goalAssistPairs, ownGoals });
-  };
-
-  const closePopup = () => {
-    setSelectedPlayer(null);
-    setHighlightedPlayer(null);
-    setSelectedQuarter(null);
-  };
-
-  const handleSearch = () => {
-    setShowModal(false);
-    setCurrentPage(1);
-  };
-
-  const handleCancel = () => {
-    setNickname('');
-    setFilters([]);
-    setShowModal(false);
-    setCurrentPage(1);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSearch();
-  };
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    setFilterDate('all');
-  };
+  const handlePageChange = (p) => { setCurrentPage(p); setFilterDate('all'); };
 
   const totalPages = Math.ceil(dates.length / datesPerPage);
 
-  const getPaginationButtons = () => {
-    const buttons = [];
-    const maxButtons = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-
-    if (endPage - startPage + 1 < maxButtons) {
-      startPage = Math.max(1, endPage - maxButtons + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <PaginationButton
-          key={i}
-          active={i === currentPage}
-          onClick={() => handlePageChange(i)}
-        >
-          {i}
-        </PaginationButton>
-      );
-    }
-
-    return (
-      <>
-        <PaginationButton
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-        >
-          이전
-        </PaginationButton>
-        {buttons}
-        <PaginationButton
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-        >
-          다음
-        </PaginationButton>
-      </>
-    );
-  };
+  if (loading) return <LoadingScreen />;
 
   return (
-    <Container>
-      <MainContent>
-        <PageTitle>SOOP FC 경기 기록</PageTitle>
+    <S.Container>
+      <S.MainContent>
+        <S.Header>
+          <S.HeaderLeft>
+            <S.Title>SOOP FC 경기 기록</S.Title>
+            <S.Subtitle>정규 리그 및 이벤트 매치의 모든 데이터를 확인하세요</S.Subtitle>
+          </S.HeaderLeft>
 
-        {/* 연도 선택 버튼 추가 */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          gap: '15px', 
-          margin: '20px 0' 
-        }}>
-          <TossButton 
-            onClick={() => setSelectedYear('2025')}
-            style={{ 
-              backgroundColor: selectedYear === '2025' ? '#3182f6' : '#555',
-              minWidth: '120px'
-            }}
-          >
-            2025년
-          </TossButton>
-          <TossButton 
-            onClick={() => setSelectedYear('2026')}
-            style={{ 
-              backgroundColor: selectedYear === '2026' ? '#3182f6' : '#555',
-              minWidth: '120px'
-            }}
-          >
-            2026년
-          </TossButton>
-        </div>
-
-        <FilterBarWrapper>
-          <TossSelect value={filterDate} onChange={e => setFilterDate(e.target.value)}>
-            <option value="all">모든 날짜</option>
-            {dates
-              .slice((currentPage - 1) * datesPerPage, currentPage * datesPerPage)
-              .map(d => (
-                <option key={d} value={d}>
-                  {formatDate(d)}
-                </option>
-              ))}
-          </TossSelect>
-          <TossButton onClick={() => setShowModal(true)}>
-            내 경기 기록 보기
-          </TossButton>
-        </FilterBarWrapper>
+          <S.HeaderRight>
+            <S.YearToggle>
+              <S.ToggleButton active={selectedYear === '2025'} onClick={() => setSelectedYear('2025')}>2025년</S.ToggleButton>
+              <S.ToggleButton active={selectedYear === '2026'} onClick={() => setSelectedYear('2026')}>2026년</S.ToggleButton>
+            </S.YearToggle>
+            <div style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'flex-end' }}>
+              <S.TossSelect value={filterDate} onChange={e => setFilterDate(e.target.value)}>
+                <option value="all">모든 날짜</option>
+                {dates.map(d => <option key={d} value={d}>{formatDate(d)}</option>)}
+              </S.TossSelect>
+              <S.MyRecordButton onClick={() => setShowModal(true)}>기록 검색</S.MyRecordButton>
+            </div>
+          </S.HeaderRight>
+        </S.Header>
 
         {showModal && (
-          <div style={modalStyles.overlay}>
-            <div style={modalStyles.modal}>
-              <h3>내 경기 기록 검색</h3>
-              <input
-                style={modalStyles.input}
-                type="text"
-                value={nickname}
-                onChange={e => setNickname(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="닉네임 입력"
-                autoFocus
-              />
-              <h4>필터 (선택 시 해당 조건을 만족하는 경기만 표시)</h4>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {filterOptions.map(opt => (
-                  <label key={opt.value} style={{ marginBottom: '5px' }}>
-                    <input
-                      type="checkbox"
-                      checked={filters.includes(opt.value)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setFilters([...filters, opt.value]);
-                        } else {
-                          setFilters(filters.filter(f => f !== opt.value));
-                        }
-                      }}
-                    />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-              <div style={modalStyles.buttonContainer}>
-                <button
-                  style={{ ...modalStyles.button, ...modalStyles.cancelButton }}
-                  onClick={handleCancel}
-                >
-                  취소
-                </button>
-                <button
-                  style={{ ...modalStyles.button, ...modalStyles.searchButton }}
-                  onClick={handleSearch}
-                  disabled={!nickname.trim()}
-                >
-                  검색
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <LoadingIndicator>로딩 중...</LoadingIndicator>
-        ) : filteredMatches.length ? (
-          filteredMatches.map(match => {
-            const { teamStats, winner, isMultiTeam } = calculateTotalScores(match.quarters);
-            const scoreDisplay = isMultiTeam ? (
-              isMobile ? (
-                <div className="vertical">
-                  {Object.entries(teamStats).map(([team, stats], index) => (
-                    <React.Fragment key={team}>
-                      <div>{team}: {stats.points}점</div>
-                      {index < Object.keys(teamStats).length - 1 && <div>vs</div>}
-                    </React.Fragment>
+          <S.PopupOverlay onClick={() => setShowModal(false)}>
+            <S.PopupContent onClick={e => e.stopPropagation()}>
+              <S.PopupHeader>
+                <h3>경기 기록 검색</h3>
+                <button style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#adb5bd' }} onClick={() => setShowModal(false)}>✕</button>
+              </S.PopupHeader>
+              <S.PopupBody>
+                <S.SearchInput
+                  type="text" value={nickname} onChange={e => setNickname(e.target.value)}
+                  placeholder="닉네임을 입력하세요" autoFocus
+                />
+                <h4 style={{ fontSize: '14px', color: '#4e5968', marginBottom: '12px' }}>성적 필터</h4>
+                <S.FilterGrid>
+                  {filterOptions.map(opt => (
+                    <S.FilterLabel key={opt.value}>
+                      <input
+                        type="checkbox" checked={filters.includes(opt.value)}
+                        onChange={e => e.target.checked ? setFilters([...filters, opt.value]) : setFilters(filters.filter(f => f !== opt.value))}
+                      />
+                      {opt.label}
+                    </S.FilterLabel>
                   ))}
-                  {winner && <div>({winner} 승)</div>}
-                </div>
-              ) : (
-                Object.entries(teamStats)
-                  .map(([team, stats]) => `${team}: ${stats.points}점`)
-                  .join(' vs ') + (winner ? ` (${winner} 승)` : '')
-              )
-            ) : (
-              Object.entries(teamStats)
-                .map(([team, stats]) => `${team}: ${stats.goals}`)
-                .join(' vs ') + (winner ? ` (${winner} 승)` : ' (무승부)')
-            );
-
-            return (
-              <MatchSection key={match.id}>
-                <MatchHeader>
-                  <Badge type="home">{formatDate(match.date)}</Badge>
-                  <div className={`score-info ${isMultiTeam && isMobile ? 'vertical' : ''}`}>
-                    {scoreDisplay}
-                  </div>
-                </MatchHeader>
-                {match.quarters.map((q, i) => {
-                  const isOpen = openQuarters[`${match.id}-${i}`];
-                  const scores = isMultiTeam
-                    ? q.teams.map(team => {
-                        const goals = q.goalAssistPairs?.filter(
-                          p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
-                        ).length || 0;
-                        const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== normalizeTeamName(team.name));
-                        const ownGoals = opponentTeam && q.ownGoals
-                          ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
-                          : 0;
-                        return { name: team.name, goals: goals + ownGoals, points: 0 };
-                      })
-                    : calculateScores(q.goalAssistPairs, q.ownGoals, q.teams);
-
-                  if (isMultiTeam) {
-                    const quarterScores = q.teams.reduce((acc, team) => {
-                      const teamName = normalizeTeamName(team.name);
-                      const goals = q.goalAssistPairs?.filter(
-                        p => normalizeTeamName(p.goal.team) === teamName
-                      ).length || 0;
-                      const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== teamName);
-                      const ownGoals = opponentTeam && q.ownGoals
-                        ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name)).length
-                        : 0;
-                      acc[team.name] = goals + ownGoals;
-                      return acc;
-                    }, {});
-                    const pairs = [];
-                    for (let ti = 0; ti < q.teams.length; ti++) {
-                      for (let tj = ti + 1; tj < q.teams.length; tj++) {
-                        pairs.push([q.teams[ti].name, q.teams[tj].name]);
-                      }
-                    }
-                    pairs.forEach(([team1, team2]) => {
-                      const goals1 = quarterScores[team1] || 0;
-                      const goals2 = quarterScores[team2] || 0;
-                      if (goals1 > goals2) {
-                        scores.find(s => s.name === team1).points += 3;
-                      } else if (goals1 < goals2) {
-                        scores.find(s => s.name === team2).points += 3;
-                      } else {
-                        scores.find(s => s.name === team1).points += 1;
-                        scores.find(s => s.name === team2).points += 1;
-                      }
-                    });
-                  }
-
-                  const defensivePositions = ['CB1', 'CB2', 'LB', 'RB', 'LWB', 'RWB'];
-                  const playerStats = nickname
-                    ? q.teams.reduce((acc, team) => {
-                        const isPlayerTeam = team.players.some(
-                          p => p.name.toLowerCase() === nickname.toLowerCase()
-                        );
-                        const isDefender = team.players.some(
-                          p =>
-                            p.name.toLowerCase() === nickname.toLowerCase() &&
-                            defensivePositions.includes(p.position)
-                        );
-                        if (isPlayerTeam) {
-                          q.goalAssistPairs?.forEach(pair => {
-                            if (pair.goal.player.toLowerCase() === nickname.toLowerCase()) {
-                              acc.push({ type: 'goal', icon: '⚽', quarter: q.quarterIndex });
-                            }
-                            if (pair.assist.player?.toLowerCase() === nickname.toLowerCase()) {
-                              acc.push({ type: 'assist', icon: '👟', quarter: q.quarterIndex });
-                            }
-                          });
-                          q.ownGoals?.forEach(og => {
-                            if (og.player.toLowerCase() === nickname.toLowerCase()) {
-                              acc.push({ type: 'ownGoal', icon: '🥅', quarter: q.quarterIndex });
-                            }
-                          });
-                          if (isDefender) {
-                            const opponentTeam = q.teams.find(t => t.name !== team.name);
-                            const opponentGoals = (q.goalAssistPairs?.filter(
-                              p => normalizeTeamName(p.goal.team) === normalizeTeamName(opponentTeam?.name)
-                            ).length || 0) + (q.ownGoals?.filter(
-                              og => normalizeTeamName(og.team) === normalizeTeamName(team.name)
-                            ).length || 0);
-                            if (opponentGoals === 0) {
-                              acc.push({ type: 'cleanSheet', icon: '🧤', quarter: q.quarterIndex });
-                            }
-                          }
-                        }
-                        return acc;
-                      }, [])
-                    : [];
-
-                  return (
-                    <QuarterSection key={i} className={isOpen ? 'open' : ''}>
-                      <QuarterHeader
-                        onClick={() => toggleQuarter(match.id, i)}
-                        className={isOpen ? 'open' : ''}
-                      >
-                        <span>쿼터 {q.quarterIndex}</span>
-                        {playerStats.length > 0 && (
-                          <span className="icons-container">
-                            {playerStats.map((stat, si) => (
-                              <span
-                                key={si}
-                                className={`${stat.type}-icon`}
-                                style={{ marginLeft: '2px' }}
-                              >
-                                {stat.icon}
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                        <ChevronIcon isOpen={isOpen} />
-                      </QuarterHeader>
-                      <QuarterContent className={isOpen ? 'open' : ''}>
-                        <ScoreBox>
-                          {scores.map((s, si) => (
-                            <React.Fragment key={si}>
-                              <div className={`team team-${si}`}>
-                                {si === 0 ? (
-                                  <>
-                                    <div className="name">{s.name}</div>
-                                    <div className="score-value">{s.goals}</div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="score-value">{s.goals}</div>
-                                    <div className="name">{s.name}</div>
-                                  </>
-                                )}
-                              </div>
-                              {si < scores.length - 1 && <span className="separator">VS</span>}
-                            </React.Fragment>
-                          ))}
-                        </ScoreBox>
-                        <FieldContainer>
-                          <FieldView>
-                            <div className="goal-area-left" />
-                            <div className="goal-area-right" />
-                            <PenaltyArea className="top" />
-                            <PenaltyArea className="bottom" />
-                            <GoalPost className="top" />
-                            <GoalPost className="bottom" />
-                            <div className="center-line" />
-                            <div className="center-circle" />
-                            <div className="center-spot" />
-                            <div className="penalty-box-left" />
-                            <div className="penalty-box-right" />
-                            <div className="penalty-arc-left" />
-                            <div className="penalty-arc-right" />
-                            <div className="penalty-spot-left" />
-                            <div className="penalty-spot-right" />
-                            <div className="corner-arc-top-left" />
-                            <div className="corner-arc-top-right" />
-                            <div className="corner-arc-bottom-left" />
-                            <div className="corner-arc-bottom-right" />
-                            {isMobile ? (
-                              <MobileFormation
-                                teams={q.teams}
-                                highlightedPlayer={highlightedPlayer}
-                                highlightPlayer={highlightPlayer}
-                                goalAssistPairs={q.goalAssistPairs || []}
-                                ownGoals={q.ownGoals || []}
-                                handlePlayerClick={handlePlayerClick}
-                              />
-                            ) : (
-                              <DesktopFormation
-                                teams={q.teams}
-                                highlightedPlayer={highlightedPlayer}
-                                highlightPlayer={highlightPlayer}
-                                goalAssistPairs={q.goalAssistPairs || []}
-                                ownGoals={q.ownGoals || []}
-                                handlePlayerClick={handlePlayerClick}
-                              />
-                            )}
-                          </FieldView>
-                        </FieldContainer>
-                        <TeamsContainer>
-                          {q.teams.map((t, ti) => (
-                            <TeamCard key={ti}>
-                              <TeamName>{t.name}</TeamName>
-                              <Formation>포메이션: {t.formation}</Formation>
-                              <PlayersList>
-                                {t.players.map((p, pi) => (
-                                  <PlayerItem key={pi}>
-                                    <span className="number">{p.backNumber}</span>
-                                    <span className="name">{p.name}</span>
-                                    <span className="position">{p.position}</span>
-                                  </PlayerItem>
-                                ))}
-                              </PlayersList>
-                            </TeamCard>
-                          ))}
-                        </TeamsContainer>
-                        <StatsList>
-                          <StatTitle>공격 포인트</StatTitle>
-                          {q.teams.map((team, ti) => {
-                            const teamGoalAssistPairs = q.goalAssistPairs?.filter(
-                              p => normalizeTeamName(p.goal.team) === normalizeTeamName(team.name)
-                            ) || [];
-                            const opponentTeam = q.teams.find(t => normalizeTeamName(t.name) !== normalizeTeamName(team.name));
-                            const teamOwnGoals = opponentTeam && q.ownGoals
-                              ? q.ownGoals.filter(og => normalizeTeamName(og.team) === normalizeTeamName(opponentTeam.name))
-                              : [];
-                            return (
-                              <div key={ti} style={{ marginBottom: '20px' }}>
-                                <StatTitle>{team.name}</StatTitle>
-                                {teamGoalAssistPairs.length || teamOwnGoals.length ? (
-                                  <>
-                                    {teamGoalAssistPairs.map((p, pi) => (
-                                      <StatItem
-                                        key={`goal-${pi}`}
-                                        onClick={() => highlightPlayer(p.goal.player, 'goal')}
-                                      >
-                                        <StatValue>
-                                          <div>
-                                            <span>골: {p.goal.player}</span>
-                                            <span className="goal-icon">⚽</span>
-                                          </div>
-                                          <div>
-                                            <span>어시: {p.assist.player || '없음'}</span>
-                                            {p.assist.player && (
-                                              <span
-                                                className="assist-icon"
-                                                onClick={e => {
-                                                  e.stopPropagation();
-                                                  highlightPlayer(p.assist.player, 'assist');
-                                                }}
-                                              >
-                                                👟
-                                              </span>
-                                            )}
-                                          </div>
-                                        </StatValue>
-                                      </StatItem>
-                                    ))}
-                                    {teamOwnGoals.map((og, oi) => (
-                                      <StatItem
-                                        key={`ownGoal-${oi}`}
-                                        className="own-goal"
-                                        onClick={() => highlightPlayer(og.player, 'ownGoal')}
-                                      >
-                                        <StatValue>
-                                          <div>
-                                            <span>골: {og.player} (자책골)</span>
-                                            <span className="own-goal-icon">🥅</span>
-                                          </div>
-                                          <div>
-                                            <span>어시: 없음</span>
-                                          </div>
-                                        </StatValue>
-                                      </StatItem>
-                                    ))}
-                                  </>
-                                ) : (
-                                  <EmptyState>{team.name}의 공격 포인트 기록 없음</EmptyState>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </StatsList>
-                      </QuarterContent>
-                    </QuarterSection>
-                  );
-                })}
-              </MatchSection>
-            );
-          })
-        ) : (
-          <EmptyState>
-            {nickname ? `${nickname} 님이 참여한 경기가 없습니다.` : '등록된 경기가 없습니다.'}
-          </EmptyState>
+                </S.FilterGrid>
+              </S.PopupBody>
+              <S.PopupFooter>
+                <button className="cancel" onClick={() => { setNickname(''); setFilters([]); setShowModal(false); }}>초기화</button>
+                <button className="confirm" onClick={() => setShowModal(false)}>검색하기</button>
+              </S.PopupFooter>
+            </S.PopupContent>
+          </S.PopupOverlay>
         )}
+
+        {filteredMatches.length ? filteredMatches.map(match => {
+          const { teamStats, winner, isMultiTeam } = calculateTotalScores(match.quarters);
+          return (
+            <S.MatchSection key={match.id}>
+              <S.MatchHeader>
+                <S.DateBadge>{formatDate(match.date)}</S.DateBadge>
+                <S.ScoreDisplay>
+                  {isMultiTeam ? (
+                    Object.entries(teamStats).map(([team, stats], idx) => (
+                      <React.Fragment key={team}>
+                        <span>{team} {stats.points}</span>
+                        {idx < Object.keys(teamStats).length - 1 && <span className="vs">vs</span>}
+                      </React.Fragment>
+                    ))
+                  ) : (
+                    Object.entries(teamStats).map(([team, stats], idx) => (
+                      <React.Fragment key={team}>
+                        <span>{team} {stats.goals}</span>
+                        {idx < Object.keys(teamStats).length - 1 && <span className="vs">vs</span>}
+                      </React.Fragment>
+                    ))
+                  )}
+                  {winner && <span className="winner">🏆 {winner} 승리</span>}
+                </S.ScoreDisplay>
+              </S.MatchHeader>
+
+              {match.quarters.map((q, i) => {
+                const isOpen = openQuarters[`${match.id}-${i}`];
+                const quarterScores = calculateScores(q.goalAssistPairs, q.ownGoals, q.teams);
+                return (
+                  <S.QuarterSection key={i}>
+                    <S.QuarterHeader onClick={() => toggleQuarter(match.id, i)}>
+                      <div className="q-title">쿼터 {q.quarterIndex}</div>
+                      <ChevronIcon isOpen={isOpen} />
+                    </S.QuarterHeader>
+                    <S.QuarterContent isOpen={isOpen}>
+                      <S.QuarterScoreBoard>
+                        {quarterScores.map((s, si) => (
+                          <React.Fragment key={si}>
+                            <div className="team-info">
+                              <span className="team-name">{s.name}</span>
+                              <span className="score">{s.goals}</span>
+                            </div>
+                            {si < quarterScores.length - 1 && <span className="vs-label">VS</span>}
+                          </React.Fragment>
+                        ))}
+                      </S.QuarterScoreBoard>
+
+                      <S.FieldContainer>
+                        <S.FieldView>
+                          <div className="center-line" />
+                          <div className="center-circle" />
+                          {isMobile ? (
+                            <>
+                              <div style={{ height: '50%', position: 'relative' }}>
+                                {renderFormation(q.teams[0], true, true, 'home', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                              </div>
+                              <div style={{ height: '50%', position: 'relative' }}>
+                                {renderFormation(q.teams[1], false, true, 'away', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {renderFormation(q.teams[0], true, false, 'home', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                              {renderFormation(q.teams[1], false, false, 'away', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                            </>
+                          )}
+                        </S.FieldView>
+                      </S.FieldContainer>
+
+                      <S.TeamsGrid>
+                        {q.teams.map((t, ti) => (
+                          <S.TeamCard key={ti}>
+                            <h4>{t.name} <S.FormationBadge>{t.formation}</S.FormationBadge></h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px' }}>
+                              {t.players.map((p, pi) => (
+                                <div key={pi} style={{ fontSize: '13px', color: '#4e5968', display: 'flex', gap: '4px' }}>
+                                  <span style={{ fontWeight: 800, color: '#adb5bd' }}>{p.backNumber}</span>
+                                  <span style={{ cursor: 'pointer' }} onClick={() => navigate(`/player-history/${encodeURIComponent(p.name)}`)}>{p.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </S.TeamCard>
+                        ))}
+                      </S.TeamsGrid>
+
+                      <S.StatSection>
+                        <S.StatTitle>공격 포인트</S.StatTitle>
+                        {q.goalAssistPairs.length > 0 ? q.goalAssistPairs.map((p, pi) => (
+                          <S.StatCard key={pi}>
+                            <div className="main-info">
+                              <span className="role">GOAL</span>
+                              <span className="player-name">{p.goal.player}</span>
+                              <span style={{ fontSize: '14px' }}>⚽</span>
+                            </div>
+                            <div className="partner-info">
+                              {p.assist.player ? `도움: ${p.assist.player} 👟` : '자력 득점'}
+                            </div>
+                          </S.StatCard>
+                        )) : <S.EmptyState style={{ padding: '20px' }}>공격 포인트 기록이 없습니다.</S.EmptyState>}
+                        {q.ownGoals?.map((og, oi) => (
+                          <S.StatCard key={`og-${oi}`} style={{ borderColor: '#f04452' }}>
+                            <div className="main-info">
+                              <span className="role" style={{ background: '#fff0f0', color: '#f04452' }}>OWN GOAL</span>
+                              <span className="player-name">{og.player}</span>
+                            </div>
+                            <div className="partner-info">자책골 🥅</div>
+                          </S.StatCard>
+                        ))}
+                      </S.StatSection>
+                    </S.QuarterContent>
+                  </S.QuarterSection>
+                );
+              })}
+            </S.MatchSection>
+          );
+        }) : <S.EmptyState>표시할 경기 기록이 없습니다.</S.EmptyState>}
+
         {totalPages > 1 && (
-          <PaginationWrapper>
-            {getPaginationButtons()}
-          </PaginationWrapper>
+          <S.PaginationWrapper>
+            <S.PaginationButton disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>이전</S.PaginationButton>
+            {[...Array(totalPages)].map((_, i) => (
+              <S.PaginationButton key={i + 1} active={currentPage === i + 1} onClick={() => handlePageChange(i + 1)}>{i + 1}</S.PaginationButton>
+            ))}
+            <S.PaginationButton disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>다음</S.PaginationButton>
+          </S.PaginationWrapper>
         )}
-        {selectedPlayer && selectedQuarter && (
-          <PopupOverlay onClick={closePopup}>
-            <PopupContent onClick={(e) => e.stopPropagation()}>
-              <PopupHeader>
-                <PopupTitle>{selectedPlayer.name}</PopupTitle>
-                <CloseButton onClick={closePopup}>X</CloseButton>
-              </PopupHeader>
-              <PopupBody>
-                <PopupStat>등번호: {selectedPlayer.backNumber || '없음'}</PopupStat>
-                <PopupStat>포지션: {selectedPlayer.position || 'N/A'}</PopupStat>
-                <PopupStat>득점: {selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name).length || 0}</PopupStat>
-                <PopupStat>도움: {selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name).length || 0}</PopupStat>
-                <PopupStat>
-                  득점 파트너: {
-                    (() => {
-                      const assists = selectedPlayer.goalAssistPairs?.filter(g => g.goal.player === selectedPlayer.name) || [];
-                      const assistPlayers = assists.map(a => a.assist.player).filter(Boolean);
-                      return assistPlayers.length > 0 ? assistPlayers.join(', ') : '없음';
-                    })()
-                  }
-                </PopupStat>
-                <PopupStat>
-                  어시스트 파트너: {
-                    (() => {
-                      const goals = selectedPlayer.goalAssistPairs?.filter(a => a.assist.player === selectedPlayer.name) || [];
-                      const goalPlayers = goals.map(g => g.goal.player).filter(Boolean);
-                      return goalPlayers.length > 0 ? goalPlayers.join(', ') : '없음';
-                    })()
-                  }
-                </PopupStat>
-              </PopupBody>
-              <PopupFooter>
-                <GradeButton 
-                  onClick={() => navigate(`/player-history/${encodeURIComponent(selectedPlayer.name)}`)}
-                  style={{ marginLeft: '10px', backgroundColor: '#3182f6' }}
-                >
-                  선수 기록 더보기
-                </GradeButton>
-              </PopupFooter>
-            </PopupContent>
-          </PopupOverlay>
-        )}
-      </MainContent>
-    </Container>
+      </S.MainContent>
+    </S.Container>
   );
 }
 

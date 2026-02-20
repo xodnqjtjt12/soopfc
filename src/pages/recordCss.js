@@ -1,74 +1,688 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, createGlobalStyle, css } from 'styled-components';
 
-// 애니메이션 정의
+
+
 export const fadeIn = keyframes`
-  from { 
-    opacity: 0; 
-    transform: translateY(20px) scale(0.95); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+export const Container = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px; // Unified padding with other pages
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  color: #333d4b;
+  background-color: #f8f9fa;
+
+  @media (max-width: 768px) {
+    padding: 0 10px;
   }
 `;
 
-export const shine = keyframes`
-  0% {
-    background-position: -200%;
-  }
-  100% {
-    background-position: 200%;
+/* --- Header Section --- */
+export const Header = styled.header`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 30px; 
+    gap: 16px;
   }
 `;
 
-export const pulse = keyframes`
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(56, 135, 255, 0.4);
-  }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(56, 135, 255, 0);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(56, 135, 255, 0);
+export const HeaderLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+export const Title = styled.h1`
+  font-size: 28px;
+  font-weight: 800;
+  color: #191f28;
+  margin: 0;
+  letter-spacing: -0.5px;
+`;
+
+export const HeaderRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+
+   @media (max-width: 768px) {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 `;
 
-const roll = keyframes`
-  0% {
-    transform: translateX(-150px) rotate(0deg);
+export const Subtitle = styled.p`
+  font-size: 15px;
+  color: #8b95a1;
+  margin: 0;
+  font-weight: 500;
+`;
+
+/* --- Filter & Search --- */
+export const FilterContainer = styled.div`
+  display: flex;
+  background-color: #f1f3f5; /* Light Gray Track */
+  padding: 4px;
+  border-radius: 25px;
+  gap: 0px; /* Connected */
+  white-space: nowrap; /* Prevent wrapping */
+
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    /* Hide scrollbar */
+    &::-webkit-scrollbar { display: none; }
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-  100% {
-    transform: translateX(150px) rotate(360deg);
+`;
+
+export const FilterButton = styled.button`
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: none;
+  background-color: ${props => props.active ? '#ffffff' : 'transparent'};
+  color: ${props => props.active ? '#191f28' : '#8b95a1'};
+  font-size: 14px;
+  font-weight: ${props => props.active ? '700' : '500'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: ${props => props.active ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'};
+
+  &:hover {
+    color: ${props => props.active ? '#191f28' : '#495057'};
   }
+
+  @media (max-width: 768px) {
+    flex-shrink: 0;
+    padding: 8px 16px;
+  }
+`;
+
+export const SearchInputContainer = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  display: flex;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-bottom: 24px;
+    padding: 0;
+    box-sizing: border-box;
+    max-width: none;
+  }
+`;
+
+export const SearchInputWrapper = styled.div`
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 5;
+  }
+`;
+
+export const SearchInput = styled.input`
+  width: 100%;
+  padding: 10px 16px;
+  padding-left: 40px; // Space for icon
+  font-size: 14px;
+  border-radius: 99px; /* Unified pill-shape */
+  border: 1px solid #e9ecef;
+  background-color: white;
+  color: #333d4b;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #339af0;
+    box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.1);
+  }
+  
+  &::placeholder {
+    color: #adb5bd;
+  }
+
+  @media (max-width: 480px) {
+    border-radius: 99px; /* Unified pill-shape */
+    font-size: 14px;
+    padding: 12px 16px 12px 44px;
+    min-width: 0;
+  }
+`;
+
+/* --- Dashboard Grid --- */
+export const DashboardGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0;
+    width: 100%;
+  }
+`;
+
+/* --- Hero Card (Left Large) --- */
+export const HeroCardWrapper = styled.div`
+  grid-column: span 1; 
+  grid-row: span 2; // Make it tall
+  
+  @media (max-width: 1024px) {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  @media (max-width: 768px) {
+    grid-column: span 1;
+  }
+`;
+
+/* --- Hero Card (Dark Premium) --- */
+/* --- Hero Card (White Theme) --- */
+export const HeroCard = styled.div`
+  background: white; /* White Background */
+  background-image: radial-gradient(circle at 50% 80%, #e7f5ff 0%, rgba(255,255,255,0) 50%); /* Subtle Blue Point behind Image */
+  border-radius: 20px;
+  padding: 32px; /* Increased padding */
+  height: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); /* Softer shadow */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.03);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  color: #333d4b;
+
+  @media (max-width: 480px) {
+    padding: 24px 20px; /* Reduce padding on very small screens */
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+export const HotRecordBadge = styled.div`
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  color: #e03131;
+  background-color: #fff5f5;
+  padding: 4px 12px; /* Pill Shape */
+  border-radius: 20px;
+  margin-bottom: 8px;
+  align-self: flex-start;
+  text-transform: uppercase;
+  z-index: 2;
+  border: 1px solid #ffc9c9;
+`;
+
+export const HeroHeader = styled.div`
+  display: flex;
+  justify-content: space-between; /* Title Left, Icon Right */
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 16px; /* More room */
+  z-index: 2;
+`;
+
+export const HeroTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 700;
+  color: #333d4b;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+`;
+
+export const HeroIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #fff9db; /* Light Yellow */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fab005; /* Gold Icon */
+  
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+// Wrapper to hold Image and Rank
+export const HeroImageWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  /* Removed flex-grow to avoid pushing down */
+  display: flex;
+  align-items: center; /* Center */
+  justify-content: center;
+  margin-bottom: 20px; /* More room */
+`;
+
+export const HeroImage = styled.img`
+  width: 220px; /* PC size */
+  height: 220px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 80%, rgba(0, 0, 0, 0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 80%, rgba(0, 0, 0, 0) 100%);
+
+  @media (max-width: 768px) {
+    width: 160px; /* Reduced for mobile */
+    height: 160px;
+  }
+`;
+
+export const HeroContent = styled.div`
+  /* Removed absolute positioning */
+  width: 100%;
+  padding: 0 24px; /* Reduced bottom padding */
+  background: transparent; /* No gradient */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Center Content Height */
+  flex-grow: 1;
+  z-index: 2;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    margin-top: 0; /* Reset offset on mobile to avoid overcrowding */
+    padding: 12px 16px;
+  }
+`;
+
+export const RankBadge = styled.div`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 32px;
+  height: 32px;
+  background-color: #ffffff;
+  color: #1e3c72;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+`;
+
+export const HeroPlayerName = styled.div`
+  font-size: 20px;
+  font-weight: 700;
+  color: #212529; /* Dark Color */
+  margin-bottom: 4px;
+  /* Removed text-shadow */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+`;
+
+export const HeroPlayerPosition = styled.span`
+  font-size: 11px;
+  color: white;
+  font-weight: 700;
+  margin-left: 8px;
+  background: linear-gradient(135deg, #339af0, #228be6); /* Professional Badge */
+  padding: 3px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(51, 154, 240, 0.2);
+`;
+
+export const HeroStatValue = styled.div`
+  font-size: 56px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd43b 0%, #f08c00 100%); /* Gold to Orange Gradient */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  /* Removed strong text-shadow */
+  @media (max-width: 768px) {
+    font-size: 42px;
+    
+    span {
+      font-size: 18px;
+    }
+  }
+  
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  
+  span {
+    font-size: 24px; /* Increased size */
+    font-weight: 800; /* Extra Bold */
+    margin-left: 4px;
+    opacity: 1;
+    /* Inherit Gradient */
+    background: linear-gradient(135deg, #ffd43b 0%, #f08c00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+`;
+
+export const HeroFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #868e96; /* Darker Footer Text */
+  z-index: 3;
+  margin-top: auto; /* Push to bottom */
+  padding-top: 20px; /* Gap from content */
+  border: none;
+`;
+
+/* --- Grid Card (Normal) --- */
+export const GridCard = styled.div`
+  background-color: white;
+  border-radius: 20px;
+  padding: 32px; /* Unified with HeroCard */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  border: 1px solid rgba(0,0,0,0.03);
+  transition: all 0.2s ease;
+  min-height: 180px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  }
+`;
+
+export const GridHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+`;
+
+export const GridTitle = styled.h3`
+  font-size: 17px;
+  font-weight: 700;
+  color: #343a40;
+  margin: 0;
+  line-height: 1.4;
+`;
+
+export const GridSubtitle = styled.div`
+  font-size: 13px;
+  color: #adb5bd;
+  font-weight: 500;
+  margin-top: 4px;
+`;
+
+export const GridIcon = styled.div`
+  /* Color and Background are set via inline styles */
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+`;
+
+export const GridContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+export const GridProfile = styled.img`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #f1f3f5;
+  position: relative;
+`;
+
+export const GridProfileWrapper = styled.div`
+  position: relative;
+`;
+
+export const MiniRankBadge = styled.div`
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  background-color: #fab005;
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid white;
+`;
+
+export const GridInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+export const PlayerNameText = styled.span`
+  font-size: 14px;
+  font-weight: 400;
+  color: #212529;
+  line-height: 1.2;
+  white-space: nowrap;
+`;
+export const GridPlayerName = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: #212529;
+`;
+
+export const GridStatValue = styled.span`
+  font-size: 28px;
+  font-weight: 900; /* Extra Bold */
+  color: ${props => props.color || '#333d4b'}; /* Dynamic Color */
+  line-height: 1.2;
+
+  span {
+    font-size: 14px;
+    color: #868e96;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+`;
+
+
+/* --- Modal & Loading --- */
+export const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: ${fadeIn} 0.2s ease-out;
+`;
+
+export const ModalContent = styled.div`
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh; /* Increased to avoid ghost scrollbars */
+  overflow-y: auto;
+  overflow-x: hidden; /* No horizontal scroll for the popup itself */
+  padding: 32px; /* Restored for desktop */
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: white;
+  
+  @media (max-width: 768px) {
+    padding: 24px 20px;
+    border-radius: 16px;
+    width: calc(100% - 32px);
+    margin: 16px;
+  }
+  
+  /* Use global scrollbar settings, remove local overrides if any */
+`;
+
+export const CloseButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #adb5bd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  margin: -8px; /* Offset padding to keep alignment */
+  transition: all 0.2s;
+  
+  &:hover {
+    color: #495057;
+  }
+`;
+
+export const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* Consistent with Top popup headers */
+  margin-bottom: 24px;
+  width: 100%;
+  gap: 16px; /* Title/X separation */
+`;
+
+export const ModalTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
+  color: #212529;
+  line-height: 1.3;
+  word-break: keep-all;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
+`;
+
+export const RankList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+export const RankItem = styled.li`
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f5;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+export const RankNum = styled.div`
+  font-size: 16px;
+  font-weight: 700;
+  color: #868e96;
+  width: 44px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 16px;
+`;
+
+export const RankName = styled.span`
+  font-size: 16px;
+  font-weight: 600;
+  color: #343a40;
+  flex: 1;
+  margin-left: 12px;
+`;
+
+export const RankValue = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: #339af0;
 `;
 
 export const LoadingContainer = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  height: 100vh;
-  background-color: #ffffff;
-`;
-
-export const Football = styled.div`
-  width: 50px;
-  height: 50px;
-  background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Soccerball.svg/1200px-Soccerball.svg.png');
-  background-size: cover;
-  animation: ${roll} 2s linear infinite;
-  margin-bottom: 20px;
+  align-items: center;
+  height: 50vh;
+  font-weight: 600;
+  color: #adb5bd;
 `;
 
 export const LoadingText = styled.div`
   margin-top: 16px;
   font-size: 16px;
-  font-weight: 500;
-  color: #333d4b;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: #339af0;
 `;
 
 export const LoadingPercentage = styled.div`
@@ -78,415 +692,69 @@ export const LoadingPercentage = styled.div`
   color: #666;
 `;
 
-export const LoadingSpinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #3182f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-export const Container = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  color: #333d4b;
-`;
-
-export const Header = styled.header`
-  margin-bottom: 32px;
-`;
-
-export const Title = styled.h1`
-  font-size: 32px;
-  font-weight: 700;
-  color: #191f28;
-  margin-bottom: 16px;
-  letter-spacing: -0.5px;
-`;
-
-export const SearchContainer = styled.div`
-  position: relative;
-  margin-bottom: 32px;
-`;
-
-export const SearchInput = styled.input`
+export const RecordTableWrapper = styled.div`
   width: 100%;
-  padding: 18px 48px;
-  font-size: 17px;
-  border-radius: 14px;
-  border: none;
-  background-color: #f2f4f6;
-  color: #333d4b;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  box-sizing: border-box;
-  z-index: 1;
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px #3887ff;
-    background-color: #ffffff;
-  }
-
-  &::placeholder {
-    color: #8b95a1;
-  }
-
-  @media (max-width: 768px) {
-    padding: 10px 50px 10px 44px;
-    font-size: 15px;
-    margin-right: 10px;
-  }
-`;
-
-export const SearchIconWrapper = styled.div`
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #8b95a1;
-  z-index: 2;
-
-  @media (max-width: 768px) {
-    left: 12px;
-  }
-`;
-
-export const TabContainer = styled.div`
-  display: flex;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  &::-webkit-scrollbar { /* WebKit */
-    display: none;
-  }
-  margin-bottom: 24px;
-  gap: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #eef0f3;
-`;
-
-export const Tab = styled.button`
-  padding: 12px 16px;
-  font-size: 17px;
-  font-weight: 500;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  color: ${props => props.active ? '#3887ff' : '#8b95a1'};
-  background: ${props => props.active ? '#f2f7ff' : 'transparent'};
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-
-  &:hover {
-    color: ${props => props.active ? '#3887ff' : '#333d4b'};
-    background: ${props => props.active ? '#f2f7ff' : '#f2f4f6'};
-  }
-`;
-
-export const CategoryContainer = styled.div`
-  background-color: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 2px 12px rgba(33, 37, 41, 0.08);
-  overflow: hidden;
-  margin-bottom: 24px;
-`;
-
-export const CategoryCard = styled.div`
-  padding: 22px 24px;
-  border-bottom: 1px solid #eef0f3;
-  transition: background-color 0.2s ease;
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  align-items: center;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background-color: #f9fafb;
-  }
-
-  &:active {
-    background-color: #f2f4f6;
-  }
-`;
-
-export const CategoryTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: #191f28;
-  margin: 0;
-  letter-spacing: -0.5px;
-`;
-
-export const SectionTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: #191f28;
-  margin: 0;
-  letter-spacing: -0.5px;
-  padding: 12px 24px;
-  background-color: #f2f4f6;
-`;
-
-export const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  animation: ${fadeIn} 0.3s ease-out;
-
-  @media (max-width: 480px) {
-    padding: 10px;
-  }
-`;
-
-export const ModalContent = styled.div`
-  background: #ffffff;
-  padding: 32px 28px;
-  border-radius: 24px;
-  width: 88%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  position: relative;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-  animation: ${fadeIn} 0.3s ease-out;
-  color: #333d4b;
-  font-size: 16px;
-  line-height: 1.6;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-
-  scrollbar-width: thin;
-  scrollbar-color: #c9cdd2 #f2f4f6;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f2f4f6;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #c9cdd2;
-    border-radius: 3px;
-    &:hover {
-      background: #8b95a1;
-    }
-  }
-
-  @media (max-width: 768px) {
-    padding: 28px 24px;
-    width: 96%;
-    max-width: 460px;
-    border-radius: 20px;
-  }
+  margin-top: 8px;
   
-  @media (max-width: 480px) {
-    padding: 24px 20px;
-    width: 85%;
-    max-height: 85vh;
-    border-radius: 16px;
-    font-size: 15px;
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #e9ecef;
+    border-radius: 2px;
   }
 `;
 
-export const CloseButton = styled.button`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #f2f4f6;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #333d4b;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+export const TableWrapper = RecordTableWrapper; /* Alias for compatibility */
 
-  &:hover {
-    background: #eef0f3;
-  }
-
-  &:active {
-    background: #e7e9ec;
-  }
-
-  @media (max-width: 480px) {
-    top: 16px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
-  }
+export const RecordTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 450px;
 `;
 
-export const WinnerBadge = styled.div`
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  font-size: 24px;
-  animation: ${pulse} 2s infinite;
-`;
-
-export const StatsContainer = styled.div`
-  margin-top: 16px;
-  padding: 12px;
-  background: linear-gradient(90deg, #f2f7ff, #ffffff);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  animation: ${shine} 3s linear infinite;
-  background-size: 200%;
-`;
-
-export const StatItem = styled.div`
-  font-size: 16px;
-  font-weight: 500;
-  color: #191f28;
-  display: flex;
-  justify-content: space-between;
-`;
-
-export const WinnerRecord = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: linear-gradient(90deg, #fff8e1, #ffffff);
-  border-radius: 12px;
-  animation: ${shine} 3s linear infinite;
-  background-size: 200%;
-`;
-
-export const RankingList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-export const RankingItem = styled.li`
-  padding: 16px 0;
-  border-bottom: 1px solid #eef0f3;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  @media (max-width: 480px) {
-    padding: 12px 0;
-    gap: 8px;
-  }
-`;
-
-export const RankingPlayer = styled.span`
-  font-size: 18px;
-  font-weight: 500;
-  color: #333d4b;
-  max-width: 75%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  @media (max-width: 480px) {
-    font-size: 16px;
-    max-width: 70%;
-    line-height: 1.3;
-  }
-`;
-
-export const RankingCount = styled.span`
-  font-size: 18px;
+export const TableHeader = styled.th`
+  background-color: #f8f9fa;
+  color: #868e96;
   font-weight: 600;
-  color: #3887ff;
-  white-space: nowrap;
-
-  @media (max-width: 480px) {
-    font-size: 16px;
-    line-height: 1.3;
-    flex-shrink: 0;
-  }
-`;
-
-export const NoResults = styled.div`
-  padding: 40px 24px;
+  padding: 12px 8px; /* Unified with TableCell */
   text-align: center;
-  color: #8b95a1;
-  font-size: 17px;
-
-  @media (max-width: 480px) {
-    padding: 32px 16px;
-    font-size: 16px;
-  }
+  border-bottom: 1px solid #dee2e6;
+  white-space: nowrap;
 `;
 
-export const PlayerRecordSection = styled.div`
-  margin-bottom: 28px;
-
-  @media (max-width: 480px) {
-    margin-bottom: 20px;
-  }
-`;
-
-export const PlayerRecordTitle = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: #191f28;
-  margin-bottom: 16px;
-  letter-spacing: -0.5px;
-
-  @media (max-width: 480px) {
-    font-size: 18px;
-    margin-bottom: 12px;
-  }
-`;
-
-export const PlayerRecordItem = styled.div`
-  padding: 12px 0;
-  font-size: 17px;
-  color: #333d4b;
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid #eef0f3;
-
+export const TableRow = styled.tr`
+  border-bottom: 1px solid #f1f3f5;
+  
   &:last-child {
     border-bottom: none;
   }
+`;
+
+export const TableCell = styled.td`
+  padding: 12px 8px;
+  border-bottom: 1px solid #f1f3f5;
+  color: #333d4b;
+  font-weight: 500;
+  vertical-align: middle;
+  text-align: center; /* Unified with TableHeader */
+
+  &.season {
+    font-weight: 700;
+    color: #1a1b1e;
+  }
+
+  .rank {
+    font-size: 11px;
+    color: #8b95a1;
+    font-weight: 400;
+    margin-top: 2px;
+  }
 
   @media (max-width: 480px) {
-    font-size: 16px;
-    padding: 10px 0;
+    padding: 10px 4px;
+    font-size: 13px;
   }
 `;

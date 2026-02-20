@@ -144,3 +144,33 @@ export const ErrorMessage = styled.p`
   margin-top: 10px;
   text-align: center;
 `;
+
+// 추가된 컴포넌트들
+export const AdminContainer = styled(Container)`
+  background-color: #ffffff;
+  min-height: 100vh;
+`;
+
+export const TitleSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f1f3f5;
+`;
+
+export const MainTitle = styled.h1`
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1f27;
+  margin: 0;
+`;
+
+export const AddButton = styled(Button)`
+  background-color: #2ecc71;
+  margin-top: 0;
+  &:hover {
+    background-color: #27ae60;
+  }
+`;

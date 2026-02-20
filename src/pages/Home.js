@@ -477,7 +477,7 @@ const Home = () => {
         let items = json.response.body.items?.item || [];
         if (!Array.isArray(items)) items = items ? [items] : [];
         const evts = items.map(i => ({
-          date: `${String(i.locdate).slice(0,4)}-${String(i.locdate).slice(4,6)}-${String(i.locdate).slice(6,8)}`,
+          date: `${String(i.locdate).slice(0, 4)}-${String(i.locdate).slice(4, 6)}-${String(i.locdate).slice(6, 8)}`,
           title: i.dateName,
         }));
         setAnniversaries(evts);
@@ -501,7 +501,7 @@ const Home = () => {
         if (!Array.isArray(items)) items = items ? [items] : [];
         const days = items.map(i => {
           const d = String(i.locdate);
-          return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+          return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
         });
         setHolidays(days);
       } catch (e) {
@@ -634,7 +634,7 @@ const Home = () => {
               </S.HeroSubtitle>
               <S.ButtonGroup>
                 <S.PrimaryButton href="/total">내 스탯 보기</S.PrimaryButton>
-                
+
                 {voteExposures.map(exposure => {
                   const { visible, type, to, text } = getButtonState(
                     exposure.matchDate,
@@ -702,105 +702,105 @@ const Home = () => {
           )}
 
 
-<div style={{ marginBottom: '60px', width: '100%' }}>
-  <S.MomSectionTitle>
-    <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어
-  </S.MomSectionTitle>
-  {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요!</S.SwipeHint>}
-  
-  <S.MomPlayersContainer ref={momRef}>
-    {momPlayers.length > 0 ? momPlayers.map((p, i) => {
-      const isFlipped = flippedCards[i] !== false;
-      const photoName = p.name.trim().replace(/\s+/g, '') + '.png';
-      const photoPath = `${process.env.PUBLIC_URL}/card/${photoName}`;
+          <div style={{ marginBottom: '60px', width: '100%' }}>
+            <S.MomSectionTitle>
+              <img src={`${process.env.PUBLIC_URL}/mom.png`} alt="Mom Icon" /> M.O.M 플레이어
+            </S.MomSectionTitle>
+            {showHint && <S.SwipeHint>순위를 더 보려면 옆으로 넘겨주세요!</S.SwipeHint>}
 
-      return (
-     <PlayerCardWrapper 
-  key={i} 
-  onClick={() => toggleFlip(i)}
-  style={{
-    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-    transform: 'translateY(0)',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)',
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.transform = 'translateY(-16px) scale(1.03)';
-    e.currentTarget.style.boxShadow = '0 25px 50px rgba(251, 191, 36, 0.5)';
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
-  }}
->
-          <PlayerCardInner className={isFlipped ? 'flipped' : ''}>
-            
-            {/* 앞면 - 통계 */}
-            <PlayerCardFront>
-              <S.PlayerHeader>
-                <S.PlayerContainer>
-                  <S.PlayerRankBadge>
-                    <S.TrophyIcon src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy Icon" />
-                    <S.PlayerRank>{p.rankText || '순위 미정'}</S.PlayerRank>
-                  </S.PlayerRankBadge>
-                  <S.PlayerScore title="누적 MOM점수">{p.momScore}</S.PlayerScore>
-                </S.PlayerContainer>
-                <S.PlayerName>{p.name}</S.PlayerName>
-              </S.PlayerHeader>
-              <S.PositionTags>
-                {p.formations?.map((pos, idx) => <S.PositionTag key={idx} position={pos}>{pos}</S.PositionTag>)}
-              </S.PositionTags>
-              <S.WhiteDivider />
-              <S.StatRow><S.StatLabel>골</S.StatLabel><S.StatLabel>{p.goals}</S.StatLabel></S.StatRow>
-              <S.StatRow><S.StatLabel>도움</S.StatLabel><S.StatLabel>{p.assists}</S.StatLabel></S.StatRow>
-              <S.StatRow><S.StatLabel>클린시트</S.StatLabel><S.StatLabel>{p.cleanSheets}</S.StatLabel></S.StatRow>
-              <S.StatRow><S.StatLabel>경기수</S.StatLabel><S.StatLabel>{p.matches}</S.StatLabel></S.StatRow>
-              <S.StatRow><S.StatLabel>승률</S.StatLabel><S.StatLabel>{p.winRate}%</S.StatLabel></S.StatRow>
-              <S.StatRow><S.StatLabel>승점</S.StatLabel><S.StatLabel>{p.personalPoints}</S.StatLabel></S.StatRow>
-              <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.war}</S.StatLabel></S.StatRow>
-            </PlayerCardFront>
+            <S.MomPlayersContainer ref={momRef}>
+              {momPlayers.length > 0 ? momPlayers.map((p, i) => {
+                const isFlipped = flippedCards[i] !== false;
+                const photoName = p.name.trim().replace(/\s+/g, '') + '.png';
+                const photoPath = `${process.env.PUBLIC_URL}/card/${photoName}`;
 
-            {/* 뒷면 - 사진 + 순위 */}
-            <PlayerCardBack>
-              <PlayerPhoto 
-                src={photoPath}
-                alt={p.name}
-                onError={(e) => {
-                  e.target.src = `${process.env.PUBLIC_URL}/card/nomal.png`;
-                }}
-              />
+                return (
+                  <PlayerCardWrapper
+                    key={i}
+                    onClick={() => toggleFlip(i)}
+                    style={{
+                      transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                      transform: 'translateY(0)',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-16px) scale(1.03)';
+                      e.currentTarget.style.boxShadow = '0 25px 50px rgba(251, 191, 36, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
+                    }}
+                  >
+                    <PlayerCardInner className={isFlipped ? 'flipped' : ''}>
 
-              <div style={{
-                marginTop: '12px',
-                borderRadius: '20px',
-                backdropFilter: 'blur(8px)',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  color: '#fbbf24',
-                  fontSize: '32px',
-                  fontWeight: '900',
-                }}>
-                  <img src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy" style={{ width: '40px', height: '40px' }} />
-                  {p.rankText || '순위 미정'}
-                </div>
-              </div>
+                      {/* 앞면 - 통계 */}
+                      <PlayerCardFront>
+                        <S.PlayerHeader>
+                          <S.PlayerContainer>
+                            <S.PlayerRankBadge>
+                              <S.TrophyIcon src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy Icon" />
+                              <S.PlayerRank>{p.rankText || '순위 미정'}</S.PlayerRank>
+                            </S.PlayerRankBadge>
+                            <S.PlayerScore title="누적 MOM점수">{p.momScore}</S.PlayerScore>
+                          </S.PlayerContainer>
+                          <S.PlayerName>{p.name}</S.PlayerName>
+                        </S.PlayerHeader>
+                        <S.PositionTags>
+                          {p.formations?.map((pos, idx) => <S.PositionTag key={idx} position={pos}>{pos}</S.PositionTag>)}
+                        </S.PositionTags>
+                        <S.WhiteDivider />
+                        <S.StatRow><S.StatLabel>골</S.StatLabel><S.StatLabel>{p.goals}</S.StatLabel></S.StatRow>
+                        <S.StatRow><S.StatLabel>도움</S.StatLabel><S.StatLabel>{p.assists}</S.StatLabel></S.StatRow>
+                        <S.StatRow><S.StatLabel>클린시트</S.StatLabel><S.StatLabel>{p.cleanSheets}</S.StatLabel></S.StatRow>
+                        <S.StatRow><S.StatLabel>경기수</S.StatLabel><S.StatLabel>{p.matches}</S.StatLabel></S.StatRow>
+                        <S.StatRow><S.StatLabel>승률</S.StatLabel><S.StatLabel>{p.winRate}%</S.StatLabel></S.StatRow>
+                        <S.StatRow><S.StatLabel>승점</S.StatLabel><S.StatLabel>{p.personalPoints}</S.StatLabel></S.StatRow>
+                        <S.StatRow><S.StatLabel>WAR</S.StatLabel><S.StatLabel>{p.war}</S.StatLabel></S.StatRow>
+                      </PlayerCardFront>
 
-              <PlayerNameBack style={{ marginTop: '16px', fontSize: '26px' }}>
-                {p.name}
-              </PlayerNameBack>
-            </PlayerCardBack>
+                      {/* 뒷면 - 사진 + 순위 */}
+                      <PlayerCardBack>
+                        <PlayerPhoto
+                          src={photoPath}
+                          alt={p.name}
+                          onError={(e) => {
+                            e.target.src = `${process.env.PUBLIC_URL}/card/nomal.png`;
+                          }}
+                        />
 
-          </PlayerCardInner>
-        </PlayerCardWrapper>
-      );
-    }) : <p style={{color: '#666', textAlign: 'center', width: '100%'}}>MOM 플레이어가 없습니다.</p>}
-  </S.MomPlayersContainer>
-  
-  {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
-</div>
+                        <div style={{
+                          marginTop: '12px',
+                          borderRadius: '20px',
+                          backdropFilter: 'blur(8px)',
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            color: '#fbbf24',
+                            fontSize: '32px',
+                            fontWeight: '900',
+                          }}>
+                            <img src={`${process.env.PUBLIC_URL}/trophy.png`} alt="Trophy" style={{ width: '40px', height: '40px' }} />
+                            {p.rankText || '순위 미정'}
+                          </div>
+                        </div>
+
+                        <PlayerNameBack style={{ marginTop: '16px', fontSize: '26px' }}>
+                          {p.name}
+                        </PlayerNameBack>
+                      </PlayerCardBack>
+
+                    </PlayerCardInner>
+                  </PlayerCardWrapper>
+                );
+              }) : <p style={{ color: '#666', textAlign: 'center', width: '100%' }}>MOM 플레이어가 없습니다.</p>}
+            </S.MomPlayersContainer>
+
+            {showEnd && <S.EndMessage>MOM 순위는 여기까지입니다.</S.EndMessage>}
+          </div>
           <S.ScheduleSection>
             <S.ScheduleHeader>축구 일정 보기</S.ScheduleHeader>
             <S.StyledCalendar

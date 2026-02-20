@@ -1,165 +1,85 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, createGlobalStyle } from 'styled-components';
 
-// Keyframes for animations
-const fadeInUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+export const GlobalFontStyle = createGlobalStyle`
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+  * {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   }
 `;
 
-const zoomIn = keyframes`
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-`;
-
-const slideInLeft = keyframes`
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-`;
-
-const slideInRight = keyframes`
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-`;
-
-const growIn = keyframes`
-  from {
-    opacity: 0;
-    transform: scaleY(0);
-  }
-  to {
-    opacity: 1;
-    transform: scaleY(1);
-  }
-`;
-
-const bounce = keyframes`
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
 export const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  color: #333;
-  background-color: #f8f8f8;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  animation: ${fadeInUp} 0.6s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 15px;
-    margin: 0 10px;
-  }
+  padding: 40px 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
 `;
 
+/* --- Header Section --- */
 export const MatchHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(90deg, #00295f, #004aad);
-  color: white;
-  padding: 15px 0;
-  position: relative;
-  border-radius: 8px;
-  animation: ${fadeInUp} 0.8s ease-out;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  margin-bottom: 40px;
+  animation: ${fadeIn} 0.6s ease-out;
 
   h2 {
-    font-size: 28px;
-    font-weight: bold;
-    letter-spacing: 1px;
+    font-size: 32px;
+    font-weight: 800;
+    color: #191f28;
+    margin-bottom: 12px;
   }
 
-  @media (max-width: 768px) {
-    h2 { font-size: 22px; }
+  p {
+    font-size: 16px;
+    color: #4e5968;
   }
 `;
 
 export const MatchVS = styled.div`
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.04);
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  background-color: white;
-  padding: 20px;
-  border-bottom: 1px solid #e5e5e5;
-  border-radius: 8px;
-  animation: ${zoomIn} 0.7s ease-out;
-  gap: 20px;
+  justify-content: space-around;
+  margin-bottom: 32px;
+  animation: ${slideUp} 0.7s ease-out;
 
   @media (max-width: 768px) {
-    padding: 15px;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
+    padding: 24px 16px;
+    gap: 12px;
   }
 `;
 
 export const TeamContainer = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  flex: 1;
-  min-width: 200px;
-  max-width: 300px;
-
-  @media (max-width: 768px) {
-    min-width: 150px;
-    max-width: 100%;
-    text-align: center;
-  }
+  items-align: center;
+  text-align: center;
 `;
 
 export const TeamInfo = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  animation: ${zoomIn} 0.9s ease-out;
+  gap: 8px;
 `;
 
 export const TeamName = styled.h3`
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-
+  font-size: 24px;
+  font-weight: 800;
+  color: #191f28;
+  
   @media (max-width: 768px) {
     font-size: 18px;
   }
@@ -167,642 +87,528 @@ export const TeamName = styled.h3`
 
 export const TeamStats = styled.div`
   font-size: 14px;
-  color: #666;
-  opacity: 0;
-  animation: ${fadeInUp} 1s ease-out 0.5s forwards;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-  }
+  color: #8b95a1;
+  font-weight: 500;
 `;
 
 export const VSIndicator = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 20px;
-
-  @media (max-width: 768px) {
-    margin: 10px 0;
-  }
+  gap: 4px;
 `;
 
 export const VSText = styled.span`
-  font-size: 24px;
-  font-weight: bold;
-  margin: 10px 0;
-  color: #888;
-  animation: ${pulse} 2s infinite;
-
-  @media (max-width: 768px) {
-    font-size: 20px;
-  }
+  font-size: 28px;
+  font-weight: 900;
+  color: #e5e8eb;
+  font-style: italic;
 `;
 
 export const MatchDate = styled.div`
-  font-size: 14px;
-  color: #666;
-  text-align: center;
-  margin-top: 5px;
-  opacity: 0;
-  animation: ${fadeInUp} 1s ease-out 0.7s forwards;
-  white-space: nowrap;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-    margin-top: 10px;
-    width: auto;
-    word-break: break-word;
-  }
+  font-size: 13px;
+  color: #8b95a1;
+  font-weight: 600;
 `;
 
 export const MatchDateBelow = styled.div`
-  font-size: 14px;
-  color: #666;
   text-align: center;
-  margin-top: 10px;
-  opacity: 0;
-  animation: ${fadeInUp} 1s ease-out 0.7s forwards;
-  white-space: nowrap;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-    margin-top: 10px;
-    width: auto;
-    word-break: break-word;
-  }
+  margin-top: -20px;
+  margin-bottom: 40px;
+  font-size: 14px;
+  color: #8b95a1;
+  font-weight: 500;
 `;
 
+/* --- Cheer Section --- */
 export const CheerSection = styled.div`
-  margin: 20px 0;
+  background: white;
+  padding: 40px 32px;
+  border-radius: 24px;
+  margin-bottom: 40px;
   text-align: center;
-  animation: ${fadeInUp} 0.7s ease-out;
-`;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
 
-export const CheerButton = styled.button`
-  background-color: ${props => props.color || '#3b82f6'};
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  margin: 0 10px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    background-color: ${props => props.color ? `${props.color}cc` : '#2563eb'};
-    animation: ${bounce} 0.4s ease;
-  }
-
-  @media (max-width: 768px) {
-    padding: 8px 16px;
-    font-size: 14px;
+  h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #191f28;
+    margin-bottom: 32px;
   }
 `;
 
-export const CheerGauge = styled.div`
+export const CheerConfrontation = styled.div`
   display: flex;
-  height: 20px;
-  width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-  animation: ${zoomIn} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    max-width: 90%;
-    height: 18px;
-  }
-`;
-
-export const GaugeBar = styled.div`
-  background-color: ${props => props.color || '#3b82f6'};
-  width: ${props => props.width || '50%'};
-  transition: width 0.5s ease-in-out;
-  position: relative;
-  display: flex;
+  align-items: flex-end;
   justify-content: center;
-  align-items: center;
+  gap: 40px;
+  margin-bottom: 40px;
+  min-height: 200px;
+
+  @media (max-width: 768px) {
+    gap: 20px;
+  }
 `;
 
-export const GaugeText = styled.div`
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+`;
+
+export const SpeechBubble = styled.div`
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  top: -60px;
+  background: white;
+  padding: 10px 18px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   font-size: 14px;
-  font-weight: 600;
-  color: ${props => props.percentage > 10 ? '#fff' : 'transparent'};
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-  padding: 2px 8px;
-  border-radius: 4px;
-  animation: ${pulse} 2s infinite;
+  font-weight: 900;
+  color: #f04452;
   white-space: nowrap;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-  }
-`;
-
-export const CheerMessage = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #3b82f6;
-  text-align: center;
-  margin-top: 12px;
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  strong {
-    color: #333;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
-`;
-
-export const Section = styled.div`
-  background-color: white;
-  margin: 15px 0;
-  border-top: 1px solid #e5e5e5;
-  border-bottom: 1px solid #e5e5e5;
-  border-radius: 8px;
-  animation: ${fadeInUp} 0.6s ease-out;
-
-  @media (max-width: 768px) {
-    margin: 10px 0;
-  }
-`;
-
-export const SectionTitle = styled.h3`
-  font-size: 16px;
-  font-weight: bold;
-  padding: 12px 15px;
-  border-bottom: 1px solid #e5e5e5;
-  background-color: #f5f5f5;
-  margin: 0;
-  position: relative;
-  overflow: hidden;
+  animation: ${float} 2s ease-in-out infinite;
+  z-index: 10;
+  border: 2px solid #f2f4f6;
 
   &::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: shine 3s infinite;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 8px 0;
+    border-style: solid;
+    border-color: white transparent transparent;
   }
 
-  @keyframes shine {
-    0% { left: -100%; }
-    50% { left: 100%; }
-    100% { left: 100%; }
-  }
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    padding: 10px 12px;
+  span {
+    color: #191f28;
+    margin-right: 4px;
   }
 `;
 
-export const LineupContainer = styled.div`
+export const CaptainCheerWrapper = styled.div`
   display: flex;
-  justify-content: space-between;
-  padding: 0;
-  opacity: 0;
-  animation: ${fadeInUp} 0.8s ease-out 0.3s forwards;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative; /* Added for speech bubble positioning */
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+`;
+
+export const CaptainAvatar = styled.div`
+  width: ${props => 80 + (props.scale * 100)}px;
+  height: ${props => 80 + (props.scale * 100)}px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid ${props => props.color || '#3182f6'};
+  box-shadow: 0 8px 32px ${props => props.color}33;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: #f2f4f6;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 
   @media (max-width: 768px) {
-    flex-direction: column;
+    width: ${props => 60 + (props.scale * 60)}px;
+    height: ${props => 60 + (props.scale * 60)}px;
   }
+`;
+
+export const CaptainCheerName = styled.div`
+  font-size: 16px;
+  font-weight: 800;
+  color: #191f28;
+`;
+
+export const CheerButton = styled.button`
+  padding: 12px 24px;
+  background: ${props => props.color || '#3182f6'};
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+`;
+
+export const CheerGauge = styled.div`
+  margin-top: 32px;
+  height: 50px;
+  background: #f2f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  position: relative;
+`;
+
+export const GaugeBar = styled.div`
+  height: 100%;
+  width: ${props => props.width || '50%'};
+  background: ${props => props.color};
+  transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const GaugeText = styled.div`
+  color: white;
+  font-weight: 800;
+  font-size: 15px;
+  opacity: ${props => props.percentage > 15 ? 1 : 0};
+  transition: opacity 0.3s;
+`;
+
+/* --- Section Layout --- */
+export const Section = styled.div`
+  margin-bottom: 48px;
+  animation: ${fadeIn} 0.8s ease-out;
+`;
+
+export const SectionTitle = styled.h3`
+  font-size: 22px;
+  font-weight: 800;
+  color: #191f28;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '';
+    width: 4px;
+    height: 18px;
+    background: #3182f6;
+    border-radius: 2px;
+  }
+`;
+
+/* --- Lineup Cards --- */
+export const LineupContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 `;
 
 export const TeamLineup = styled.div`
-  flex: 1;
-  padding: 15px;
-  border-right: ${props => props.hasBorder ? '1px solid #e5e5e5' : 'none'};
-  animation: ${props => props.hasBorder ? slideInLeft : slideInRight} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    border-right: none;
-    border-bottom: ${props => props.hasBorder ? '1px solid #e5e5e5' : 'none'};
-    padding: 12px;
-  }
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
 `;
 
 export const TeamLineupHeader = styled.div`
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #e5e5e5;
-  font-weight: bold;
-  opacity: 0;
-  animation: ${fadeInUp} 0.8s ease-out 0.4s forwards;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
+  font-size: 18px;
+  font-weight: 800;
+  color: #191f28;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f2f4f6;
 `;
 
-export const PlayerList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
+export const PlayerGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
 
-export const PlayerItem = styled.li`
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
-  opacity: 0;
-  animation: ${slideInLeft} 0.5s ease-out forwards;
-  animation-delay: ${props => props.index * 0.1}s;
-  
-  &:last-child {
-    border-bottom: none;
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   @media (max-width: 768px) {
-    padding: 6px 0;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 `;
 
-export const PlayerName = styled.span`
-  font-weight: ${props => props.isCaptain ? 'bold' : 'normal'};
-  
-  &::after {
-    content: '${props => props.isCaptain ? ' (주장)' : ''}';
-    color: #3b82f6;
-  }
+export const PlayerCard = styled.div`
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  position: relative;
 
-  transition: color 0.3s ease;
   &:hover {
-    color: #3b82f6;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 14px;
+    background: white;
+    border-color: #e9ecef;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
   }
 `;
 
-export const PlayerPosition = styled.span`
-  color: #888;
-  font-size: 13px;
-  transition: color 0.3s ease;
+export const PlayerImage = styled.img`
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: cover;
+  margin-bottom: 12px;
+  background: #e5e8eb;
+`;
 
-  @media (max-width: 768px) {
-    font-size: 12px;
+export const PlayerName = styled.div`
+  font-size: 15px;
+  font-weight: 700;
+  color: #191f28;
+  margin-bottom: 4px;
+
+  .debut {
+    display: block;
+    font-size: 11px;
+    color: #f04452;
+    margin-top: 2px;
   }
+`;
+
+export const PlayerPosition = styled.div`
+  font-size: 12px;
+  color: #8b95a1;
+  font-weight: 500;
+`;
+
+export const CaptainBadge = styled.div`
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #fff9db;
+  color: #fab005;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
 `;
 
 export const LineupMessage = styled.div`
-  padding: 15px;
+  background: white;
+  padding: 60px 32px;
+  border-radius: 24px;
   text-align: center;
+  color: #8b95a1;
   font-size: 16px;
-  color: #666;
-  background-color: #f9fafb;
-  border-radius: 8px;
-  margin: 10px;
-  animation: ${fadeInUp} 0.6s ease-out;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    padding: 12px;
-    margin: 8px;
-  }
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
 `;
 
+/* --- Stats & Comparison --- */
 export const StatsSection = styled.div`
-  padding: 15px;
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 12px;
-  }
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
 `;
 
 export const StatRow = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f5f5f5;
-  opacity: 0;
-  animation: ${fadeInUp} 0.6s ease-out forwards;
-  animation-delay: ${props => props.index * 0.1}s;
-  
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid #f2f4f6;
+
   &:last-child {
     border-bottom: none;
   }
-
-  @media (max-width: 768px) {
-    padding: 8px 0;
-    justify-content: space-around;
-  }
 `;
 
-export const StatLabel = styled.span`
+export const StatLabel = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  color: #8b95a1;
   flex: 1;
   text-align: center;
-  font-weight: bold;
-  color: #333;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    flex: 0.4;
-  }
 `;
 
-export const TeamStatValue = styled.span`
+export const TeamStatValue = styled.div`
   flex: 1;
   text-align: center;
-  font-weight: ${props => props.isTeamA ? 'bold' : 'normal'};
-  color: ${props => props.isTeamA ? props.color || '#333' : '#666'};
-  font-size: 16px;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.1);
-  }
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    flex: 0.3;
-  }
+  font-size: 18px;
+  font-weight: 800;
+  color: ${props => props.color || '#191f28'};
 `;
 
 export const ChartContainer = styled.div`
   height: 350px;
-  max-width: 800px;
-  margin: 20px auto;
+  margin-top: 40px;
   padding: 20px;
-  transform-origin: bottom;
-  animation: ${growIn} 0.8s ease-out;
-
-  @media (max-width: 768px) {
-    height: 300px;
-    padding: 15px;
-  }
-
-  @media (max-width: 640px) {
-    height: 250px;
-  }
+  background: #f9fafb;
+  border-radius: 20px;
 `;
 
+/* --- Competition Cards --- */
 export const CompetitionPointsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
 
   @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: center;
-    padding: 10px;
+    grid-template-columns: 1fr;
   }
 `;
 
 export const CompetitionItem = styled.div`
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  padding: 15px 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  text-align: center;
-  flex: 1;
-  min-width: 280px;
-  max-width: 350px;
-  transition: all 0.3s ease;
-  animation: ${fadeInUp} 0.7s ease-out;
+  background: white;
+  padding: 24px;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+  transition: transform 0.2s;
 
   &:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  }
-
-  @media (max-width: 768px) {
-    min-width: 90%;
-    padding: 12px 15px;
+    transform: translateY(-4px);
   }
 `;
 
 export const CompetitionTitle = styled.h4`
-  font-size: 18px;
-  color: #004aad;
-  margin-bottom: 10px;
-  font-weight: bold;
-  border-bottom: 2px solid #e0e0e0;
-  padding-bottom: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #4e5968;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
   span {
-    font-size: 14px;
-    color: #3b82f6;
-    margin-left: 8px;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 16px;
+    font-size: 12px;
+    background: #fff0f1;
+    color: #f04452;
+    padding: 4px 8px;
+    border-radius: 6px;
   }
 `;
 
-export const CompetitionDetail = styled.p`
-  font-size: 16px;
-  color: #333;
-  font-weight: 500;
-  line-height: 1.5;
+export const CompetitionDetail = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 
-  @media (max-width: 768px) {
-    font-size: 14px;
+  .player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    img {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #f2f4f6;
+    }
+
+    .info {
+      .nick { font-size: 15px; font-weight: 700; color: #191f28; }
+      .score { font-size: 13px; color: #8b95a1; margin-top: 2px; }
+    }
+  }
+
+  .vs {
+    font-size: 13px;
+    font-weight: 900;
+    color: #e5e8eb;
+    font-style: italic;
   }
 `;
 
-export const NoCompetitionMessage = styled.div`
-  font-size: 16px;
-  color: #666;
-  padding: 20px;
-  text-align: center;
-  width: 100%;
-  animation: ${fadeInUp} 0.7s ease-out;
-`;
-
-export const PreviousMatchesTitle = styled.h3`
-  font-size: 16px;
-  font-weight: bold;
-  padding: 12px 15px;
-  border-bottom: 1px solid #e5e5e5;
-  background-color: #f5f5f5;
-  margin: 0;
-  animation: ${fadeInUp} 0.6s ease-out;
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    padding: 10px 12px;
-  }
-`;
-
+/* --- Head to Head --- */
 export const HeadToHead = styled.div`
-  margin-bottom: 20px;
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  margin-bottom: 24px;
   text-align: center;
-  animation: ${fadeInUp} 0.7s ease-out;
-
-  @media (max-width: 768px) {
-    display: block; // 모바일에서도 표시되도록 수정
-  }
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
 `;
 
 export const HeadToHeadTitle = styled.h4`
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-
-  @media (max-width: 768px) {
-    font-size: 16px;
-  }
+  font-size: 15px;
+  font-weight: 700;
+  color: #8b95a1;
+  margin-bottom: 20px;
 `;
 
 export const HeadToHeadStats = styled.div`
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 20px;
-  font-size: 16px;
-  animation: ${zoomIn} 0.8s ease-out;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 10px;
-    font-size: 14px;
-  }
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 8px;
 `;
 
-export const HeadToHeadTeam = styled.span`
-  font-weight: bold;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
+export const HeadToHeadTeam = styled.div`
+  .name { font-size: 20px; font-weight: 800; color: #191f28; margin-bottom: 4px; }
+  .record { font-size: 13px; color: #4e5968; font-weight: 600; }
 `;
 
-export const HeadToHeadVS = styled.span`
-  color: #666;
-  animation: ${pulse} 2s infinite;
+export const HeadToHeadVS = styled.div`
+  font-size: 24px;
+  font-weight: 900;
+  color: #e5e8eb;
 `;
 
-export const MatchList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+export const MatchList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 `;
 
-export const MatchItem = styled.li`
+export const MatchItem = styled.div`
+  background: white;
+  padding: 20px 24px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 15px;
-  border-bottom: 1px solid #f5f5f5;
-  opacity: 0;
-  animation: ${fadeInUp} 0.5s ease-out forwards;
-  animation-delay: ${props => props.index * 0.1}s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   
-  &:last-child {
-    border-bottom: none;
-  }
-
   @media (max-width: 768px) {
-    padding: 10px 12px;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
+    text-align: center;
   }
 `;
 
 export const MatchTeams = styled.div`
-  flex: 1;
   display: flex;
   align-items: center;
-  transition: transform 0.3s ease;
+  gap: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #191f28;
 
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-  }
-`;
-
-export const MatchTeam = styled.span`
-  font-weight: ${props => props.isWinner ? 'bold' : 'normal'};
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
+  .winner { color: #3182f6; }
 `;
 
 export const MatchScore = styled.div`
-  margin: 0 15px;
-  font-weight: bold;
-  transition: color 0.3s ease;
-
-  &:hover {
-    color: #3b82f6;
-  }
-
-  @media (max-width: 768px) {
-    margin: 5px 0;
-    font-size: 14px;
-    text-align: left;
-  }
+  padding: 6px 16px;
+  background: #f2f4f6;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4e5968;
 `;
 
 export const MatchInfo = styled.div`
   font-size: 13px;
-  color: #888;
-  text-align: right;
-  width: 120px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    text-align: left;
-    font-size: 12px;
-  }
-`;
-
-export const MatchDateInfo = styled.div`
-  font-size: 12px;
-
-  @media (max-width: 768px) {
-    font-size: 11px;
-  }
+  color: #8b95a1;
+  font-weight: 500;
 `;
 
 export const ErrorMessage = styled.div`
-  padding: 20px;
+  padding: 60px;
   text-align: center;
-  color: #e53e3e;
-  animation: ${fadeInUp} 0.6s ease-out;
-`;
-
-export const HighlightText = styled.span`
-  font-size: 14px;
-  color: #3b82f6;
+  color: #f04452;
   font-weight: 600;
-  margin-left: 8px;
-  animation: ${pulse} 2s infinite;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-  }
 `;

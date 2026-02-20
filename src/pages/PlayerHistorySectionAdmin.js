@@ -5,13 +5,11 @@ import * as XLSX from 'xlsx';
 import eyeIcon from '../icons/eye_icon.png';
 import eyeOffIcon from '../icons/eye_off_icon.png';
 import * as PHS from './PlayerHistorySectionCss';
+import Papa from 'papaparse';
+import axios from 'axios';
 
 const PlayerHistorySectionAdmin = () => {
   // 상태 정의
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [capsLockOn, setCapsLockOn] = useState(false);
   const [logs, setLogs] = useState([]);
   const [selectedYear, setSelectedYear] = useState('2026');
   const [years, setYears] = useState(['2022', '2023', '2024', '2025', '2026']);
@@ -51,21 +49,6 @@ const PlayerHistorySectionAdmin = () => {
     addLog(`연도 추가: ${newYear}`);
   };
 
-  // 비밀번호 입력/확인
-  const handlePasswordChange = (e) => setPassword(e.target.value);
-  const handlePasswordKeyEvent = (e) => setCapsLockOn(e.getModifierState('CapsLock'));
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    if (password === 'alves') {
-      setIsAuthenticated(true);
-      addLog('관리자 로그인 성공');
-    } else {
-      alert('비밀번호가 올바르지 않습니다.');
-      addLog('관리자 로그인 실패');
-    }
-  };
-  const toggleShowPassword = () => setShowPassword((prev) => !prev);
-
   // 데이터 조회
   const fetchHistory = async (year) => {
     try {
@@ -99,10 +82,8 @@ const PlayerHistorySectionAdmin = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchHistory(selectedYear);
-    }
-  }, [isAuthenticated, selectedYear]);
+    fetchHistory(selectedYear);
+  }, [selectedYear]);
 
   // 선수 데이터 입력 핸들러
   const handleInputChange = (e) => {
@@ -200,6 +181,91 @@ const PlayerHistorySectionAdmin = () => {
       }
     };
     reader.readAsBinaryString(file);
+  };
+
+
+  // --- 구글 시트 동기화 핸들러 ---
+  const handleGoogleSheetSync = async () => {
+    if (!window.confirm('구글 시트의 "레거시 데이터 관리 업로드용" 시트 데이터로 동기화하시겠습니까?')) return;
+
+    try {
+      setUploadMessage('구글 시트 데이터 가져오는 중...');
+
+      // 1. Fetch CSV data
+      const response = await axios.get(
+        'https://docs.google.com/spreadsheets/d/1M-sJAgFBF6XDnPwbX8bZLvsIWV06vtRWQV6AOGO49gI/export?format=csv&gid=1062593458',
+        { responseType: 'blob' }
+      );
+
+      // 2. Parse CSV using PapaParse
+      Papa.parse(response.data, {
+        complete: async (results) => {
+          const rows = results.data;
+          // Skip the first 6 rows (header area)
+          const dataRows = rows.slice(6);
+          let successCount = 0;
+
+          for (const row of dataRows) {
+            // Mapping based on column index (0-based)
+            // C열 is index 2, O열 is index 14
+            if (!row[2]) continue; // Name missing -> skip
+
+            const mappedData = {
+              name: row[2],
+              goals: row[3],
+              assists: row[4],
+              cleanSheets: row[5],
+              matches: row[6],
+              win: row[7],
+              draw: row[8],
+              lose: row[9],
+              personalPoints: row[10],
+              momScore: row[11],
+              winRate: row[12],
+              momTop3Count: row[13],
+              momTop8Count: row[14]
+            };
+
+            const historyRef = doc(db, 'players', mappedData.name, 'history', selectedYear);
+
+            await setDoc(historyRef, {
+              goals: Number(mappedData.goals) || 0,
+              assists: Number(mappedData.assists) || 0,
+              cleanSheets: Number(mappedData.cleanSheets) || 0,
+              matches: Number(mappedData.matches) || 0,
+              win: Number(mappedData.win) || 0,
+              draw: Number(mappedData.draw) || 0,
+              lose: Number(mappedData.lose) || 0,
+              personalPoints: Number(mappedData.personalPoints) || 0,
+              momScore: Number(mappedData.momScore) || 0,
+              winRate: Number(mappedData.winRate) || 0,
+              momTop3Count: Number(mappedData.momTop3Count) || 0,
+              momTop8Count: Number(mappedData.momTop8Count) || 0,
+              updatedAt: serverTimestamp()
+            });
+
+            addLog(`구글 시트 동기화: ${mappedData.name} (${selectedYear}년)`);
+            successCount++;
+          }
+
+          setUploadMessage(`구글 시트 동기화 완료 (${successCount}명)`);
+          fetchHistory(selectedYear);
+          alert(`구글 시트 데이터 동기화가 완료되었습니다. (${successCount}명 처리)`);
+        },
+        error: (err) => {
+          console.error(err);
+          setUploadMessage('구글 시트 파싱 오류');
+          addLog(`CSV 파싱 오류: ${err.message}`);
+          alert(`CSV 파싱 실패: ${err.message}`);
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      setUploadMessage('구글 시트 동기화 오류');
+      addLog(`구글 시트 동기화 오류: ${err.message}`);
+      alert(`동기화 실패: ${err.message}`);
+    }
   };
 
   const handlePreviewExcel = () => {
@@ -317,321 +383,299 @@ const PlayerHistorySectionAdmin = () => {
 
   return (
     <PHS.Container>
-      {!isAuthenticated ? (
-        <form onSubmit={handlePasswordSubmit}>
-          <PHS.Header>관리자 페이지 접근</PHS.Header>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <PHS.Input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={handlePasswordChange}
-              onKeyDown={handlePasswordKeyEvent}
-              onKeyUp={handlePasswordKeyEvent}
-              placeholder="비밀번호 입력"
-            />
-            <PHS.TogglePasswordVisibility
-              src={showPassword ? eyeIcon : eyeOffIcon}
-              alt="Toggle Password Visibility"
-              onClick={toggleShowPassword}
-            />
+      <PHS.AdminContent>
+        <PHS.MainArea>
+          <PHS.Header>연도별 선수 기록 관리</PHS.Header>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <PHS.Select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>{year}년</option>
+              ))}
+            </PHS.Select>
+            <PHS.Button onClick={handleAddYear}>연도 추가</PHS.Button>
           </div>
-          {capsLockOn && <PHS.ErrorMessage>Caps Lock이 켜져 있습니다.</PHS.ErrorMessage>}
-          <PHS.Button type="submit">확인</PHS.Button>
-        </form>
-      ) : (
-        <PHS.AdminContent>
-          <PHS.MainArea>
-            <PHS.Header>연도별 선수 기록 관리</PHS.Header>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-              <PHS.Select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                {years.map((year) => (
-                  <option key={year} value={year}>{year}년</option>
-                ))}
-              </PHS.Select>
-              <PHS.Button onClick={handleAddYear}>연도 추가</PHS.Button>
-            </div>
-            <div style={{ textAlign: 'right', fontSize: '14px', color: '#4e5968', marginBottom: '16px' }}>
-              {historyData[0]?.updatedAt
-                ? `최근 업데이트: ${new Date(historyData[0].updatedAt.seconds * 1000).toLocaleString('ko-KR')}`
-                : '최근 업데이트 정보 없음'}
-            </div>
+          <div style={{ textAlign: 'right', fontSize: '14px', color: '#4e5968', marginBottom: '16px' }}>
+            {historyData[0]?.updatedAt
+              ? `최근 업데이트: ${new Date(historyData[0].updatedAt.seconds * 1000).toLocaleString('ko-KR')}`
+              : '최근 업데이트 정보 없음'}
+          </div>
 
-            {/* 엑셀 업로드 */}
-            <h3>엑셀 파일 업로드 ({selectedYear}년)</h3>
-            <PHS.Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-              <PHS.Button onClick={handleFileUpload}>업로드</PHS.Button>
-              <PHS.Button onClick={handlePreviewExcel}>미리보기</PHS.Button>
-            </div>
-            {uploadMessage && <PHS.UploadMessage success={uploadMessage.includes('완료')}>{uploadMessage}</PHS.UploadMessage>}
-            {showExcelPreview && previewData.length > 0 && (
-              <PHS.PreviewContainer>
-                <p><strong>엑셀 미리보기 ({selectedYear}년)</strong></p>
-                <PHS.Table>
-                  <thead>
-                    <tr>
-                      <PHS.Th>선수 이름</PHS.Th>
-                      <PHS.Th>득점</PHS.Th>
-                      <PHS.Th>어시스트</PHS.Th>
-                      <PHS.Th>클린시트</PHS.Th>
-                      <PHS.Th>출장수</PHS.Th>
-                      <PHS.Th>승</PHS.Th>
-                      <PHS.Th>무</PHS.Th>
-                      <PHS.Th>패</PHS.Th>
-                      <PHS.Th>승률</PHS.Th>
-                      <PHS.Th>개인승점</PHS.Th>
-                      <PHS.Th>MOM점수</PHS.Th>
-                      <PHS.Th>top3</PHS.Th>
-                      <PHS.Th>top8</PHS.Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewData.map((r, i) => (
-                      <tr key={i}>
-                        <PHS.Td>{r.name}</PHS.Td>
-                        <PHS.Td>{r.goals}</PHS.Td>
-                        <PHS.Td>{r.assists}</PHS.Td>
-                        <PHS.Td>{r.cleanSheets}</PHS.Td>
-                        <PHS.Td>{r.matches}</PHS.Td>
-                        <PHS.Td>{r.win}</PHS.Td>
-                        <PHS.Td>{r.draw}</PHS.Td>
-                        <PHS.Td>{r.lose}</PHS.Td>
-                        <PHS.Td>{r.winRate}</PHS.Td>
-                        <PHS.Td>{r.personalPoints}</PHS.Td>
-                        <PHS.Td>{r.momScore}</PHS.Td>
-                        <PHS.Td>{r.top3}</PHS.Td>
-                        <PHS.Td>{r.top8}</PHS.Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </PHS.Table>
-              </PHS.PreviewContainer>
-            )}
-
-            <hr />
-
-            {/* 개별 입력 폼 */}
-            <PHS.Form onSubmit={handleSubmitPlayerData}>
-              <h3>선수 기록 추가/수정 ({selectedYear}년)</h3>
-              <PHS.Input type="text" name="name" value={playerData.name} onChange={handleInputChange} placeholder="선수 이름" />
-              <PHS.Input type="number" name="goals" value={playerData.goals} onChange={handleInputChange} placeholder="득점" />
-              <PHS.Input type="number" name="assists" value={playerData.assists} onChange={handleInputChange} placeholder="어시스트" />
-              <PHS.Input type="number" name="cleanSheets" value={playerData.cleanSheets} onChange={handleInputChange} placeholder="클린시트" />
-              <PHS.Input type="number" name="matches" value={playerData.matches} onChange={handleInputChange} placeholder="출장수" />
-              <PHS.Input type="number" name="win" value={playerData.win} onChange={handleInputChange} placeholder="승" />
-              <PHS.Input type="number" name="draw" value={playerData.draw} onChange={handleInputChange} placeholder="무" />
-              <PHS.Input type="number" name="lose" value={playerData.lose} onChange={handleInputChange} placeholder="패" />
-              <PHS.Input type="number" name="winRate" value={playerData.winRate} onChange={handleInputChange} placeholder="승률" />
-              <PHS.Input type="number" name="personalPoints" value={playerData.personalPoints} onChange={handleInputChange} placeholder="개인승점" />
-              <PHS.Input type="number" name="momScore" value={playerData.momScore} onChange={handleInputChange} placeholder="MOM점수" />
-              <PHS.Input type="number" name="momTop3Count" value={playerData.momTop3Count} onChange={handleInputChange} placeholder="MOM TOP 3 횟수" />
-              <PHS.Input type="number" name="momTop8Count" value={playerData.momTop8Count} onChange={handleInputChange} placeholder="MOM TOP 8 횟수" />
-              <PHS.Button type="submit">저장</PHS.Button>
-            </PHS.Form>
-
-            <hr />
-
-            <PHS.Button onClick={downloadTemplate}>엑셀 양식 다운로드</PHS.Button>
-
-            <hr />
-
-            {/* 선수 기록 목록 */}
-            <PHS.Header>저장된 선수 기록 (총 {historyData.length}명, {selectedYear}년)</PHS.Header>
-            <PHS.Table>
-              <thead>
-                <tr>
-                  <PHS.Th>선수 이름</PHS.Th>
-                  <PHS.Th>득점</PHS.Th>
-                  <PHS.Th>어시스트</PHS.Th>
-                  <PHS.Th>클린시트</PHS.Th>
-                  <PHS.Th>출장수</PHS.Th>
-                  <PHS.Th>승</PHS.Th>
-                  <PHS.Th>무</PHS.Th>
-                  <PHS.Th>패</PHS.Th>
-                  <PHS.Th>승률</PHS.Th>
-                  <PHS.Th>개인승점</PHS.Th>
-                  <PHS.Th>MOM점수</PHS.Th>
-                  <PHS.Th>MOM TOP 3 횟수</PHS.Th>
-                  <PHS.Th>MOM TOP 8 횟수</PHS.Th>
-                  <PHS.Th>액션</PHS.Th>
-                </tr>
-              </thead>
-              <tbody>
-                {historyData.map((record) => (
-                  <tr key={record.id}>
-                    <PHS.Td>{record.name}</PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="goals"
-                          value={editingData.goals}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.goals
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="assists"
-                          value={editingData.assists}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.assists
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="cleanSheets"
-                          value={editingData.cleanSheets}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.cleanSheets
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="matches"
-                          value={editingData.matches}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.matches
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="win"
-                          value={editingData.win}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.win
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="draw"
-                          value={editingData.draw}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.draw
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="lose"
-                          value={editingData.lose}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.lose
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="winRate"
-                          value={editingData.winRate}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.winRate
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="personalPoints"
-                          value={editingData.personalPoints}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.personalPoints
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="momScore"
-                          value={editingData.momScore}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.momScore
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="momTop3Count"
-                          value={editingData.momTop3Count}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.momTop3Count || 0
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      {editingId === record.id ? (
-                        <PHS.SmallInput
-                          type="number"
-                          name="momTop8Count"
-                          value={editingData.momTop8Count}
-                          onChange={handleEditingDataChange}
-                        />
-                      ) : (
-                        record.momTop8Count || 0
-                      )}
-                    </PHS.Td>
-                    <PHS.Td>
-                      <PHS.Button onClick={() => handleEdit(record)}>수정</PHS.Button>
-                      {editingId === record.id && (
-                        <>
-                          <PHS.Button onClick={() => handleSaveEdit(record.id)}>저장</PHS.Button>
-                          <PHS.Button onClick={handleCancelEdit}>취소</PHS.Button>
-                        </>
-                      )}
-                      <PHS.Button onClick={() => handleDelete(record.id)}>삭제</PHS.Button>
-                    </PHS.Td>
+          {/* 엑셀 업로드 */}
+          <h3>엑셀 파일 업로드 ({selectedYear}년)</h3>
+          <PHS.Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+            <PHS.Button onClick={handleFileUpload}>업로드</PHS.Button>
+            <PHS.Button onClick={handlePreviewExcel}>미리보기</PHS.Button>
+            <PHS.Button onClick={handleGoogleSheetSync} style={{ backgroundColor: '#217346' }}>구글 시트 동기화</PHS.Button>
+          </div>
+          {uploadMessage && <PHS.UploadMessage success={uploadMessage.includes('완료')}>{uploadMessage}</PHS.UploadMessage>}
+          {showExcelPreview && previewData.length > 0 && (
+            <PHS.PreviewContainer>
+              <p><strong>엑셀 미리보기 ({selectedYear}년)</strong></p>
+              <PHS.Table>
+                <thead>
+                  <tr>
+                    <PHS.Th>선수 이름</PHS.Th>
+                    <PHS.Th>득점</PHS.Th>
+                    <PHS.Th>어시스트</PHS.Th>
+                    <PHS.Th>클린시트</PHS.Th>
+                    <PHS.Th>출장수</PHS.Th>
+                    <PHS.Th>승</PHS.Th>
+                    <PHS.Th>무</PHS.Th>
+                    <PHS.Th>패</PHS.Th>
+                    <PHS.Th>승률</PHS.Th>
+                    <PHS.Th>개인승점</PHS.Th>
+                    <PHS.Th>MOM점수</PHS.Th>
+                    <PHS.Th>top3</PHS.Th>
+                    <PHS.Th>top8</PHS.Th>
                   </tr>
-                ))}
-              </tbody>
-            </PHS.Table>
-          </PHS.MainArea>
+                </thead>
+                <tbody>
+                  {previewData.map((r, i) => (
+                    <tr key={i}>
+                      <PHS.Td>{r.name}</PHS.Td>
+                      <PHS.Td>{r.goals}</PHS.Td>
+                      <PHS.Td>{r.assists}</PHS.Td>
+                      <PHS.Td>{r.cleanSheets}</PHS.Td>
+                      <PHS.Td>{r.matches}</PHS.Td>
+                      <PHS.Td>{r.win}</PHS.Td>
+                      <PHS.Td>{r.draw}</PHS.Td>
+                      <PHS.Td>{r.lose}</PHS.Td>
+                      <PHS.Td>{r.winRate}</PHS.Td>
+                      <PHS.Td>{r.personalPoints}</PHS.Td>
+                      <PHS.Td>{r.momScore}</PHS.Td>
+                      <PHS.Td>{r.top3}</PHS.Td>
+                      <PHS.Td>{r.top8}</PHS.Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </PHS.Table>
+            </PHS.PreviewContainer>
+          )}
 
-          {/* 로그 */}
-          <PHS.LogsContainer>
-            <PHS.Header>로그</PHS.Header>
-            {logs.map((log, i) => (
-              <PHS.LogItem key={i}>{log}</PHS.LogItem>
-            ))}
-          </PHS.LogsContainer>
-        </PHS.AdminContent>
-      )}
+          <hr />
+
+          {/* 개별 입력 폼 */}
+          <PHS.Form onSubmit={handleSubmitPlayerData}>
+            <h3>선수 기록 추가/수정 ({selectedYear}년)</h3>
+            <PHS.Input type="text" name="name" value={playerData.name} onChange={handleInputChange} placeholder="선수 이름" />
+            <PHS.Input type="number" name="goals" value={playerData.goals} onChange={handleInputChange} placeholder="득점" />
+            <PHS.Input type="number" name="assists" value={playerData.assists} onChange={handleInputChange} placeholder="어시스트" />
+            <PHS.Input type="number" name="cleanSheets" value={playerData.cleanSheets} onChange={handleInputChange} placeholder="클린시트" />
+            <PHS.Input type="number" name="matches" value={playerData.matches} onChange={handleInputChange} placeholder="출장수" />
+            <PHS.Input type="number" name="win" value={playerData.win} onChange={handleInputChange} placeholder="승" />
+            <PHS.Input type="number" name="draw" value={playerData.draw} onChange={handleInputChange} placeholder="무" />
+            <PHS.Input type="number" name="lose" value={playerData.lose} onChange={handleInputChange} placeholder="패" />
+            <PHS.Input type="number" name="winRate" value={playerData.winRate} onChange={handleInputChange} placeholder="승률" />
+            <PHS.Input type="number" name="personalPoints" value={playerData.personalPoints} onChange={handleInputChange} placeholder="개인승점" />
+            <PHS.Input type="number" name="momScore" value={playerData.momScore} onChange={handleInputChange} placeholder="MOM점수" />
+            <PHS.Input type="number" name="momTop3Count" value={playerData.momTop3Count} onChange={handleInputChange} placeholder="MOM TOP 3 횟수" />
+            <PHS.Input type="number" name="momTop8Count" value={playerData.momTop8Count} onChange={handleInputChange} placeholder="MOM TOP 8 횟수" />
+            <PHS.Button type="submit">저장</PHS.Button>
+          </PHS.Form>
+
+          <hr />
+
+          <PHS.Button onClick={downloadTemplate}>엑셀 양식 다운로드</PHS.Button>
+
+          <hr />
+
+          {/* 선수 기록 목록 */}
+          <PHS.Header>저장된 선수 기록 (총 {historyData.length}명, {selectedYear}년)</PHS.Header>
+          <PHS.Table>
+            <thead>
+              <tr>
+                <PHS.Th>선수 이름</PHS.Th>
+                <PHS.Th>득점</PHS.Th>
+                <PHS.Th>어시스트</PHS.Th>
+                <PHS.Th>클린시트</PHS.Th>
+                <PHS.Th>출장수</PHS.Th>
+                <PHS.Th>승</PHS.Th>
+                <PHS.Th>무</PHS.Th>
+                <PHS.Th>패</PHS.Th>
+                <PHS.Th>승률</PHS.Th>
+                <PHS.Th>개인승점</PHS.Th>
+                <PHS.Th>MOM점수</PHS.Th>
+                <PHS.Th>MOM TOP 3 횟수</PHS.Th>
+                <PHS.Th>MOM TOP 8 횟수</PHS.Th>
+                <PHS.Th>액션</PHS.Th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyData.map((record) => (
+                <tr key={record.id}>
+                  <PHS.Td>{record.name}</PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="goals"
+                        value={editingData.goals}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.goals
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="assists"
+                        value={editingData.assists}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.assists
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="cleanSheets"
+                        value={editingData.cleanSheets}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.cleanSheets
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="matches"
+                        value={editingData.matches}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.matches
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="win"
+                        value={editingData.win}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.win
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="draw"
+                        value={editingData.draw}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.draw
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="lose"
+                        value={editingData.lose}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.lose
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="winRate"
+                        value={editingData.winRate}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.winRate
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="personalPoints"
+                        value={editingData.personalPoints}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.personalPoints
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="momScore"
+                        value={editingData.momScore}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.momScore
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="momTop3Count"
+                        value={editingData.momTop3Count}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.momTop3Count || 0
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    {editingId === record.id ? (
+                      <PHS.SmallInput
+                        type="number"
+                        name="momTop8Count"
+                        value={editingData.momTop8Count}
+                        onChange={handleEditingDataChange}
+                      />
+                    ) : (
+                      record.momTop8Count || 0
+                    )}
+                  </PHS.Td>
+                  <PHS.Td>
+                    <PHS.Button onClick={() => handleEdit(record)}>수정</PHS.Button>
+                    {editingId === record.id && (
+                      <>
+                        <PHS.Button onClick={() => handleSaveEdit(record.id)}>저장</PHS.Button>
+                        <PHS.Button onClick={handleCancelEdit}>취소</PHS.Button>
+                      </>
+                    )}
+                    <PHS.Button onClick={() => handleDelete(record.id)}>삭제</PHS.Button>
+                  </PHS.Td>
+                </tr>
+              ))}
+            </tbody>
+          </PHS.Table>
+        </PHS.MainArea>
+
+        {/* 로그 */}
+        <PHS.LogsContainer>
+          <PHS.Header>로그</PHS.Header>
+          {logs.map((log, i) => (
+            <PHS.LogItem key={i}>{log}</PHS.LogItem>
+          ))}
+        </PHS.LogsContainer>
+      </PHS.AdminContent>
     </PHS.Container>
   );
 };
