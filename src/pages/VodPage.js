@@ -297,7 +297,14 @@ const renderFormation = (team, isHomeTeam, isMobile, side, goalAssistPairs, ownG
         onClick={() => handlePlayerClick(player)}
       >
         <div className="avatar-wrap">
-          <img src={player.avatarUrl || '/profile_default.svg'} onError={e => e.target.src = '/profile_default.svg'} alt={player.name} />
+          <img
+            src={`${process.env.PUBLIC_URL}/players/${player.name}.png`}
+            onError={e => {
+              e.target.src = '/profile_default.svg';
+              e.target.style.filter = 'brightness(0) opacity(0.5)';
+            }}
+            alt={player.name}
+          />
         </div>
         <span className="name">{player.name}</span>
         <div className="stats-icons">
@@ -542,16 +549,40 @@ function VodPage() {
                           {isMobile ? (
                             <>
                               <div style={{ height: '50%', position: 'relative' }}>
-                                {renderFormation(q.teams[0], true, true, 'home', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                                {renderFormation(q.teams[0], true, true, 'home', q.goalAssistPairs, q.ownGoals, (player) => {
+                                  if (player.name === '용병' || player.name.includes('Guest')) {
+                                    alert('용병입니다.');
+                                  } else {
+                                    navigate(`/player-history/${encodeURIComponent(player.name)}`);
+                                  }
+                                })}
                               </div>
                               <div style={{ height: '50%', position: 'relative' }}>
-                                {renderFormation(q.teams[1], false, true, 'away', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                                {renderFormation(q.teams[1], false, true, 'away', q.goalAssistPairs, q.ownGoals, (player) => {
+                                  if (player.name === '용병' || player.name.includes('Guest')) {
+                                    alert('용병입니다.');
+                                  } else {
+                                    navigate(`/player-history/${encodeURIComponent(player.name)}`);
+                                  }
+                                })}
                               </div>
                             </>
                           ) : (
                             <>
-                              {renderFormation(q.teams[0], true, false, 'home', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
-                              {renderFormation(q.teams[1], false, false, 'away', q.goalAssistPairs, q.ownGoals, n => navigate(`/player-history/${encodeURIComponent(n)}`))}
+                              {renderFormation(q.teams[0], true, false, 'home', q.goalAssistPairs, q.ownGoals, (player) => {
+                                if (player.name === '용병' || player.name.includes('Guest')) {
+                                  alert('용병입니다.');
+                                } else {
+                                  navigate(`/player-history/${encodeURIComponent(player.name)}`);
+                                }
+                              })}
+                              {renderFormation(q.teams[1], false, false, 'away', q.goalAssistPairs, q.ownGoals, (player) => {
+                                if (player.name === '용병' || player.name.includes('Guest')) {
+                                  alert('용병입니다.');
+                                } else {
+                                  navigate(`/player-history/${encodeURIComponent(player.name)}`);
+                                }
+                              })}
                             </>
                           )}
                         </S.FieldView>

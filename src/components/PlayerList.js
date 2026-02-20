@@ -54,7 +54,7 @@ const PlayerList = ({ players, statKey, statName }) => {
     }
     lastStatValue = player[statKey];
     rankCounter++;
-    
+
     return { ...player, rank: currentRank };
   });
 

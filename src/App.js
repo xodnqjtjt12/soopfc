@@ -23,8 +23,8 @@ import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
 import PlayerHistorySectionAdmin from './pages/PlayerHistorySectionAdmin';
 import PlayerHistorySection from './pages/PlayerHistorySection';
 import Top from './pages/Top';
-import Live from './pages/Live'; 
-import LiveAdmin from './pages/LiveAdmin'; 
+import Live from './pages/Live';
+import LiveAdmin from './pages/LiveAdmin';
 import Record from './pages/record';
 import Score from './pages/Score';
 import ScoreAdmin from './pages/ScoreAdmin';
@@ -56,10 +56,14 @@ export const db = getFirestore(app);
 const AppContainer = styled.div`
   min-height: 100vh;
   padding: 140px 0 60px 0;
-  background-color: #ffffff;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden; /* Prevent horizontal scroll on body */
 
   @media (max-width: 768px) {
-    background-color: #ffffff;
+    padding: 120px 0 40px 0;
+    background-color: #f8f9fa;
   }
 `;
 
@@ -81,7 +85,7 @@ function App() {
           <Route path="/vod" element={<VodPage />} />
           <Route path="/player-history/:playerId" element={<PlayerHistorySection />} />
           <Route path="/top" element={<Top />} />
-          <Route path="/live" element={<Live />} /> 
+          <Route path="/live" element={<Live />} />
           <Route path="/record" element={<Record />} />
           <Route path="/player-month-award" element={<PlayerMonthAward />} />
           <Route path="/score" element={<Score />} />

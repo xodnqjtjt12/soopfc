@@ -375,18 +375,21 @@ export const PlayerCard = styled.div`
   }
 
   .avatar-wrap {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: white;
-    padding: 2px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    overflow: hidden;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    overflow: visible;
     margin-bottom: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
 
     img {
-      width: 100%; height: 100%; object-fit: cover;
-      border-radius: 50%;
+      width: 100%; height: 100%; object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
     }
   }
 

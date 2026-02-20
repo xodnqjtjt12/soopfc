@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
 const NavBar = styled.header`
   width: 100%;
+  height: 77px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  padding: 16px 24px;
+  padding: 0 24px;
   position: fixed;
   top: 0;
-  z-index: 1200; /* TopPlayersContainer(z-index: 900)보다 높게 */
+  left: 0;
+  z-index: 1200;
   background-color: #ffffff;
   backdrop-filter: blur(12px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    height: 64px;
+    padding: 0 16px;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -24,6 +31,14 @@ const Logo = styled(Link)`
   align-items: center;
   text-decoration: none;
   color: #000;
+
+  @media (max-width: 1024px) {
+    width: 180px; /* Scale down for mobile */
+  }
+
+  @media (max-width: 380px) {
+    width: 150px; /* Even smaller for very narrow devices */
+  }
 `;
 
 const LogoImage = styled.img`
@@ -37,82 +52,73 @@ const Hamburger = styled.button`
   border: none;
   font-size: 24px;
   cursor: pointer;
-  z-index: 1200; /* 모바일에서 우선순위 보장 */
+  z-index: 1200;
+  color: #4e5968;
 
   @media (max-width: 1024px) {
     display: block;
-    margin-left: auto;
-    margin-right: 45px;
+    padding: 8px;
+    margin-right: -8px; /* Offset padding */
   }
 `;
 
 const NavMenu = styled.div`
   display: flex;
-  gap: 24px;
+  gap: 8px;
   margin-left: auto;
-  z-index: 1200; /* 모바일에서 메뉴 우선순위 보장 */
-
-  & > :last-child {
-    margin-right: 72px;
-  }
+  z-index: 1200;
 
   @media (max-width: 1024px) {
     display: ${({ open }) => (open ? 'flex' : 'none')};
-    // width: 100%;
     flex-direction: column;
-    margin-top: 12px;
-    gap: 12px;
+    gap: 0;
     background-color: #ffffff;
-    padding: 12px 24px;
+    padding: 8px 0;
     position: absolute;
-    top: 64px; /* NavBar 높이 고려 */
+    top: 100%; 
     left: 0;
     right: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-top: 1px solid #f2f4f6;
   }
 `;
 
 const NavLinkStyled = styled(Link)`
-  font-size: 16px;
-  font-weight: 500;
-  color: #4e5968;
+  font-size: 15px;
+  font-weight: 600;
+  color: ${(props) => (props.active ? '#3182f6' : '#4e5968')};
   text-decoration: none;
-  transition: color 0.2s ease;
-  padding: 7px 26px;
+  transition: all 0.2s ease;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 8px;
 
   &:hover {
+    background-color: #f9fafb;
     color: #3182f6;
   }
 
-  > br {
-    display: none;
-  }
-
-  @media (max-width: 1287px) {
-    > br {
-      display: block;
-    }
-  }
-
   @media (max-width: 1024px) {
-    font-size: 14px;
-    line-height: 1.4;
-    display: block;
-    > br {
-      display: none;
-    }
+    font-size: 15px;
+    padding: 16px 24px;
+    justify-content: flex-start;
+    border-radius: 0;
+    
+    background-color: ${(props) => (props.active ? '#f9fafb' : 'transparent')};
   }
 `;
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
 
   const handleNavClick = () => {
     setMenuOpen(false);
   };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
     <NavBar>
@@ -121,43 +127,20 @@ const Header = () => {
       </Logo>
       <Hamburger onClick={() => setMenuOpen(!menuOpen)}>☰</Hamburger>
       <NavMenu open={menuOpen}>
-        <NavLinkStyled to="/top" onClick={handleNavClick}>
-          Award<br />
+        <NavLinkStyled to="/top" onClick={handleNavClick} active={isActive('/top') ? 1 : 0}>
+          통계
         </NavLinkStyled>
-          <NavLinkStyled to="/record" onClick={handleNavClick}>
-          기록실<br />
+        <NavLinkStyled to="/record" onClick={handleNavClick} active={isActive('/record') ? 1 : 0}>
+          명예의 전당
         </NavLinkStyled>
-
-            {/* <NavLinkStyled to="/top-goal-scorer" onClick={handleNavClick}>
-          도움왕<br />TOP10
-        </NavLinkStyled> */}
-        {/* <NavLinkStyled to="/top-assists" onClick={handleNavClick}>
-          도움왕<br />TOP10
-        </NavLinkStyled> */}
-        {/* <NavLinkStyled to="/top-defender" onClick={handleNavClick}>
-          수비왕<br />TOP10
-        </NavLinkStyled>
-        <NavLinkStyled to="/overall-rankings" onClick={handleNavClick}>
-          출석왕<br />TOP10
-        </NavLinkStyled>
-        <NavLinkStyled to="/mom-ranking" onClick={handleNavClick}>
-          파워랭킹<br />TOP10
-        </NavLinkStyled> */}
-        {/* </NavLinkStyled> */}
-        {/* <NavLinkStyled to="/player-month-award" onClick={handleNavClick}>
-          이달의 선수
-        </NavLinkStyled> */}
-        <NavLinkStyled to="/vod" onClick={handleNavClick}>
+        <NavLinkStyled to="/vod" onClick={handleNavClick} active={isActive('/vod') ? 1 : 0}>
           주요 경기 기록
         </NavLinkStyled>
-        <NavLinkStyled to="/total" onClick={handleNavClick}>
+        <NavLinkStyled to="/total" onClick={handleNavClick} active={isActive('/total') ? 1 : 0}>
           내 스탯
         </NavLinkStyled>
-        {/* <NavLinkStyled to="/my" onClick={handleNavClick}>
-          My<br />페이지
-        </NavLinkStyled> */}
-        <NavLinkStyled to="/admin" onClick={handleNavClick}>
-          관리자<br />페이지
+        <NavLinkStyled to="/admin" onClick={handleNavClick} active={isActive('/admin') ? 1 : 0}>
+          관리자 페이지
         </NavLinkStyled>
       </NavMenu>
     </NavBar>
