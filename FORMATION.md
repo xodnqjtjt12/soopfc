@@ -41,6 +41,6 @@
 
 26명을 선택해 만든 로컬 편성 예시다. 이미지에 보이는 배치는 테스트용이며 DB에 확정 저장하지 않았다.
 
-![축구장 포메이션과 이미지 다운로드 버튼](docs/formation/formation-screen.png)
+![축구장 포메이션과 이미지 다운로드 버튼](docs/formation/formation-screen.jpg)
 
 ![A팀 4쿼터 PNG 다운로드 예시](docs/formation/four-quarter-export.png)
