@@ -27,6 +27,7 @@ export default function AdminLayout({ children }) {
     <div style={{ display: 'flex', minHeight: 'calc(100vh - 140px)' }}>
       <Sidebar>
         <h3>관리자 메뉴</h3>
+        <StyledLink to="/admin/formation">자동 팀 편성</StyledLink>
         <StyledLink to="/admin/players">선수 관리</StyledLink>
         <StyledLink to="/admin/power-ranking">파워 랭킹</StyledLink>
         <StyledLink to="/admin/schedule">일정</StyledLink>

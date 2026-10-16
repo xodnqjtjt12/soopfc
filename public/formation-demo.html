@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOOP FC · 포메이션 미리보기</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f3;color:#20362c;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:1000px;margin:auto;padding:30px 20px 50px}.eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#48735c}h1{font-size:28px;letter-spacing:-1px;margin:9px 0}p{font-size:14px;color:#77877d;line-height:1.6}.top{display:flex;justify-content:space-between;align-items:center;gap:15px}.badge{white-space:nowrap;border:1px solid #dae3d9;padding:9px 12px;border-radius:20px;font-size:12px;background:#fff}.tabs{display:flex;gap:6px;background:#e5ebe4;border-radius:14px;padding:5px;margin:24px 0 16px}button{font:inherit;cursor:pointer}.tabs button{flex:1;padding:12px;border:0;border-radius:10px;color:#718171;background:transparent;font-weight:700}.tabs button.active{background:#fff;color:#216044;box-shadow:0 2px 6px #15342110}.teams{display:grid;grid-template-columns:1fr 1fr;gap:18px}.team{padding:16px;background:#fff;border:1px solid #e1e7df;border-radius:22px}.team-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 14px}.team-head h2{font-size:17px;margin:0}.team-head span{font-size:12px;color:#78867d}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#252a30;margin-right:8px}.blue .dot{background:#87ceeb}.pitch{position:relative;aspect-ratio:0.76;background:repeating-linear-gradient(0deg,#2e7252 0%,#2e7252 12.5%,#347a58 12.5%,#347a58 25%);border-radius:13px;overflow:hidden}.lines{position:absolute;inset:18px;border:1px solid #ffffff55}.half{position:absolute;top:50%;width:100%;border-top:1px solid #ffffff55}.circle{position:absolute;top:50%;left:50%;width:26%;aspect-ratio:1;border:1px solid #ffffff55;border-radius:50%;transform:translate(-50%,-50%)}.box{position:absolute;width:58%;height:16%;left:21%;border:1px solid #ffffff55}.box.top-box{top:-1px}.box.bottom-box{bottom:-1px}.goal{position:absolute;width:28%;height:7%;left:36%;border:1px solid #ffffff55}.goal.top-box{top:-1px}.goal.bottom-box{bottom:-1px}.player{position:absolute;transform:translate(-50%,-50%);width:28%;border:0;background:transparent;color:white;text-align:center;padding:0;z-index:2}.shirt{display:flex;justify-content:center;align-items:center;width:36px;height:37px;margin:0 auto 4px;background:#252a30;color:#fff;font-size:14px;font-weight:900;clip-path:polygon(23% 0,38% 6%,62% 6%,77% 0,100% 24%,85% 44%,77% 35%,77% 100%,23% 100%,23% 35%,15% 44%,0 24%);filter:drop-shadow(0 3px 3px #0003)}.blue .shirt{background:#87ceeb;color:#183b50}.player strong{display:inline-block;max-width:100%;padding:3px 7px;border-radius:6px;background:#17452dd9;font-size:12px;font-weight:600;white-space:nowrap}.player small{display:block;color:#d6e7da;font-size:9px;margin-top:2px}.player.selected .shirt{background:#fff}.player.selected strong{outline:2px solid #fff}.note{padding:12px 3px 0;margin:0;font-size:12px}.summary{margin-top:18px;padding:16px 18px;background:white;border:1px solid #e1e7df;border-radius:16px;display:flex;gap:12px;justify-content:space-between;font-size:13px}.summary span{color:#7d8c82}#hint{min-height:22px;font-size:13px;text-align:center;color:#37674b}.demo-note{font-size:12px;text-align:center;margin-top:20px}.switch{display:none;gap:8px;margin-bottom:12px}.switch button{flex:1;border:1px solid #dce5db;border-radius:12px;padding:11px;background:#fff;color:#53755f}.switch button.active{background:#244e39;color:white;border-color:#244e39}@media(max-width:600px){main{padding:24px 14px}.teams{grid-template-columns:1fr}.team{padding:14px}.team.mobile-hidden{display:none}.switch{display:flex}h1{font-size:25px}.shirt{width:39px;height:41px}.player strong{font-size:13px}.pitch{aspect-ratio:.82}.top{align-items:flex-start}.badge{font-size:11px;padding:8px}.summary{font-size:12px}}
+</style>
+</head>
+<body><main>
+<div class="top"><div><div class="eyebrow">SOOP FC · MATCH DAY</div><h1>오늘의 포메이션</h1><p>22명, 네 쿼터. 오늘도 함께 뛰어요.</p></div><div class="badge">22명 참석 · 전원 출전</div></div>
+<div class="tabs" aria-label="쿼터 선택"><button class="active" data-q="0">1Q</button><button data-q="1">2Q</button><button data-q="2">3Q</button><button data-q="3">4Q</button></div>
+<div class="switch" aria-label="팀 선택"><button class="active" data-team="0">A팀</button><button data-team="1">B팀</button></div>
+<div class="teams" id="teams"></div>
+<p id="hint" role="status">선수를 누르면 이름과 포지션을 확인할 수 있어요.</p>
+<div class="summary"><strong>이번 쿼터 휴식 없음</strong><span>11명 vs 11명 · 전원 4쿼터</span></div>
+<p class="demo-note">화면 디자인 예시예요. 가상 선수·편성이며 실제 DB에 저장되지 않아요.<br>모바일에서는 A/B팀을 전환해서 크게 볼 수 있어요.</p>
+</main><script>
+const shapes={
+ '4-3-3':[[50,88,'GK'],[15,68,'LB'],[38,72,'CB'],[62,72,'CB'],[85,68,'RB'],[25,46,'CM'],[50,53,'CM'],[75,46,'CM'],[18,23,'LW'],[50,17,'ST'],[82,23,'RW']],
+ '4-4-2':[[50,88,'GK'],[15,69,'LB'],[38,72,'CB'],[62,72,'CB'],[85,69,'RB'],[15,43,'LM'],[38,48,'CM'],[62,48,'CM'],[85,43,'RM'],[35,19,'ST'],[65,19,'ST']],
+ '4-2-3-1':[[50,88,'GK'],[15,69,'LB'],[38,72,'CB'],[62,72,'CB'],[85,69,'RB'],[35,52,'DM'],[65,52,'DM'],[18,32,'LW'],[50,34,'AM'],[82,32,'RW'],[50,15,'ST']]
+};
+const names=Array.from({length:22},(_,i)=>'선수 '+String(i+1).padStart(2,'0'));
+let q=0,team=0;
+function render(){
+ document.getElementById('teams').replaceChildren();
+ [0,1].forEach(t=>{
+  const shape=q%2===0?(t===0?'4-3-3':'4-2-3-1'):'4-4-2';
+  const section=document.createElement('section');section.className='team '+(t?'blue ':'')+(t!==team?'mobile-hidden':'');
+  section.innerHTML='<div class="team-head"><h2><i class="dot"></i>'+('AB'[t])+'팀</h2><span>'+shape+'</span></div><div class="pitch"><div class="lines"><div class="half"></div><div class="circle"></div><div class="box top-box"></div><div class="box bottom-box"></div><div class="goal top-box"></div><div class="goal bottom-box"></div></div></div><p class="note">'+(q<2?'전반 · 팀 유지':'후반 · 팀 재편성')+'</p>';
+  const pitch=section.querySelector('.pitch');
+  shapes[shape].forEach(([x,y,pos],i)=>{
+   const index=q<2?t*11+(q===1&&i>0?1+i%10:i):(t*11+i+5)%22;
+   const button=document.createElement('button');button.className='player';button.style.left=x+'%';button.style.top=y+'%';button.setAttribute('aria-label',names[index]+' '+pos);
+   button.innerHTML='<span class="shirt">'+(index+1)+'</span><strong>'+names[index]+'</strong><small>'+pos+'</small>';
+   button.onclick=()=>{document.querySelectorAll('.player').forEach(p=>p.classList.remove('selected'));button.classList.add('selected');document.getElementById('hint').textContent=(q+1)+'쿼터 · '+('AB'[t])+'팀 · '+names[index]+' · '+pos;};pitch.append(button);
+  });document.getElementById('teams').append(section);
+ });
+}
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{q=Number(b.dataset.q);document.querySelectorAll('[data-q]').forEach(x=>x.classList.toggle('active',x===b));document.getElementById('hint').textContent='선수를 누르면 이름과 포지션을 확인할 수 있어요.';render();});
+document.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>{team=Number(b.dataset.team);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('active',x===b));render();});
+render();
+</script></body></html>
