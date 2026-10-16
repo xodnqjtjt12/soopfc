@@ -3,7 +3,7 @@ import { collection, getDocs, doc, setDoc, serverTimestamp } from 'firebase/fire
 import { db } from '../firebaseConfig';
 import { POSITIONS, STATS, generatePlan, totals, placeTeam, normalizeProfile, exchangePlayers } from '../formationEngine';
 import FormationBoard from '../components/FormationBoard';
-import { downloadFormationImage } from '../formationImage';
+import FormationSharePreview from '../components/FormationSharePreview';
 import './Formation.css';
 
 const KEY = 'soopfc-formation-v1';
@@ -29,7 +29,9 @@ export default function Formation() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [shareTeam, setShareTeam] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [lastRoster, setLastRoster] = useState(draft.lastRoster || draft.plan?.roster?.map(p => p.id) || []);
   useEffect(() => {
     let cancelled = false;
     Promise.allSettled([getDocs(collection(db, 'players')), getDocs(collection(db, 'formationProfiles'))])
@@ -45,9 +47,9 @@ export default function Formation() {
     return () => { cancelled = true; };
   }, []);
   useEffect(() => {
-    try { localStorage.setItem(KEY, JSON.stringify({ profiles, selected, mode, plan })); }
+    try { localStorage.setItem(KEY, JSON.stringify({ profiles, selected, mode, plan, lastRoster })); }
     catch { setMessage('이 기기에 임시 저장하지 못했어요.'); }
-  }, [profiles, selected, mode, plan]);
+  }, [profiles, selected, mode, plan, lastRoster]);
   const profile = id => ({ stats: [2, 2, 2, 2], statScale: 5, preferences: ['중앙미드필더', ''], goalkeeper: false, ...profiles[id] });
   const roster = players.map(p => ({ ...p, ...profile(p.id) }));
   const attendees = selected.map(id => roster.find(p => p.id === id)).filter(Boolean);
@@ -58,14 +60,33 @@ export default function Formation() {
     try {
       const result = generatePlan(roster.filter(p => selected.includes(p.id)), mode);
       setPlan({ ...result, roster: roster.filter(p => selected.includes(p.id)) });
+      setHistory([]); setLastRoster(roster.filter(p => selected.includes(p.id)).map(p => p.id));
       setQuarter(0); setSource(null); setMessage('편성했어요. 선수를 누르면 자리 교환과 고정이 가능해요.');
     } catch (e) { setMessage(e.message); }
   };
   const current = plan?.quarters[quarter];
   const planRoster = plan?.roster || roster;
+  const rememberEdit = next => {
+    if (next === plan) return;
+    setHistory(previous => [...previous.slice(-19), { plan, quarter }]);
+    setPlan(next);
+  };
+  const undo = () => {
+    const previous = history[history.length - 1];
+    if (!previous) return;
+    setPlan(previous.plan); setQuarter(previous.quarter);
+    setHistory(items => items.slice(0, -1)); setSource(null);
+    setMessage('직전 수정으로 되돌렸어요.');
+  };
+  const loadLastRoster = () => {
+    const valid = [...new Set(lastRoster)].filter(id => players.some(p => p.id === id));
+    const added = valid.filter(id => !selected.includes(id)).length;
+    setSelected(ids => [...new Set([...ids, ...valid])]); setQuery('');
+    setMessage(`${added}명을 추가했어요. 최근 편성 명단에서 현재 등록된 선수만 불러왔어요.`);
+  };
   const exchange = (from, to) => {
     try {
-      setPlan(exchangePlayers(plan, quarter, from, to));
+      rememberEdit(exchangePlayers(plan, quarter, from, to));
       setMessage('자리를 교환했어요. 출전 횟수와 밸런스를 확인해 주세요.');
     } catch (e) { setMessage(e.message); }
     setSource(null);
@@ -79,7 +100,7 @@ export default function Formation() {
     if (!source || source.team === 'bench') return;
     const copy = JSON.parse(JSON.stringify(plan));
     const slot = copy.quarters[quarter][source.team].slots[source.index]; slot.locked = !slot.locked;
-    setPlan(copy); setSource(null);
+    rememberEdit(copy); setSource(null);
   };
   const reposition = () => {
     const copy = JSON.parse(JSON.stringify(plan));
@@ -97,7 +118,7 @@ export default function Formation() {
       if (old.slots.some(s => s.locked)) { fresh.formation = old.formation; fresh.slots.forEach((s, i) => { s.position = old.slots[i].position; }); }
       copy.quarters[quarter][team] = fresh;
     });
-    setPlan(copy); setSource(null); setMessage('현재 쿼터의 팀과 휴식 인원을 유지하고 자리를 다시 배치했어요.');
+    rememberEdit(copy); setSource(null); setMessage('현재 쿼터의 팀과 휴식 인원을 유지하고 자리를 다시 배치했어요.');
   };
   const saveProfiles = async () => {
     setSaving(true);
@@ -117,14 +138,6 @@ export default function Formation() {
     finally { setSaving(false); }
   };
   const counts = Object.fromEntries(planRoster.map(p => [p.id, plan ? plan.quarters.filter(q => [...q.a.slots, ...q.b.slots].some(s => s.playerId === p.id)).length : 0]));
-  const downloadImage = async team => {
-    setExporting(true);
-    try {
-      await downloadFormationImage(plan, team, named);
-      setMessage(`${team.toUpperCase()}팀 4쿼터 이미지를 만들었어요. 다운로드한 PNG를 톡방에 공유해 주세요.`);
-    } catch (e) { setMessage(e.message); }
-    finally { setExporting(false); }
-  };
   const aTotals = current ? totals(current.a.slots, planRoster) : [];
   const bTotals = current ? totals(current.b.slots, planRoster) : [];
   return <main className="formation">
@@ -132,6 +145,7 @@ export default function Formation() {
     <div role="status" className="fm-message">{message}</div>
     {!plan ? <>
       <div className="fm-section-title"><h2>누가 함께 뛰나요?</h2><span>{selected.filter(id => players.some(p => p.id === id)).length}명</span></div>
+      {lastRoster.length > 0 && <div className="fm-last-roster"><button disabled={loading} onClick={loadLastRoster}>지난 명단 불러오기</button><small>이 기기의 최근 편성 · 이미 추가한 선수는 유지돼요</small></div>}
       <input className="fm-search" aria-label="선수 검색" placeholder="이름을 검색해서 참석자를 추가하세요" value={query} onChange={e => setQuery(e.target.value)} />
       {query.trim() && !loading && <div className="fm-search-results" aria-label="선수 검색 결과">
         {searchResults.length ? searchResults.map(p => <button key={p.id} aria-label={`${p.name} 참석자 추가`} onClick={() => { setSelected(ids => ids.includes(p.id) ? ids : [...ids, p.id]); setQuery(''); }}><strong>{p.name}</strong><span>+ 추가</span></button>) : <p role="status">추가할 선수가 없어요. 이름을 확인하거나 이미 추가된 참석자를 확인해 주세요.</p>}
@@ -152,9 +166,9 @@ export default function Formation() {
       <details className="fm-settings"><summary>편성 설정</summary><label>팀 변경<select value={mode} onChange={e => setMode(e.target.value)}><option value="half">2쿼터 후 재편성</option><option value="quarter">매 쿼터 재편성</option><option value="fixed">팀 최대한 유지</option></select></label><p>11대11 · 4쿼터 · 균등 출전 우선. 교체 인원에 따라 팀이 일부 조정될 수 있어요.</p></details>
       <div className="fm-bottom"><span>{attendees.length}명 참석 · 쿼터당 {Math.max(0, attendees.length - 22)}명 휴식</span><button className="fm-primary" disabled={loading || attendees.length < 22} onClick={build}>4쿼터 팀 짜기</button></div>
     </> : <>
-      <div className="fm-tools"><button onClick={() => { setPlan(null); setSource(null); }}>← 참석자 수정</button><span>{planRoster.length}명 · 11대11</span></div>
+      <div className="fm-tools"><button onClick={() => { setPlan(null); setSource(null); setHistory([]); }}>← 참석자 수정</button><span>{planRoster.length}명 · 11대11</span></div>
       <div className="fm-tabs" role="tablist">{[0, 1, 2, 3].map(i => <button key={i} role="tab" aria-selected={quarter === i} className={quarter === i ? 'active' : ''} onClick={() => { setQuarter(i); setSource(null); }}>{i + 1}Q</button>)}</div>
-      <div className="fm-tools" aria-label="4쿼터 이미지 다운로드"><button disabled={exporting} onClick={() => downloadImage('a')}>A팀 4쿼터 이미지 ↓</button><button disabled={exporting} onClick={() => downloadImage('b')}>B팀 4쿼터 이미지 ↓</button></div>
+      <div className="fm-tools" aria-label="편성 수정과 공유"><button disabled={!history.length} onClick={undo}>↶ 수정 되돌리기</button><button onClick={() => setShareTeam('a')}>공유 이미지 보기</button></div>
       {planRoster.some(p => !profiles[p.id]) && <p className="fm-warning">미입력 선수는 기본 2점이에요. 정확한 편성을 위해 능력치를 입력해 주세요.</p>}
       {['a', 'b'].some(team => !current[team].slots.some(s => s.position === '골키퍼' && planRoster.find(p => p.id === s.playerId)?.goalkeeper)) && <p className="fm-warning">골키퍼 배치를 확인해 주세요. 가능 선수가 부족하거나 직접 수정한 배치일 수 있어요.</p>}
       <FormationBoard key={quarter} quarter={current} named={named} roster={planRoster} source={source} onSelect={swap} onExchange={exchange} />
@@ -163,5 +177,6 @@ export default function Formation() {
       <details className="fm-settings"><summary>선수별 출전 횟수 보기</summary>{planRoster.map(p => <div className="fm-count" key={p.id}><span>{p.name}</span><b>{counts[p.id]} / 4쿼터</b></div>)}</details>
       <div className="fm-bottom"><button onClick={reposition}>이 쿼터 자리 재배치</button><button className="fm-primary" disabled={saving} onClick={savePlan}>{saving ? '저장 중…' : '편성 확정·저장'}</button></div>
     </>}
+    {shareTeam && <FormationSharePreview plan={plan} initialTeam={shareTeam} onClose={() => setShareTeam(null)} />}
   </main>;
 }

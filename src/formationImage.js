@@ -1,7 +1,7 @@
 import { PITCH_LAYOUTS } from './components/FormationBoard';
 
 // Render the saved slots directly so manual exchanges and locks are reflected.
-export async function downloadFormationImage(plan, team, named) {
+export async function createFormationImage(plan, team, named) {
   const canvas = document.createElement('canvas');
   canvas.width = 1440;
   const ctx = canvas.getContext('2d');
@@ -58,9 +58,13 @@ export async function downloadFormationImage(plan, team, named) {
   });
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('이미지 생성에 실패했어요. 다시 시도해 주세요.');
+  return { blob, filename: `SOOPFC-${team.toUpperCase()}팀-4쿼터-${day.replace(/\D/g, '')}.png` };
+}
+
+export function downloadImageBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a'); link.href = url;
-  link.download = `SOOPFC-${team.toUpperCase()}팀-4쿼터-${day.replace(/\D/g, '')}.png`;
+  link.download = filename;
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
