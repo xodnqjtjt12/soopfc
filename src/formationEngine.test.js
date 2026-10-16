@@ -1,4 +1,4 @@
-import { generatePlan, POSITIONS, normalizeProfile, exchangePlayers } from './formationEngine';
+import { generatePlan, POSITIONS, normalizeProfile, exchangePlayers, changeFormation, placeTeam, quarterShortages } from './formationEngine';
 const makePlayers = count => Array.from({ length: count }, (_, i) => ({ id: String(i), stats: [i % 5 + 1, (i * 3) % 5 + 1, 3, 4], statScale: 5, preferences: [POSITIONS[i % 5], ''], goalkeeper: i < 4 }));
 test('converts legacy ratings once and defaults missing ratings to 2', () => {
   const converted = normalizeProfile({ stats: [1, 5, 8, 10] });
@@ -60,4 +60,46 @@ test('locked players cannot be exchanged as source or destination', () => {
   const locked = { team: 'a', index: 0 }, other = { team: 'b', index: 0 };
   expect(() => exchangePlayers(plan, 0, locked, other)).toThrow('고정');
   expect(() => exchangePlayers(plan, 0, other, locked)).toThrow('고정');
+});
+test('availability is enforced and unavailable players are distinct from resting players', () => {
+  const players = makePlayers(26).map((p, i) => ({ ...p, availableQuarters: i < 4 ? [0, 1] : i < 8 ? [2, 3] : [0, 1, 2, 3] }));
+  const plan = generatePlan(players, 'half', seeded());
+  plan.quarters.forEach((round, q) => {
+    expect(round.bench).toEqual([]);
+    expect(round.unavailable).toHaveLength(4);
+    const active = [...round.a.slots, ...round.b.slots].map(s => s.playerId);
+    active.forEach(id => expect(players.find(p => p.id === id).availableQuarters).toContain(q));
+    expect(new Set([...active, ...round.bench, ...round.unavailable]).size).toBe(26);
+  });
+  expect(Object.values(plan.counts).reduce((a, b) => a + b, 0)).toBe(88);
+});
+test('insufficient availability reports the affected quarter before generating a plan', () => {
+  const players = makePlayers(22); players[0].availableQuarters = [1, 2, 3];
+  expect(quarterShortages(players)).toEqual([1, 0, 0, 0]);
+  expect(() => generatePlan(players)).toThrow('1Q 1명 부족');
+});
+test('manual formation change preserves members, rest, other team and all-quarter scope', () => {
+  const players = makePlayers(26), plan = { ...generatePlan(players, 'half', seeded()), roster: players };
+  const edited = changeFormation(plan, 0, 'a', '4-4-2', true);
+  edited.quarters.forEach((round, q) => {
+    expect(round.a.formation).toBe('4-4-2');
+    expect(round.a.slots.map(s => s.playerId).sort()).toEqual(plan.quarters[q].a.slots.map(s => s.playerId).sort());
+    expect(round.b).toEqual(plan.quarters[q].b);
+    expect(round.bench).toEqual(plan.quarters[q].bench);
+  });
+});
+test('incompatible locked roles reject a formation change without partial edits', () => {
+  const players = makePlayers(22), plan = { ...generatePlan(players, 'half', seeded()), roster: players };
+  const teamPlayers = players.filter(p => plan.quarters[1].a.slots.some(s => s.playerId === p.id));
+  plan.quarters[1].a = placeTeam(teamPlayers, '4-4-2');
+  plan.quarters[1].a.slots.filter(s => s.position === '공격수').forEach(s => { s.locked = true; });
+  const before = JSON.stringify(plan);
+  expect(() => changeFormation(plan, 0, 'a', '4-3-3', true)).toThrow('2Q');
+  expect(JSON.stringify(plan)).toBe(before);
+});
+test('compatible locked players keep their position and same slot when possible', () => {
+  const players = makePlayers(22), plan = { ...generatePlan(players, 'half', seeded()), roster: players };
+  const locked = plan.quarters[0].a.slots[3]; locked.locked = true;
+  const edited = changeFormation(plan, 0, 'a', '4-4-2');
+  expect(edited.quarters[0].a.slots[3]).toEqual(locked);
 });

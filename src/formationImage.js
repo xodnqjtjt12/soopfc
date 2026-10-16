@@ -15,7 +15,8 @@ export async function createFormationImage(plan, team, named) {
   };
   const day = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const benchRows = Math.max(1, ...plan.quarters.map(q => Math.ceil(q.bench.length / 4)));
-  const cardHeight = 820 + benchRows * 32;
+  const unavailableRows = Math.max(0, ...plan.quarters.map(q => Math.ceil((q.unavailable || []).length / 4)));
+  const cardHeight = 820 + benchRows * 32 + (unavailableRows ? 50 + unavailableRows * 32 : 0);
   canvas.height = 250 + cardHeight * 2 + 24;
   ctx.fillStyle = '#f3f6f2'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   text('SOOP FC · MATCH DAY', 60, 60, 20, '#48735c', 700);
@@ -55,6 +56,11 @@ export async function createFormationImage(plan, team, named) {
     text('휴식 (전체 참석자)', x + 24, y + 802, 19, '#66796c', 600);
     if (!quarter.bench.length) text('없음 · 모두 출전', x + 235, y + 802, 19, '#66796c');
     quarter.bench.forEach((id, i) => text(named(id), x + 24 + (i % 4) * 154, y + 835 + Math.floor(i / 4) * 32, 19, '#20362c', 400, 'left', 145));
+    if (quarter.unavailable?.length) {
+      const start = y + 835 + benchRows * 32;
+      text('이번 쿼터 참여 불가', x + 24, start, 19, '#8d6036', 600);
+      quarter.unavailable.forEach((id, i) => text(named(id), x + 24 + (i % 4) * 154, start + 32 + Math.floor(i / 4) * 32, 19, '#66796c', 400, 'left', 145));
+    }
   });
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('이미지 생성에 실패했어요. 다시 시도해 주세요.');

@@ -60,3 +60,29 @@ test('last roster adds only registered players and preserves current attendees w
   const saved = JSON.parse(localStorage.getItem('soopfc-formation-v1'));
   expect(saved.selected).toEqual(['0', '1']);
 });
+test('exception-only availability settings prevent a short-handed quarter', async () => {
+  localStorage.setItem('soopfc-formation-v1', JSON.stringify({ selected: roster.slice(0, 22).map(p => p.id) }));
+  await act(async () => { render(<Formation />); });
+  fireEvent.click(screen.getByRole('button', { name: '선수0 출전 설정' }));
+  fireEvent.click(screen.getByRole('button', { name: '선수0 1Q 출전 가능' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('1Q 1명 부족');
+  expect(screen.getByRole('button', { name: '4쿼터 팀 짜기' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: '선수0 1Q 출전 가능' }));
+  expect(screen.getByRole('button', { name: '4쿼터 팀 짜기' })).toBeEnabled();
+});
+test('formation selection is undoable and match day view advances quarters without editing controls', async () => {
+  await renderPlan();
+  const original = screen.getByLabelText('A팀 포메이션').value;
+  const target = original === '4-4-2' ? '4-3-3' : '4-4-2';
+  fireEvent.change(screen.getByLabelText('A팀 포메이션'), { target: { value: target } });
+  expect(screen.getByLabelText('A팀 포메이션')).toHaveValue(target);
+  fireEvent.click(screen.getByRole('button', { name: /수정 되돌리기/ }));
+  expect(screen.getByLabelText('A팀 포메이션')).toHaveValue(original);
+  fireEvent.click(screen.getByRole('button', { name: '경기 당일 보기' }));
+  expect(screen.queryByLabelText('A팀 포메이션')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '공유 이미지 보기' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '다음 쿼터 →' }));
+  expect(screen.getByRole('heading', { name: '지금은 2쿼터' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '편집으로 돌아가기' }));
+  expect(screen.getByLabelText('A팀 포메이션')).toBeInTheDocument();
+});

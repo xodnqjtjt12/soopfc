@@ -7,7 +7,7 @@ export const PITCH_LAYOUTS = {
   '4-2-3-1': [[50,88],[14,69],[38,72],[62,72],[86,69],[35,53],[65,53],[18,33],[50,34],[82,33],[50,15]],
 };
 
-export default function FormationBoard({ quarter, named, roster, source, onSelect, onExchange }) {
+export default function FormationBoard({ quarter, named, roster, source, onSelect, onExchange, onFormationChange, readOnly = false }) {
   const gesture = useRef(null);
   const suppressClick = useRef(false);
   const [drag, setDrag] = useState(null);
@@ -23,7 +23,7 @@ export default function FormationBoard({ quarter, named, roster, source, onSelec
   const token = (loc, id, position, locked, coordinate) => {
     const selected = source && key(source) === key(loc);
     const number = roster.find(p => p.id === id)?.backNumber ?? '·';
-    return <button key={key(loc)} type="button" data-fm-slot={key(loc)}
+    return <button key={key(loc)} type="button" data-fm-slot={key(loc)} disabled={readOnly}
       aria-label={`${loc.team === 'bench' ? '휴식' : loc.team.toUpperCase() + '팀'} ${position || ''} ${named(id)}${locked ? ' 고정됨' : ''}`}
       aria-pressed={Boolean(selected)}
       className={`${coordinate ? 'fm-field-player' : 'fm-bench-player'} ${selected ? 'picked' : ''} ${over === key(loc) ? 'fm-drop-over' : ''} ${locked ? 'fm-locked' : ''}`}
@@ -66,15 +66,16 @@ export default function FormationBoard({ quarter, named, roster, source, onSelec
     </button>;
   };
   return <>
-    <p className="fm-drag-hint">선수를 다른 선수 위로 끌어서 교환하세요. 두 명을 차례로 눌러도 돼요.</p>
+    {!readOnly && <p className="fm-drag-hint">선수를 다른 선수 위로 끌어서 교환하세요. 두 명을 차례로 눌러도 돼요.</p>}
     <div className="fm-teams fm-field-teams">{['a', 'b'].map(team => <section className={`fm-team fm-team-${team} fm-field-team`} key={team}>
-      <h2><span><i className="fm-team-dot" />{team.toUpperCase()}팀</span><small>{quarter[team].formation}</small></h2>
+      <h2><span><i className="fm-team-dot" />{team.toUpperCase()}팀</span>{readOnly ? <small>{quarter[team].formation}</small> : <select aria-label={`${team.toUpperCase()}팀 포메이션`} value={quarter[team].formation} onChange={e => onFormationChange(team, e.target.value)}><option value="auto">자동 추천</option>{Object.keys(PITCH_LAYOUTS).map(shape => <option key={shape}>{shape}</option>)}</select>}</h2>
       <div className="fm-football-pitch">
         <div className="fm-field-lines" aria-hidden="true"><div className="fm-half-line" /><div className="fm-center-circle" /><div className="fm-penalty fm-penalty-top" /><div className="fm-penalty fm-penalty-bottom" /><div className="fm-goal-area fm-penalty-top" /><div className="fm-goal-area fm-penalty-bottom" /></div>
         {quarter[team].slots.map((slot, index) => token({ team, index }, slot.playerId, slot.position, slot.locked, (PITCH_LAYOUTS[quarter[team].formation] || PITCH_LAYOUTS['4-3-3'])[index]))}
       </div>
     </section>)}</div>
     <section className="fm-rest"><h3>이번 쿼터 휴식 · {quarter.bench.length}명</h3><div className="fm-bench-list">{quarter.bench.length ? quarter.bench.map((id, index) => token({ team: 'bench', index }, id, null, false)) : <p>모두 출전해요.</p>}</div></section>
+    {quarter.unavailable?.length > 0 && <section className="fm-unavailable"><h3>이번 쿼터 참여 불가 · {quarter.unavailable.length}명</h3><p>{quarter.unavailable.map(named).join(' · ')}</p></section>}
     {drag && <div className="fm-drag-ghost" style={{ left: drag.x, top: drag.y }} aria-hidden="true">{drag.name}</div>}
   </>;
 }
