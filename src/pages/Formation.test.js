@@ -86,3 +86,29 @@ test('formation selection is undoable and match day view advances quarters witho
   fireEvent.click(screen.getByRole('button', { name: '편집으로 돌아가기' }));
   expect(screen.getByLabelText('A팀 포메이션')).toBeInTheDocument();
 });
+test('guests join the attendee list without writing a member record', async () => {
+  await act(async () => { render(<Formation />); });
+  fireEvent.click(screen.getByRole('button', { name: '+ 용병 추가' }));
+  fireEvent.change(screen.getByLabelText('용병 이름'), { target: { value: '테스트용병' } });
+  fireEvent.click(screen.getByRole('button', { name: '오늘 참석자로 추가' }));
+  expect(screen.getByRole('button', { name: '테스트용병 참석자 제외' })).toBeInTheDocument();
+  const saved = JSON.parse(localStorage.getItem('soopfc-formation-v1'));
+  expect(saved.guests[0].isGuest).toBe(true);
+  expect(saved.profiles[saved.guests[0].id].stats).toEqual([2, 2, 2, 2]);
+});
+test('manual empty-slot selection and auto completion preserve the placed player', async () => {
+  localStorage.setItem('soopfc-formation-v1', JSON.stringify({ selected: roster.map(p => p.id) }));
+  await act(async () => { render(<Formation />); });
+  fireEvent.click(screen.getByRole('button', { name: '직접 배치하기' }));
+  expect(screen.getByRole('button', { name: '편성 확정·저장' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '공유 이미지 보기' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'A팀 골키퍼 빈자리', exact: true }));
+  const picker = screen.getByRole('dialog');
+  fireEvent.click(within(picker).getByRole('button', { name: '선수0', exact: true }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '이 쿼터 빈자리 자동 채우기' }));
+  expect(screen.getByRole('button', { name: 'A팀 골키퍼 선수0', exact: true })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '나머지 쿼터 자동 완성' }));
+  expect(screen.getByRole('button', { name: '편성 확정·저장' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '공유 이미지 보기' })).toBeEnabled();
+});

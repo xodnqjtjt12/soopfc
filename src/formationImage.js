@@ -1,7 +1,9 @@
 import { PITCH_LAYOUTS } from './components/FormationBoard';
+import { isPlanComplete } from './manualFormation';
 
 // Render the saved slots directly so manual exchanges and locks are reflected.
 export async function createFormationImage(plan, team, named) {
+  if (!isPlanComplete(plan)) throw new Error('4쿼터를 모두 채운 뒤 이미지를 만들 수 있어요.');
   const canvas = document.createElement('canvas');
   canvas.width = 1440;
   const ctx = canvas.getContext('2d');

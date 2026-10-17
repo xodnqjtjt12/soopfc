@@ -81,7 +81,7 @@ export function changeFormation(plan, quarterIndex, team, formation, allQuarters
   return copy;
 }
 export function totals(slots, players) {
-  return slots.reduce((sum, slot) => sum.map((v, i) => v + players.find(p => p.id === slot.playerId).stats[i]), [0, 0, 0, 0]);
+  return slots.reduce((sum, slot) => sum.map((v, i) => v + (players.find(p => p.id === slot.playerId)?.stats[i] || 0)), [0, 0, 0, 0]);
 }
 function splitScore(a, b) {
   const sums = team => team.reduce((s, p) => s.map((v, i) => v + p.stats[i]), [0, 0, 0, 0]);
