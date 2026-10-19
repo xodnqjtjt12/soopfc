@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import Formation from './Formation';
 import { generatePlan } from '../formationEngine';
 import { createFormationImage, downloadImageBlob } from '../formationImage';
+import { generateAIPlan } from '../aiFormation';
+jest.mock('../aiFormation', () => ({ generateAIPlan: jest.fn() }));
 
 jest.mock('../firebaseConfig', () => ({ db: {} }));
 jest.mock('firebase/firestore', () => ({
@@ -13,6 +15,17 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('../formationImage', () => ({ createFormationImage: jest.fn(), downloadImageBlob: jest.fn() }));
 const roster = Array.from({ length: 26 }, (_, i) => ({ id: String(i), name: `선수${i}`, stats: [2, 2, 2, 2], statScale: 5, preferences: ['중앙미드필더', ''], goalkeeper: i < 2 }));
 const plan = { ...generatePlan(roster), roster };
+test('AI generation displays model reason and does not persist the access code', async () => {
+  localStorage.setItem('soopfc-formation-v1', JSON.stringify({ selected: roster.map(p => p.id) }));
+  generateAIPlan.mockResolvedValue({ ...plan, source: 'gemini', quarters: plan.quarters.map(q => ({ ...q, reason: 'AI 전술 설명 테스트' })) });
+  await act(async () => { render(<Formation />); });
+  await waitFor(() => expect(screen.getByRole('button', { name: '4쿼터 팀 짜기' })).toBeEnabled());
+  fireEvent.change(screen.getByLabelText('AI 이용 코드'), { target: { value: 'private-access-code' } });
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 팀 짜기' }));
+  expect(await screen.findByText('AI 전술 설명 테스트')).toBeInTheDocument();
+  expect(generateAIPlan).toHaveBeenCalledWith(expect.any(Array), 'half', 'private-access-code');
+  expect(localStorage.getItem('soopfc-formation-v1')).not.toContain('private-access-code');
+});
 beforeEach(() => {
   localStorage.clear(); jest.clearAllMocks();
   URL.createObjectURL = jest.fn(() => 'blob:preview');

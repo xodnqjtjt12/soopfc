@@ -8,6 +8,7 @@ import FormationMatchDay from '../components/FormationMatchDay';
 import FormationPlayerPicker from '../components/FormationPlayerPicker';
 import { createManualPlan, isQuarterComplete, isPlanComplete, assignManualPlayer, fillManualQuarters, copyQuarter, refreshPlan, changePartialFormation } from '../manualFormation';
 import './Formation.css';
+import { generateAIPlan } from '../aiFormation';
 
 const KEY = 'soopfc-formation-v1';
 const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -48,6 +49,17 @@ export default function Formation() {
   const [guestGoalkeeper, setGuestGoalkeeper] = useState(false);
   const [picker, setPicker] = useState(null);
   const [copyTargets, setCopyTargets] = useState([]);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiCode, setAiCode] = useState('');
+  const buildAI = async () => {
+    setAiBusy(true); setMessage('AI가 4쿼터 팀과 포메이션을 구상하고 있어요…');
+    try {
+      const result = await generateAIPlan(attendees, mode, aiCode);
+      setPlan(result); setHistory([]); setLastRoster(attendees.map(p => p.id));
+      setQuarter(0); setSource(null); setMessage('AI 편성을 완성했어요. 출전 횟수와 배치를 확인하고 직접 수정할 수 있어요.');
+    } catch (error) { setMessage(error.message); }
+    finally { setAiBusy(false); }
+  };
   useEffect(() => {
     let cancelled = false;
     Promise.allSettled([getDocs(collection(db, 'players')), getDocs(collection(db, 'formationProfiles'))])
@@ -189,7 +201,7 @@ export default function Formation() {
   return <main className="formation">
     <header><span className="fm-eyebrow">SOOP FC · MATCH DAY</span><h1>오늘의 팀 짜기</h1><p>참석자만 고르면, 4쿼터 준비 끝.</p></header>
     <div role="status" className="fm-message">{message}</div>
-    {!plan ? <>
+    {!plan ? <fieldset className="fm-input-section" disabled={aiBusy} aria-busy={aiBusy}>
       <div className="fm-section-title"><h2>누가 함께 뛰나요?</h2><span>{attendees.length}명</span></div>
       {lastRoster.length > 0 && <div className="fm-last-roster"><button disabled={loading} onClick={loadLastRoster}>지난 명단 불러오기</button><small>이 기기의 최근 편성 · 이미 추가한 선수는 유지돼요</small></div>}
       <input className="fm-search" aria-label="선수 검색" placeholder="이름을 검색해서 참석자를 추가하세요" value={query} onChange={e => setQuery(e.target.value)} />
@@ -216,8 +228,9 @@ export default function Formation() {
       </div>)}</div>
       <details className="fm-settings"><summary>편성 설정</summary><label>팀 변경<select value={mode} onChange={e => setMode(e.target.value)}><option value="half">2쿼터 후 재편성</option><option value="quarter">매 쿼터 재편성</option><option value="fixed">팀 최대한 유지</option></select></label><p>11대11 · 4쿼터 · 균등 출전 우선. 교체 인원에 따라 팀이 일부 조정될 수 있어요.</p></details>
       {attendees.length >= 22 && shortages.some(Boolean) && <p role="alert" className="fm-warning">{shortages.map((n, q) => n ? `${q + 1}Q ${n}명 부족` : '').filter(Boolean).join(' · ')}. 출전 설정이나 참석자를 확인해 주세요.</p>}
-      <div className="fm-bottom"><span>{attendees.length}명 참석</span><button disabled={loading || !attendees.length} onClick={startManual}>직접 배치하기</button><button className="fm-primary" disabled={loading || shortages.some(Boolean)} onClick={build}>4쿼터 팀 짜기</button></div>
-    </> : <>
+      <details className="fm-settings"><summary>AI 편성 이용 설정</summary><label>AI 이용 코드<input type="password" autoComplete="off" value={aiCode} onChange={e => setAiCode(e.target.value)} placeholder="운영자에게 받은 코드" /></label><p>이름을 제외한 능력치·선호 포지션·출전 설정만 Gemini에 보내요. 무료 서비스의 입력과 응답은 Google 제품 개선에 사용될 수 있어요. 코드는 이 기기에 저장하지 않아요.</p></details>
+      <div className="fm-bottom"><span>{attendees.length}명 참석</span><button disabled={loading || !attendees.length} onClick={startManual}>직접 배치하기</button><button disabled={loading || shortages.some(Boolean)} onClick={build}>4쿼터 팀 짜기</button><button className="fm-primary" disabled={loading || shortages.some(Boolean) || !aiCode.trim()} onClick={buildAI}>{aiBusy ? 'AI 편성 중…' : 'AI로 팀 짜기'}</button></div>
+    </fieldset> : <>
       <div className="fm-tools"><button onClick={() => { setPlan(null); setSource(null); setHistory([]); }}>← 참석자 수정</button><span>{planRoster.length}명 · 11대11</span></div>
       <div className="fm-tabs" role="tablist">{[0, 1, 2, 3].map(i => <button key={i} role="tab" aria-selected={quarter === i} className={quarter === i ? 'active' : ''} onClick={() => { setQuarter(i); setSource(null); }}>{i + 1}Q</button>)}</div>
       <div className="fm-tools" aria-label="편성 수정과 공유"><button disabled={!history.length} onClick={undo}>↶ 수정 되돌리기</button><button disabled={!complete} onClick={() => setShareTeam('a')}>공유 이미지 보기</button><button disabled={!complete} onClick={() => { setSource(null); setMatchDay(true); }}>경기 당일 보기</button></div>
@@ -229,7 +242,7 @@ export default function Formation() {
       <FormationBoard key={quarter} quarter={current} named={named} roster={planRoster} source={source} onSelect={swap} onExchange={exchange} onFormationChange={selectFormation} />
       {source && <div className="fm-selection"><span>교환할 선수나 빈자리를 누르세요.</span>{source.team !== 'bench' && <><button onClick={toggleLock}>고정 / 해제</button><button onClick={() => assign(source, null)}>배치 해제</button></>}<button onClick={() => setSource(null)}>취소</button></div>}
       {picker && <FormationPlayerPicker title={`${picker.team.toUpperCase()}팀 · ${current[picker.team].slots[picker.index].position}`} players={planRoster.filter(p => current.bench.includes(p.id))} onPick={id => assign(picker, id)} onClose={() => setPicker(null)} />}
-      <details className="fm-settings"><summary>밸런스와 편성 이유 보기</summary><p>능력치와 선호 포지션을 이용한 자동 계산 설명이에요. 생성형 AI는 아직 연결되지 않았어요.</p><table><thead><tr><th>능력치 합계</th><th>A팀</th><th>B팀</th><th>차이</th></tr></thead><tbody>{STATS.map((s, i) => <tr key={s}><th>{s}</th><td>{aTotals[i]}</td><td>{bTotals[i]}</td><td>{Math.abs(aTotals[i] - bTotals[i])}</td></tr>)}</tbody></table><p>공격·수비·지능·피지컬 차이를 줄이는 팀 조합을 탐색하고, 선호 포지션과 포지션별 능력치에 맞춰 포메이션을 골랐어요. 수동 수정 후에는 현재 배치의 합계를 표시해요.</p>{['a', 'b'].map(team => !current[team].slots.some(s => s.position === '골키퍼' && planRoster.find(p => p.id === s.playerId)?.goalkeeper) && <p className="fm-warning" key={team}>{team.toUpperCase()}팀은 골키퍼 가능 선수가 골키퍼 자리에 없어요. 직접 지정해 주세요.</p>)}</details>
+      <details className="fm-settings"><summary>밸런스와 편성 이유 보기</summary>{plan.source === 'gemini' ? <><p>Gemini가 생성한 최초 편성 이유예요. 수동 수정 후에는 실제 배치와 다를 수 있어요.</p><p>{current.reason}</p></> : <p>능력치와 선호 포지션을 이용한 기본 자동 계산 설명이에요.</p>}<table><thead><tr><th>능력치 합계</th><th>A팀</th><th>B팀</th><th>차이</th></tr></thead><tbody>{STATS.map((s, i) => <tr key={s}><th>{s}</th><td>{aTotals[i]}</td><td>{bTotals[i]}</td><td>{Math.abs(aTotals[i] - bTotals[i])}</td></tr>)}</tbody></table><p>공격·수비·지능·피지컬 차이를 줄이는 팀 조합을 탐색하고, 선호 포지션과 포지션별 능력치에 맞춰 포메이션을 골랐어요. 수동 수정 후에는 현재 배치의 합계를 표시해요.</p>{['a', 'b'].map(team => !current[team].slots.some(s => s.position === '골키퍼' && planRoster.find(p => p.id === s.playerId)?.goalkeeper) && <p className="fm-warning" key={team}>{team.toUpperCase()}팀은 골키퍼 가능 선수가 골키퍼 자리에 없어요. 직접 지정해 주세요.</p>)}</details>
       <details className="fm-settings"><summary>선수별 출전 횟수 보기</summary>{planRoster.map(p => <div className="fm-count" key={p.id}><span>{p.name}</span><b>{counts[p.id]} / 4쿼터</b></div>)}</details>
       <div className="fm-bottom"><button onClick={reposition}>이 쿼터 자리 재배치</button><button className="fm-primary" disabled={saving || !complete} onClick={savePlan}>{saving ? '저장 중…' : '편성 확정·저장'}</button></div>
     </>}
