@@ -121,6 +121,7 @@ const Header = () => {
       </Logo>
       <Hamburger onClick={() => setMenuOpen(!menuOpen)}>☰</Hamburger>
       <NavMenu open={menuOpen}>
+        <NavLinkStyled to="/admin/formation" onClick={handleNavClick}>팀 짜기</NavLinkStyled>
         <NavLinkStyled to="/top" onClick={handleNavClick}>
           Award<br />
         </NavLinkStyled>

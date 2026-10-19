@@ -37,6 +37,7 @@ import KingAdmin from './pages/KingAdmin'      // 회장 추천 홈 노출 관�
 
 // Components
 import Header from './components/Header';
+import Formation from './pages/Formation';
 
 // Firebase 설정 (당신의 실제 키 그대로)
 const firebaseConfig = {
@@ -69,6 +70,7 @@ function App() {
       <Header />
       <AppContainer>
         <Routes>
+          <Route path="/admin/formation" element={<Formation />} />
           {/* 메인 사이트 라우트 */}
           <Route path="/" element={<Home />} />
           <Route path="/announcements" element={<Announcements />} />
